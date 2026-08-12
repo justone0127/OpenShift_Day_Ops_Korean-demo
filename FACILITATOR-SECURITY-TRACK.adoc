@@ -308,7 +308,8 @@ NOTE: 이 권한이 없으면 해당 명령에서 `Forbidden` 이 납니다.
 ====
 
 NOTE: RHACS 정책의 Enforcement 설정은 스크립트가 되돌리지 않습니다.
-콘솔에서 *Policy Management* → *Latest tag* → *Response method* → `Inform only` 로 수동 복원하십시오.
+콘솔에서 *Policy Management* → *Latest tag* → *Edit policy* → *Policy behavior* → *Actions* →
+*Enforcement* 를 `Inform` 으로 되돌리십시오.
 
 == 진행 시 주의점
 

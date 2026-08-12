@@ -504,7 +504,7 @@ do_cleanup_all() {
   hr
   log "정리 완료. 이제 $0 deploy <인원수> 로 새로 구성할 수 있습니다."
   log "RHACS 정책의 Enforcement 설정은 콘솔에서 수동으로 되돌려야 합니다"
-  log "  (Policy Management → Latest tag → Response method → Inform only)"
+  log "  (Policy Management → Latest tag → Edit policy → Policy behavior → Actions → Enforcement → Inform)"
   hr
 }
 
