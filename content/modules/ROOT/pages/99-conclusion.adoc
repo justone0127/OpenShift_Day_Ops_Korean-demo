@@ -98,14 +98,5 @@ include::partial$nrp-assets.adoc[]
 나루페이를 무너뜨린 것은 정교한 공격이 아니었습니다. `latest` 태그, 평문 환경변수,
 IP 기반 신뢰 — **세 가지 모두 "나중에 고치자"에 있던 항목**이었습니다.
 
-더 알아보려면 Red Hat의 https://github.com/validatedpatterns/layered-zero-trust[Layered Zero Trust Validated Pattern]을 참고하십시오.
-이 트랙에서 다룬 세 요소가 하나의 검증된 참조 아키텍처로 통합되어 있습니다.
-
-== 추가 리소스
-
-* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20[OpenShift Documentation, window=blank]
-* link:https://developers.redhat.com/learn/openshift[OpenShift Learning, window=blank]
-* link:https://www.redhat.com/en/services/training-and-certification[Red Hat Training & Certification, window=blank]
-
 **OpenShift Ops Day Roadshow에 참석해 주셔서 감사합니다.**
 추가적인 질문이 있으신 경우 강사에게 문의해 주십시오.
