@@ -220,6 +220,32 @@ NOTE: RHACS 정책의 Enforcement 설정은 스크립트가 되돌리지 않습�
   참가자가 "안 보여요"라고 하면 먼저 새로고침을 안내하십시오.
 * **정책 이름은 RHACS 버전마다 조금씩 다릅니다.** 가이드에도 명시했지만,
   `Latest tag` 는 검색창에 `latest` 로 찾도록 안내하는 것이 안전합니다.
+* **Vulnerability Management 메뉴 구조도 버전마다 다릅니다.**
++
+--
+[cols="1,2",options="header"]
+|===
+| 버전 | 경로
+
+| 최신
+| *Vulnerability Management* → *Results* → 상단 *User Workloads* 탭
+  → 보기 전환에서 *Deployments*
+
+| 이전
+| *Vulnerability Management* → *Workloads*
+|===
+
+가이드에는 두 경우를 모두 적어 두었습니다. 도착하는 화면은 같습니다.
+
+**기본 필터 3개(`Critical`, `Important`, `Fixable`)가 걸린 상태로 열립니다.**
+참가자가 "숫자가 왜 이렇게 적죠?"라고 물으면 *Clear filters* 를 눌러 보게 하십시오.
+이 기본값 자체가 "전부 나열하지 않고 먼저 손댈 것부터 보여 준다"는 RHACS 의 관점이라,
+설명 소재로 쓰기 좋습니다.
+--
+* **취약/강화 버전의 CVE 개수 차이가 크지 않을 수 있습니다.** 둘 다 UBI9 계열이라
+  구조적으로 그렇습니다. 이 단계의 논지는 개수가 아니라 *"`latest` 는 내일 결과가 달라진다"*
+  이므로, 숫자에 시선이 쏠리면 그쪽으로 돌려 주십시오.
+  더 확실한 대비는 1단계의 *Violations* 목록에서 이미 보여 줬습니다.
 * **정책이 Disabled 상태일 수 있습니다.** Enforce로 바꾸기 전에 Enable부터 확인시키십시오.
 * **차단 시연이 실패하는 경우** — 대부분 admission controller 문제입니다:
 +
