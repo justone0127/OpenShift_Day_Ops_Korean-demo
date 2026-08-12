@@ -169,16 +169,20 @@ RHACS 버전에 따라 이 메뉴 이름이 다릅니다. *Results* 가 보이�
 . 화면에 *140 CVEs* / *19 Images* / *17 Deployments* 같은 **보기 전환 버튼**이 있습니다.
   *Deployments* 를 클릭해 워크로드 단위로 봅니다.
 +
-. 검색창에 `payment-api` 를 입력하고 Enter 를 누릅니다.
+. 검색 조건을 *Deployment* → *Name* 으로 두고 검색창에 `pay` 를 입력합니다.
+  자동완성 후보가 무엇이 뜨는지 보십시오.
 +
 [IMPORTANT]
-.`payment-api` 가 목록에 없고 `payment-api-secure` 만 보일 수 있습니다
+.`payment-api-secure` 만 뜨고 `payment-api` 는 후보에도 없습니다
 ====
 정상입니다. 그리고 **이 단계에서 가장 중요한 관찰**입니다.
 
+지금 걸려 있는 필터(`Critical/Important` + `Fixable`)를 만족하는 워크로드만
+검색 후보에 오릅니다. 즉 `payment-api` 는 **조건에 걸리는 CVE 가 하나도 없어서**
+목록은 물론 자동완성에서도 빠진 것입니다.
+
 `payment-api` 는 `ubi9/ubi:latest` 를 씁니다. Red Hat 은 이 태그를 계속 다시 빌드하므로,
-오늘 받아 온 `latest` 는 **최근에 패치된 이미지**입니다. 그래서 심각도 높은 Fixable CVE 가
-없어 필터에서 빠질 수 있습니다.
+오늘 받아 온 `latest` 는 **최근에 패치된 이미지**입니다.
 
 반대로 `payment-api-secure` 는 `ubi9/ubi:9.4` 로 **고정**되어 있습니다.
 그 시점에 멈춰 있으니 시간이 지날수록 CVE 가 쌓입니다.
@@ -186,8 +190,11 @@ RHACS 버전에 따라 이 메뉴 이름이 다릅니다. *Results* 가 보이�
 즉 **"latest 가 더 깨끗하고 고정 태그가 더 지저분한" 상태가 지금 나타날 수 있습니다.**
 ====
 +
-. *Clear filters* 를 눌러 필터를 모두 해제하고 다시 검색합니다.
-  이제 두 워크로드가 모두 보입니다.
+. *Clear filters* 를 눌러 필터를 모두 해제합니다.
++
+NOTE: 방금 검색으로 걸린 `Deployment name` 필터도 함께 지워집니다. 다시 입력하십시오.
++
+. 검색창에 `pay` 를 다시 입력합니다. 이번에는 **두 워크로드가 모두** 후보에 나타납니다.
 +
 . 각 행을 클릭해 상세 화면에서 다음을 확인하십시오:
 +
