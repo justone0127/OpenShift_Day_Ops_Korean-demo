@@ -240,32 +240,41 @@ NOTE: 이 권한이 없으면 해당 명령에서 `Forbidden` 이 납니다.
 추가 계정은 `EXTRA_USERS` 로 바꿀 수 있습니다.
 
 [IMPORTANT]
-.가이드에 사용자 이름을 알려 줘야 합니다
+.참가자는 가이드 첫 단계에서 본인 계정을 직접 입력합니다
 ====
-가이드는 네임스페이스를 `{lab_user}` 기반 속성으로 렌더링합니다.
-Showroom 인스턴스마다 `LAB_USER` 환경변수를 해당 참가자 계정으로 지정하십시오
-(`inject-env-vars.sh` 가 읽습니다).
+가이드는 네임스페이스를 **빌드 시점이 아니라 실행 시점에** 결정합니다.
+`설정 및 개요` 첫 단계에서 참가자가 다음을 실행합니다:
 
 [source,bash]
 ----
-LAB_USER=user7 LAB_USER_PASSWORD=<user7 비밀번호> ./inject-env-vars.sh
+export LAB_USER=user1                      # 배정받은 계정으로 변경
+export API=$(oc whoami --show-server)
+export KUBECONFIG=/tmp/kubeconfig-$LAB_USER
+oc login -u $LAB_USER $API
 ----
 
-`LAB_USER_PASSWORD` 는 가이드의 로그인 명령과 자격 증명 표에 그대로 표시됩니다.
-지정하지 않으면 `ADMIN_PASSWORD` 값이 들어갑니다.
+이후 모든 명령이 `$LAB_USER-narupay` 처럼 해석됩니다.
 
-지정하지 않으면 `user1` 로 기본값이 들어가, 모든 참가자가 user1 의 네임스페이스를
-보게 됩니다. 필요하면 `NARUPAY_NS` / `SPIFFE_SERVER_NS` / `SPIFFE_CLIENT_NS` 로
-개별 지정할 수도 있습니다.
+이 방식을 택한 이유는 세 가지입니다:
+
+* Showroom 파드가 재시작하며 리포를 새로 clone 하면 주입한 값이 사라집니다.
+  실행 시점 결정이면 영향을 받지 않습니다
+* 클러스터 API 주소를 `oc whoami --show-server` 로 얻으므로,
+  이벤트 당일 주소가 바뀌어도 가이드를 고칠 필요가 없습니다
+* 터미널 서버를 공유하는 경우 `KUBECONFIG` 분리로 서로의 로그인이 덮어써지지 않습니다
+
+**진행자가 안내해야 할 것은 계정 이름과 비밀번호뿐입니다.**
+가이드에는 `user1` 이 예시로 적혀 있으니, 참가자에게 본인 계정으로 바꾸라고 알려 주십시오.
+====
 
 [WARNING]
-.antora.yml 에도 반영되어야 합니다
+.터미널이 끊기면 다시 설정해야 합니다
 ====
-명령어 블록은 `subs="+attributes"` 를 쓰는데, Antora 는 이 경우 **플레이북이 아니라
-`content/antora.yml` 의 값만** 읽습니다. `inject-env-vars.sh` 가 양쪽 모두에 쓰도록
-되어 있으니, 스크립트를 거치지 않고 플레이북만 수정하면 모든 참가자가
-`user1` 을 보게 됩니다.
-====
+`export` 는 셸 세션에 종속됩니다. 연결이 끊기면 `LAB_USER` 와 `KUBECONFIG` 가 사라져
+`Forbidden` 이나 `namespace not found` 가 납니다.
+
+가이드에도 경고를 넣어 두었지만, 세션 중 이런 오류가 나오면
+**첫 단계 네 줄을 다시 실행하라**고 안내하시면 됩니다.
 ====
 
 [NOTE]

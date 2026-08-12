@@ -10,7 +10,7 @@ image::ops-day-banner.png[OpenShift Ops Day, width=100%]
 
 == 시작하기
 
-여러분에게는 전용 계정 **`{lab_user}`** 와 전용 실습 네임스페이스가 배정되어 있습니다.
+여러분에게는 **전용 계정과 전용 실습 네임스페이스**가 배정되어 있습니다.
 실습은 반드시 이 계정으로 진행해야 합니다.
 
 [IMPORTANT]
@@ -21,48 +21,63 @@ image::ops-day-banner.png[OpenShift Ops Day, width=100%]
 ====
 
 .실습 절차
-. 현재 로그인 계정을 확인합니다:
+. **아래 첫 줄의 `user1` 을 배정받은 본인 계정으로 바꾼 뒤** 실행하십시오.
+  이 네 줄이 이번 실습의 출발점입니다:
 +
-[source,bash,subs="+macros,+attributes",role="execute"]
+[source,bash,role="execute"]
 ----
-oc whoami
+export LAB_USER=user1
+export API=$(oc whoami --show-server)
+export KUBECONFIG=/tmp/kubeconfig-$LAB_USER
+oc login -u $LAB_USER $API
 ----
 +
-`{lab_user}` 가 표시되면 다음 단계로 넘어가십시오.
-**`admin` 등 다른 계정이 표시되면** 아래 명령으로 다시 로그인합니다:
+비밀번호를 물으면 배정받은 비밀번호를 입력하십시오.
 +
-[source,bash,subs="+macros,+attributes",role="execute"]
-----
-oc login -u {lab_user} -p {lab_user_password} {api_url}
-----
+[NOTE]
+====
+클러스터 주소는 `oc whoami --show-server` 로 자동으로 가져오므로 직접 입력할 필요가 없습니다.
+
+`KUBECONFIG` 를 세션 전용 파일로 지정하는 이유는, 터미널 서버를 여러 참가자가 공유하는 경우
+기본 설정 파일에 서로의 로그인이 덮어써지는 것을 막기 위해서입니다.
+====
 +
 . 계정과 배정된 네임스페이스를 확인합니다:
 +
-[source,bash,subs="+macros,+attributes",role="execute"]
+[source,bash,role="execute"]
 ----
 oc whoami
 oc get projects
 ----
 +
-`{lab_user}` 와 함께 다음 세 개의 프로젝트가 보이면 준비가 된 것입니다:
+본인 계정과 함께 다음 세 개의 프로젝트가 보이면 준비가 된 것입니다
+(`user1` 자리에는 본인 계정이 표시됩니다):
 +
-[source,text,subs="+attributes"]
+[source,text]
 ----
-{lab_user}-narupay
-{lab_user}-postgresql-spiffe
-{lab_user}-postgresql-spiffe-client
+user1-narupay
+user1-postgresql-spiffe
+user1-postgresql-spiffe-client
 ----
 +
 NOTE: 다른 참가자의 네임스페이스나 클러스터 관리용 네임스페이스는 보이지 않는 것이 정상입니다.
+  노드나 클러스터 설정을 조회하는 명령도 권한 밖이라 `Forbidden` 이 납니다.
 +
-. 클러스터가 정상 동작하는지 확인합니다:
+. 실습 워크로드가 준비되어 있는지 확인합니다:
 +
 [source,bash,role="execute"]
 ----
-oc get clusterversion
+oc get deployment -n $LAB_USER-narupay
 ----
 +
-클러스터 버전과 업데이트 채널 정보가 표시됩니다. 이제 준비가 완료되었습니다.
+`payment-api`, `payment-api-secure`, `legacy-secret-app` 세 개가 보이면 준비가 완료되었습니다.
+
+[WARNING]
+.명령이 갑자기 실패하면 이 절차를 다시 실행하십시오
+====
+터미널 연결이 끊기면 위에서 설정한 `LAB_USER` 와 `KUBECONFIG` 가 사라집니다.
+`Forbidden` 이나 `namespace not found` 오류가 나면 1번 단계의 세 줄을 다시 실행하십시오.
+====
 
 == 워크숍 소개
 
@@ -170,8 +185,8 @@ TIP: 인증 오류가 발생하는 경우 **Try Again (다시 시도)**을 클�
 
 [cols="1,1"]
 |===
-| *사용자 이름:* | {lab_user}
-| *비밀번호:* | {lab_user_password}
+| *사용자 이름:* | 배정받은 본인 계정 (예: `user1`)
+| *비밀번호:* | 진행자가 안내한 비밀번호
 |===
 
 NOTE: 관리자 계정으로 로그인하면 다른 참가자의 자원까지 보이게 됩니다. 본인 계정을 사용하십시오.
@@ -194,7 +209,7 @@ image::ocp-dashboard-overview.png[OpenShift Administrator 대시보드 개요, l
 
 여기까지가 준비 과정입니다. 확인하신 내용을 정리하면 다음과 같습니다.
 
-* `oc` 명령이 정상 동작하고, 노드가 모두 `Ready` 입니다
+* 본인 계정으로 로그인했고, 전용 네임스페이스 세 개와 실습 워크로드를 확인했습니다
 * 왼쪽은 가이드, 오른쪽은 작업 영역이며 명령어 블록은 클릭하면 터미널에서 실행됩니다
 * 이번 세션은 하나의 침해사고를 따라가는 세 개의 모듈로 이어집니다
 * OpenShift 콘솔 대시보드에서 클러스터 전반을 한눈에 볼 수 있습니다

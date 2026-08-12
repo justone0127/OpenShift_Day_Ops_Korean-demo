@@ -112,8 +112,7 @@ spiffe://<trust-domain>/ns/<namespace>/sa/<serviceaccount>
 
 == 확인 실습 — 무엇이 발급되었나
 
-여러분 전용 네임스페이스에 서버(`{spiffe_server_ns}`)와
-클라이언트(`{spiffe_client_ns}`)가 각각 배포되어 있습니다.
+여러분 전용 네임스페이스에 PostgreSQL 서버와 클라이언트가 각각 배포되어 있습니다.
 두 워크로드 모두 `spiffe-helper` 사이드카가 인증서를 `/opt/postgresql-certs/` 에 자동으로 유지합니다.
 
 .실습 절차
@@ -121,8 +120,8 @@ spiffe://<trust-domain>/ns/<namespace>/sa/<serviceaccount>
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc get pods -n {spiffe_server_ns}
-oc get pods -n {spiffe_client_ns}
+oc get pods -n $LAB_USER-postgresql-spiffe
+oc get pods -n $LAB_USER-postgresql-spiffe-client
 ----
 +
 [NOTE]
@@ -134,7 +133,7 @@ pod가 보이지 않으면 진행자에게 알려 주십시오.
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc rsh -n {spiffe_client_ns} -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
+oc rsh -n $LAB_USER-postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
   sh -c 'openssl x509 -in /opt/postgresql-certs/svid.pem -noout -subject -dates -ext subjectAltName'
 ----
 +
@@ -145,7 +144,7 @@ oc rsh -n {spiffe_client_ns} -c postgresql-spiffe-client deployment/postgresql-s
 subject=C = US, O = SPIRE, CN = postgresql_spiffe          <1>
 notBefore=...  notAfter=...                                 <2>
 X509v3 Subject Alternative Name:
-    URI:spiffe://<trust-domain>/ns/{spiffe_client_ns}/sa/postgresql-spiffe-client   <3>
+    URI:spiffe://<trust-domain>/ns/<본인계정>-postgresql-spiffe-client/sa/postgresql-spiffe-client   <3>
 ----
 <1> *CN* — PostgreSQL의 데이터베이스 사용자 이름과 일치합니다. DB는 이 값을 사용자명으로 매핑합니다.
 <2> *유효 기간* — `notAfter` 가 `notBefore` 로부터 약 **1시간** 뒤입니다. 비밀번호에는 없던 개념입니다.
@@ -185,8 +184,8 @@ X509v3 Subject Alternative Name:
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc rsh -n {spiffe_client_ns} -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
-  psql "host=postgresql-spiffe.{spiffe_server_ns}.svc port=5432 user=postgresql_spiffe dbname=testdb sslmode=verify-full sslcert=/opt/postgresql-certs/svid.pem sslkey=/opt/postgresql-certs/svid.key sslrootcert=/opt/postgresql-certs/svid_bundle.pem" \
+oc rsh -n $LAB_USER-postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
+  psql "host=postgresql-spiffe.$LAB_USER-postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb sslmode=verify-full sslcert=/opt/postgresql-certs/svid.pem sslkey=/opt/postgresql-certs/svid.key sslrootcert=/opt/postgresql-certs/svid_bundle.pem" \
   -c "SELECT current_user, ssl_is_used();"
 ----
 +
@@ -211,17 +210,17 @@ DB는 "이 연결이 누구인가"를 **인증서로** 판단했고, 비밀번�
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
 oc run attacker --image=registry.redhat.io/rhel9/postgresql-16:latest \
-  -n {spiffe_client_ns} --command -- sleep infinity
-oc wait --for=condition=Ready pod/attacker -n {spiffe_client_ns} --timeout=90s
-oc exec -n {spiffe_client_ns} attacker -- \
-  psql "host=postgresql-spiffe.{spiffe_server_ns}.svc port=5432 user=postgresql_spiffe dbname=testdb" 2>&1 | head -3
+  -n $LAB_USER-postgresql-spiffe-client --command -- sleep infinity
+oc wait --for=condition=Ready pod/attacker -n $LAB_USER-postgresql-spiffe-client --timeout=90s
+oc exec -n $LAB_USER-postgresql-spiffe-client attacker -- \
+  psql "host=postgresql-spiffe.$LAB_USER-postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb" 2>&1 | head -3
 ----
 +
 예상 출력:
 +
 [source,text,subs="+attributes"]
 ----
-psql: error: connection to server at "postgresql-spiffe.{spiffe_server_ns}.svc" failed:
+psql: error: connection to server at "postgresql-spiffe.<본인계정>-postgresql-spiffe.svc" failed:
 FATAL:  connection requires a valid client certificate
 ----
 
@@ -241,7 +240,7 @@ DNS로 서버 이름을 해석할 수 있고, 5432 포트에 도달합니다.
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc delete pod attacker -n {spiffe_client_ns}
+oc delete pod attacker -n $LAB_USER-postgresql-spiffe-client
 ----
 
 ++++
