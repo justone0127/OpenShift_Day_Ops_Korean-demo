@@ -1,0 +1,549 @@
+= Network Security
+:page-toclevels: 1
+
+**소요 시간:** 10-15분 +
+**진행 방식:** 실습을 통한 network security 구성
+
+include::partial$console-access.adoc[]
+
+== 시나리오
+
+애플리케이션이 트래픽을 수신하고 있지만, 기본적으로 모든 pod는 다른 모든 pod와 통신할 수 있으며 모든 pod가 인터넷에 접속할 수 있습니다. 이는 production-ready 환경이 아닙니다.
+
+이 모듈에서는 보안을 강화합니다. pod를 격리하기 위해 NetworkPolicy를 구현하고, 외부로 나가는 outbound 트래픽을 제어하기 위해 EgressFirewall을 구성하며, 외부 방화벽에서 allowlist에 추가할 수 있도록 예측 가능한 소스 IP를 설정하기 위해 EgressIP를 구성합니다.
+
+== OpenShift 네트워킹
+
+OpenShift는 **OVN-Kubernetes**를 network plugin으로 사용합니다 (4.20에서 지원되는 유일한 옵션입니다). 이는 pod 네트워킹, NetworkPolicy를 통한 네트워크 격리, egress 트래픽 제어 및 선택적 IPsec 암호화를 처리합니다.
+
+=== 클러스터 네트워크 구성 확인
+
+[source,bash,role="execute"]
+----
+oc get network.config cluster -o yaml
+----
+
+TIP: OpenShift console의 **Administration (관리) → Cluster Settings (클러스터 설정) → Configuration (구성)**에서도 이를 확인할 수 있습니다. "Network"를 검색하고 **Network** (`config.openshift.io`)를 선택하십시오. **YAML** 탭을 클릭하면 `clusterNetwork`와 `serviceNetwork` CIDR을 확인할 수 있습니다.
+
+주요 필드:
+
+* `networkType: OVNKubernetes` - OVN-Kubernetes가 활성화되어 있음을 나타냅니다.
+* `clusterNetwork` - pod 네트워킹을 위한 IP 대역 (클러스터마다 다름)
+* `serviceNetwork` - Service를 위한 IP 대역 (클러스터마다 다름)
+
+=== 네트워크 오퍼레이터 상태 확인
+
+[source,bash,role="execute"]
+----
+oc get clusteroperator network
+----
+
+network operator는 `AVAILABLE: True` 및 `DEGRADED: False`로 표시되어야 합니다.
+
+[source,bash,role="execute"]
+----
+oc get pods -n openshift-ovn-kubernetes
+----
+
+클러스터에서 실행 중인 OVN pod들을 볼 수 있습니다: `ovnkube-node` (모든 node에서 실행되는 DaemonSet) 및 `ovnkube-control-plane` (OVN control plane을 관리하는 Deployment).
+
+== NetworkPolicy: Pod 간 보안
+
+기본적으로 모든 pod는 다른 모든 pod와 통신할 수 있습니다. **NetworkPolicy**는 이를 제한합니다.
+
+=== 테스트 프로젝트 생성
+
+[source,bash,role="execute"]
+----
+# Create two projects for testing network isolation
+oc new-project netpol-frontend
+oc new-project netpol-backend
+
+# Deploy apps in each
+oc new-app --name=frontend --image=registry.access.redhat.com/ubi9/httpd-24 -n netpol-frontend
+oc new-app --name=backend --image=registry.access.redhat.com/ubi9/httpd-24 -n netpol-backend
+----
+
+양쪽 namespace의 pod들을 기다리십시오:
+
+[source,bash,role="execute"]
+----
+oc get pods -n netpol-frontend
+----
+
+[source,bash,role="execute"]
+----
+oc get pods -n netpol-backend
+----
+
+계속 진행하기 전에 두 pod가 모두 `Running` 상태로 표시되어야 합니다.
+
+=== 기본 연결성 테스트 (통과해야 함)
+
+frontend에서 backend로의 연결성을 테스트합니다:
+
+[source,bash,role="execute"]
+----
+BACKEND_IP=$(oc get pod -n netpol-backend -l deployment=backend -o jsonpath='{.items[0].status.podIP}')
+oc exec -n netpol-frontend deployment/frontend -- curl -s --connect-timeout 5 http://${BACKEND_IP}:8080
+----
+
+예상 결과: 애플리케이션의 HTML 출력이 나타납니다. 기본적으로 연결성이 작동합니다.
+
+=== Deny-All NetworkPolicy 적용
+
+[source,bash,role="execute"]
+----
+cat <<EOF | oc apply -n netpol-backend -f -
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+spec:
+  podSelector: {}       # empty = applies to ALL pods in this namespace
+  policyTypes:
+  - Ingress             # we're controlling inbound traffic
+  ingress: []           # empty list = no traffic allowed in
+EOF
+----
+
+다음 세 줄이 모든 작업을 처리합니다: `podSelector: {}`는 모든 pod를 대상으로 지정하고, `policyTypes: Ingress`는 inbound 트래픽을 제어함을 의미하며, 비어 있는 `ingress: []` 리스트는 어떠한 트래픽도 허용하지 않음을 의미합니다. 이는 표준 "default deny" 패턴입니다. 먼저 모든 것을 차단한 후, 특정 구멍을 뚫어 트래픽을 허용하는 방식입니다.
+
+=== 연결성 재테스트 (실패해야 함)
+
+[source,bash,role="execute"]
+----
+BACKEND_IP=$(oc get pod -n netpol-backend -l deployment=backend -o jsonpath='{.items[0].status.podIP}')
+oc exec -n netpol-frontend deployment/frontend -- curl -s --connect-timeout 5 http://${BACKEND_IP}:8080
+----
+
+예상 결과: 연결 시간 초과 (5초 후에도 출력이 없음). NetworkPolicy가 이를 차단했습니다.
+
+=== 특정 네임스페이스로부터의 트래픽 허용
+
+이제 특정 트래픽만 허용하기 위해 구멍을 뚫습니다. frontend namespace만 backend에 도달할 수 있도록 허용하고, 포트는 8080만 허용합니다:
+
+[source,bash,role="execute"]
+----
+# First, label the frontend namespace so we can reference it
+oc label namespace netpol-frontend app-tier=frontend
+
+# Create NetworkPolicy allowing traffic from frontend namespace
+cat <<EOF | oc apply -n netpol-backend -f -
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-frontend
+spec:
+  podSelector:
+    matchLabels:
+      deployment: backend       # only applies to pods with this label
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          app-tier: frontend    # only from namespaces with this label
+    ports:
+    - protocol: TCP
+      port: 8080                # only on this port
+EOF
+----
+
+이는 매우 정밀하게 제어됩니다: `deployment: backend` 라벨이 지정된 pod에 대해서만, `app-tier: frontend` 라벨이 지정된 namespace로부터, TCP 8080 포트로만 트래픽을 허용합니다. 그 외의 모든 트래픽은 여전히 `deny-all` 정책에 의해 차단됩니다.
+
+=== 연결성 테스트 (다시 통과해야 함)
+
+[source,bash,role="execute"]
+----
+BACKEND_IP=$(oc get pod -n netpol-backend -l deployment=backend -o jsonpath='{.items[0].status.podIP}')
+oc exec -n netpol-frontend deployment/frontend -- curl -s --connect-timeout 5 http://${BACKEND_IP}:8080
+----
+
+예상 결과: 애플리케이션의 HTML 출력이 나타납니다. 허용(allow) 정책이 적용되었습니다.
+
+=== NetworkPolicy 조회
+
+[source,bash,role="execute"]
+----
+oc get networkpolicy -n netpol-backend
+----
+
+`deny-all` 및 `allow-from-frontend` 정책을 모두 볼 수 있어야 합니다.
+
+이제 **OCP Console** 탭으로 전환하고 **Networking (네트워킹) -> NetworkPolicies (네트워크 정책)** (project: `netpol-backend`)으로 이동하십시오. `deny-all`을 클릭하면 콘솔에 "All incoming traffic is denied"라고 명확하게 표시됩니다:
+
+image::netpol-deny-all.png[deny-all NetworkPolicy showing all incoming traffic denied, link=self, window=blank]
+뒤로 이동하여 `allow-from-frontend`를 여십시오. 콘솔이 pod selector, namespace selector 및 허용된 포트를 보여주는 가독성 높은 표 형태로 ingress 규칙을 표시합니다:
+
+image::netpol-allow-frontend.png[allow-from-frontend NetworkPolicy showing selectors and port rule, link=self, window=blank]
+방금 작성한 YAML과 비교해 보십시오. 실제 운영 환경에서 50개의 namespace에 걸쳐 있는 정책을 감사(audit)해야 할 때, 이 화면은 원본 YAML을 읽는 것보다 훨씬 더 빠릅니다.
+
+=== NetworkPolicy 권장 사항
+
+[cols="1,2"]
+|===
+|Practice |Description
+
+|**Default deny**
+|deny-all 정책에서 시작한 후, 필요한 트래픽만 명시적으로 허용하십시오.
+
+|**Namespace labels**
+|다중 namespace(cross-namespace) 정책에는 namespace 라벨을 사용하십시오.
+
+|**Least privilege**
+|필요한 특정 포트와 프로토콜만 허용하십시오.
+
+|**Document policies**
+|정책의 목적을 기록하기 위해 annotation을 사용하십시오.
+|===
+
+=== AdminNetworkPolicy: 클러스터 범위 정책
+
+일반적인 NetworkPolicy는 namespace 범위(namespace-scoped)로 작동하므로 각 팀이 개별적으로 관리합니다. 반면 **AdminNetworkPolicy (ANP)**는 클러스터 범위(cluster-scoped) 리소스로, 플랫폼 관리자가 모든 namespace에 걸쳐 네트워크 정책을 강제할 수 있도록 하며, namespace 범위의 정책보다 높은 우선순위를 가집니다.
+
+사용 가능한 ANP API를 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc api-resources | grep policy.networking
+----
+
+특정 공급자에 대한 외부 DNS를 차단하는 클러스터 차원의 정책을 생성합니다:
+
+[source,bash,role="execute"]
+----
+cat <<EOF | oc apply -f -
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: cluster-deny-external-dns
+spec:
+  priority: 50
+  subject:
+    namespaces:
+      matchLabels:
+        kubernetes.io/metadata.name: netpol-backend
+  egress:
+  - name: deny-external-dns
+    action: Deny
+    to:
+    - networks:
+      - 8.8.8.8/32
+    ports:
+    - portNumber:
+        port: 53
+        protocol: UDP
+EOF
+----
+
+생성되었는지 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc get adminnetworkpolicy
+----
+
+`PRIORITY` 필드는 평가 순서를 결정합니다. 낮은 숫자가 먼저 평가됩니다. 이를 통해 플랫폼 팀은 namespace 소유자가 재정의(override)할 수 없는 보안 기준(baseline)을 강제할 수 있습니다.
+
+이제 정상적으로 작동하는지 확인합니다. 차단된 외부 서버를 통해 DNS 확인(resolution)을 시도해 보십시오:
+
+[source,bash,role="execute"]
+----
+bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/04-network-security/test-dns.sh)
+----
+
+예상 결과: `DNS to 8.8.8.8: BLOCKED (timed out)`. ANP가 8.8.8.8로 나가는 outbound 트래픽을 차단했습니다.
+
+정리하고 DNS가 복구되는지 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc delete adminnetworkpolicy cluster-deny-external-dns
+----
+
+[source,bash,role="execute"]
+----
+bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/04-network-security/test-dns.sh)
+----
+
+예상 결과: `DNS to 8.8.8.8: ALLOWED`. ANP가 삭제되었으므로 트래픽이 다시 정상적으로 흐릅니다.
+
+NOTE: AdminNetworkPolicy는 `policy.networking.k8s.io/v1alpha1`을 사용합니다. 대체 수단(fallback)으로 작동하는 `BaselineAdminNetworkPolicy`도 존재합니다. 이는 다른 ANP나 NetworkPolicy가 일치하지 않는 경우에만 적용됩니다. ANP와 BANP를 결합하면 플랫폼 팀이 가드레일을 제공하면서도 namespace 수준에서의 맞춤 구성을 허용할 수 있습니다.
+
+== Egress 제어
+
+=== EgressFirewall: 아웃바운드 트래픽 제어
+
+**EgressFirewall**은 pod가 도달할 수 있는 외부 IP/도메인을 제어합니다. 이는 OVN-Kubernetes의 기능입니다.
+
+**Understanding EgressFirewall**
+
+EgressFirewall은 namespace마다 적용되며 규칙(rule)을 순서대로 평가합니다. 어떠한 규칙과도 일치하지 않는 트래픽은 기본적으로 **허용(allowed)**됩니다.
+
+API를 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc explain egressfirewall.spec
+----
+
+**Create an EgressFirewall**
+
+특정 CIDR에 대한 트래픽을 차단합니다 (예: 1.1.1.0/24 차단):
+
+[source,bash,role="execute"]
+----
+cat <<EOF | oc apply -n netpol-frontend -f -
+apiVersion: k8s.ovn.org/v1
+kind: EgressFirewall
+metadata:
+  name: default
+spec:
+  egress:
+  - type: Deny
+    to:
+      cidrSelector: 1.1.1.0/24
+  - type: Allow
+    to:
+      cidrSelector: 0.0.0.0/0
+EOF
+----
+
+이는 1.1.1.0/24로 나가는 egress 트래픽을 차단하지만 그 외의 모든 트래픽은 허용합니다.
+
+**Test EgressFirewall**
+
+[source,bash,role="execute"]
+----
+# This should fail (blocked)
+oc exec -n netpol-frontend deployment/frontend -- curl -s --connect-timeout 3 http://1.1.1.1 || echo "Blocked!"
+
+# This should work (allowed)
+oc exec -n netpol-frontend deployment/frontend -- curl -s --connect-timeout 3 -I http://google.com | head -1
+----
+
+**View EgressFirewall**
+
+[source,bash,role="execute"]
+----
+oc get egressfirewall -n netpol-frontend -o yaml
+----
+
+**DNS-Based EgressFirewall**
+
+IP 주소 대신 DNS 이름을 사용할 수도 있습니다 (OVN이 이름을 확인해 줍니다):
+
+[source,bash,role="execute"]
+----
+cat <<EOF | oc apply -n netpol-backend -f -
+apiVersion: k8s.ovn.org/v1
+kind: EgressFirewall
+metadata:
+  name: default
+spec:
+  egress:
+  - type: Allow
+    to:
+      dnsName: "www.redhat.com"
+  - type: Allow
+    to:
+      dnsName: "quay.io"
+  - type: Deny
+    to:
+      cidrSelector: 0.0.0.0/0
+EOF
+----
+
+이는 `www.redhat.com` 및 `quay.io`로 가는 트래픽만 허용하고, 그 외의 모든 것은 차단합니다.
+
+NOTE: 와일드카드 DNS 이름 (예: `*.redhat.com`)은 OpenShift 4.20의 Technology Preview 기능이며, 모든 클러스터에서 활성화되어 있지 않을 수 있습니다. 운영 구성에는 특정 호스트 이름을 사용하십시오.
+
+**EgressFirewall Use Cases**
+
+[cols="1,2"]
+|===
+|Use Case |Configuration
+
+|**Block known bad IPs**
+|특정 CIDR을 차단하고 그 외의 모든 것은 허용합니다.
+
+|**Allowlist mode**
+|특정 대상만 허용하고, 0.0.0.0/0은 차단합니다.
+
+|**Compliance**
+|승인된 외부 서비스로만 egress를 제한합니다.
+
+|**Data exfiltration prevention**
+|알려지지 않은 외부 엔드포인트를 차단합니다.
+|===
+
+[IMPORTANT]
+====
+**실제 운영 환경에서 주의해야 할 EgressFirewall 제한 사항:**
+
+* 각 namespace당 오직 **하나의 EgressFirewall** 객체만 가질 수 있습니다 (반드시 이름이 `default`여야 합니다).
+* OpenShift Route 또는 Ingress를 통해 라우팅되는 트래픽에는 규칙이 적용되지 않습니다.
+* EgressFirewall당 최대 **8,000개의 규칙**을 적용할 수 있습니다.
+* deny-all 규칙을 사용하는 경우, 명시적으로 허용하지 않는 한 pod가 OpenShift API 서버에 액세스할 수 없게 됩니다.
+* host 네트워킹을 사용하는 pod에는 NetworkPolicy가 적용되지 않습니다. 이러한 pod는 네트워크 정책을 완전히 우회합니다.
+* deny-all **egress** NetworkPolicy를 추가하면 DNS 확인이 작동하지 않게 됩니다. pod는 `openshift-dns` namespace에 있는 CoreDNS(53번 UDP/TCP 포트)에 도달해야 합니다. egress를 제한할 때는 항상 DNS를 명시적으로 허용하십시오.
+====
+
+=== EgressIP: 예측 가능한 소스 IP
+
+image::diagrams/04_egress_ip.png[OpenShift EgressIP Architecture, align=center, link=self, window=blank]
+**EgressIP**는 특정 pod에서 외부로 나가는 트래픽에 고정된 소스 IP를 할당합니다. 외부 방화벽에서 우리 클러스터를 allowlist에 추가해야 할 때 유용합니다.
+
+**Understanding EgressIP**
+
+[source,bash,role="execute"]
+----
+oc explain egressip
+----
+
+EgressIP를 사용하려면 다음이 필요합니다:
+
+1. Egress IP를 호스팅하도록 라벨이 지정된 node
+2. node의 네트워크에서 사용 가능한 IP 주소
+3. namespace/pod selector를 참조하는 EgressIP CR
+
+**View EgressIP Capability**
+
+[source,bash,role="execute"]
+----
+oc get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.metadata.annotations.k8s\.ovn\.org/node-egress-label}{"\n"}{end}'
+----
+
+node가 EgressIP를 호스팅할 수 있으려면 `k8s.ovn.org/egress-assignable=""` 라벨을 가지고 있어야 합니다.
+
+**EgressIP Configuration Example**
+
+[source,yaml]
+----
+apiVersion: k8s.ovn.org/v1
+kind: EgressIP
+metadata:
+  name: production-egress
+spec:
+  egressIPs:
+  - 192.168.1.100
+  - 192.168.1.101
+  namespaceSelector:
+    matchLabels:
+      environment: production
+  podSelector:
+    matchLabels:
+      egress-required: "true"
+----
+
+**참고:** EgressIP 구성은 네트워크 계획이 필요하며 일반적으로 클러스터 설정 단계에서 진행됩니다. 해당 IP 주소는 node 네트워크에서 라우팅이 가능해야 합니다.
+
+**When to Use EgressIP**
+
+[cols="1,2"]
+|===
+|Scenario |Benefit
+
+|**External firewall allowlisting**
+|클러스터 egress 트래픽에 대한 예측 가능한 소스 IP를 확보합니다.
+
+|**Audit compliance**
+|특정 워크로드로부터 발생하는 트래픽을 추적합니다.
+
+|**Multi-tenant isolation**
+|테넌트(tenant)별로 서로 다른 egress IP를 할당합니다.
+
+|**Legacy integration**
+|IP 기반 인증을 요구하는 레거시 시스템에 연결합니다.
+|===
+
+== DNS 및 서비스 디스커버리
+
+OpenShift는 Service에 대해 자동 DNS를 제공합니다.
+
+=== DNS 형식
+
+Service는 다음 형식으로 연결 가능합니다:
+
+----
+<service-name>.<namespace>.svc.cluster.local
+----
+
+=== DNS 확인 테스트
+
+아무 pod에서나 DNS 확인을 테스트합니다:
+
+[source,bash,role="execute"]
+----
+oc exec -n netpol-frontend deployment/frontend -- getent hosts backend.netpol-backend.svc.cluster.local
+----
+
+backend Service의 Cluster IP와 호스트 이름이 표시되어야 합니다. 이는 pod가 클러스터 DNS를 통해 이름으로 다른 Service를 확인할 수 있음을 증명합니다.
+
+=== 클러스터 DNS 구성 조회
+
+[source,bash,role="execute"]
+----
+oc get dns cluster -o yaml
+----
+
+클러스터의 DNS 구성을 표시합니다. 주요 필드는 다음과 같습니다:
+
+* `baseDomain` - 클러스터의 기본 DNS 도메인 (예: `cluster-xxxxx.dynamic.redhatworkshops.io`)
+
+NOTE: 클라우드 플랫폼(AWS, Azure, GCP)의 경우, 클라우드 DNS 존을 위한 `publicZone` 및 `privateZone` 필드도 표시됩니다. 다른 플랫폼에서는 해당 필드가 없을 수 있습니다.
+
+=== CoreDNS Pod 조회
+
+[source,bash,role="execute"]
+----
+oc get pods -n openshift-dns
+----
+
+CoreDNS는 클러스터 내의 모든 pod에 대해 DNS 확인을 제공합니다.
+
+== 정리 및 요약
+
+[source,bash,role="execute"]
+----
+# Delete network policy test namespaces in the background
+oc delete namespace netpol-frontend netpol-backend --ignore-not-found --wait=false
+echo "Cleanup running in background - you can continue to the next module"
+----
+
+**배운 내용:**
+
+* OpenShift는 OVN-Kubernetes를 기본 SDN으로 사용합니다.
+* NetworkPolicy는 pod 간의 통신을 제어합니다 (기본값은 허용, 명시적 차단 규칙 적용).
+* EgressFirewall은 외부 대상으로 나가는 outbound 트래픽을 제어합니다.
+* EgressIP는 egress 트래픽에 대해 예측 가능한 소스 IP를 제공합니다.
+* DNS는 `<service>.<namespace>.svc.cluster.local` 형식을 통해 자동 Service 검색(discovery)을 제공합니다.
+
+**주요 운영 명령어:**
+
+[source,bash]
+----
+# View network configuration
+oc get network.config cluster -o yaml
+
+# View network policies
+oc get networkpolicy -A
+
+# View egress firewalls
+oc get egressfirewall -A
+
+# View egress IPs
+oc get egressip -A
+
+# Check DNS configuration
+oc get dns cluster -o yaml
+----
+
+=== 추가 리소스
+
+* **OVN-Kubernetes:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/ovn-kubernetes_network_plugin/index[OVN-Kubernetes network plugin, window=blank]
+* **NetworkPolicy:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/networking/network-policy[About network policy, window=blank]
+* **EgressFirewall:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/networking/configuring-egress-firewall-ovn[Configuring an egress firewall for a project, window=blank]
+* **EgressIP:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/networking/configuring-egress-ips-ovn[Configuring an egress IP address, window=blank]

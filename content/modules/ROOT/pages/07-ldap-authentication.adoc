@@ -1,0 +1,611 @@
+= Identity & Users
+:page-toclevels: 1
+
+**소요 시간:** 15-20분 +
+**형식:** Identity Provider 직접 구성
+
+include::partial$console-access.adoc[]
+
+== 시나리오
+
+현재 클러스터는 HTPasswd admin 계정으로 실행 중입니다. 이는 초기 설정에는 적합하지만, 프로덕션 환경에는 실제 ID 관리가 필요합니다. 이 모듈에서는 LDAP 디렉터리를 통합하고, 그룹을 OpenShift로 동기화하며, 서로 다른 팀에 각기 다른 권한을 부여하도록 RBAC을 구성하고, 실제 사용자로 로그인하여 이를 테스트합니다.
+
+OpenShift의 OAuth 서버는 LDAP, OpenID Connect, HTPasswd, GitHub, GitLab, Google 등 다양한 Identity Provider를 지원합니다. 여기서는 가장 일반적인 엔터프라이즈 환경 설정이자 그룹 동기화를 보여주기에 적합한 LDAP을 사용합니다. OIDC 모듈에서는 보다 현대적인 대안을 다룹니다.
+
+TIP: 지원되는 Identity Provider의 전체 목록은 link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/understanding-identity-provider[Understanding identity providers, window=blank] 문서를 참조하십시오.
+
+image::diagrams/07_08_rbac.png[OpenShift RBAC - Users Groups and Role Bindings, align=center, link=self, window=blank]
+== LDAP 구성
+
+=== 1단계: 기본 인증 확인
+
+현재 OAuth 구성을 확인합니다:
+
+[source,bash,role="execute"]
+----
+oc get oauth cluster -o yaml
+----
+
+TIP: 콘솔의 **Administration (관리) > Cluster Settings (클러스터 설정) > Configuration (설정) > OAuth (OAuth)** 메뉴에서도 이를 확인할 수 있습니다. 구성된 Identity Provider를 읽기 쉬운 형식으로 보여줍니다.
+
+`spec.identityProviders` 섹션을 확인하십시오. `htpasswd` Identity Provider가 이미 구성되어 있는 것을 볼 수 있습니다. 이는 현재 사용 중인 `admin` 계정을 제공하기 위해 클러스터 프로비저닝 중에 설정된 것입니다.
+
+[NOTE]
+====
+새 클러스터에서는 `spec`이 비어 있게 됩니다 (`spec: {}`). 이 워크숍 클러스터에는 HTPasswd가 사전 구성되어 있습니다. 아래의 OAuth 구성에는 기존 HTPasswd Provider와 새로운 LDAP Provider가 모두 포함되어 있어 두 가지가 동시에 작동합니다.
+====
+
+**`kubeadmin`은 어떻게 되었습니까?**
+
+새로운 OpenShift 클러스터에는 `kube-system` 네임스페이스에 Secret으로 저장된 `kubeadmin` 부트스트랩 계정이 함께 제공됩니다. 이 계정은 Identity Provider를 완전히 우회하며, 초기 설정용으로만 사용됩니다. 이 워크숍 클러스터에서는 `kubeadmin`이 이미 제거되었고 현재 사용 중인 `admin` HTPasswd 계정으로 대체되었습니다. 이것이 올바른 프로덕션 환경의 형태입니다.
+
+제거되었는지 확인할 수 있습니다:
+
+[source,bash,role="execute"]
+----
+oc get secret -n kube-system kubeadmin -o yaml
+----
+
+예상 결과: `not found` - 부트스트랩 계정이 제거되었음을 확인합니다.
+
+=== 2단계: LDAP 구조 이해
+
+이 실습 환경은 다음과 같은 그룹을 가진 LDAP을 제공합니다:
+
+* **ose-user**: OpenShift 접근 권한이 있는 사용자 (모든 사용자는 이 그룹에 속해야 합니다)
+* **ose-normal-dev**: 일반 개발자 (normaluser1, teamuser1, teamuser2)
+* **ose-fancy-dev**: 상위 권한을 가진 시니어 개발자 (fancyuser1, fancyuser2)
+* **ose-teamed-app**: 프로젝트 협업 팀 (teamuser1, teamuser2)
+
+**LDAP 사용자 자격 증명:** 모든 사용자의 패스워드는 `Op#nSh1ft` 입니다.
+
+=== 3단계: LDAP Identity Provider 구성
+
+LDAP 인증을 구성하려면 다음이 필요합니다:
+
+1. LDAP bind 패스워드가 포함된 **Secret**
+2. LDAP 서버 CA 인증서가 포함된 **ConfigMap**
+3. LDAP Identity Provider를 정의하는 **OAuth 구성**
+
+**LDAP bind 패스워드 Secret 생성:**
+
+[source,bash,role="execute"]
+----
+oc create secret generic ldap-secret \
+  --from-literal=bindPassword='b1ndP^ssword' \
+  -n openshift-config
+----
+
+**LDAP 서버에서 CA 인증서 체인 추출:**
+
+[source,bash,role="execute"]
+----
+mkdir -p $HOME/support
+echo | openssl s_client -connect ldap.jumpcloud.com:636 -showcerts 2>/dev/null | awk 'BEGIN{n=0} /BEGIN CERTIFICATE/{n++} n>=2{print}' > $HOME/support/ca.crt
+----
+
+NOTE: 이는 LDAP 서버의 TLS 핸드셰이크에서 직접 중간(intermediate) 및 루트(root) CA 인증서를 추출합니다. 이는 서버의 현재 인증서 체인과 일치하지 않을 수 있는 정적 CA 파일을 다운로드하는 것보다 더 안정적입니다.
+
+**CA 인증서를 포함하는 ConfigMap 생성:**
+
+[source,bash,role="execute"]
+----
+oc create configmap ca-config-map \
+  --from-file=ca.crt=$HOME/support/ca.crt \
+  -n openshift-config
+----
+
+**OAuth 구성 생성 및 적용:**
+
+[source,bash,role="execute"]
+----
+bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/07-ldap-authentication/configure-oauth-ldap.sh)
+----
+
+이 스크립트는 기존 HTPasswd Provider와 함께 LDAP Identity Provider를 추가하는 OAuth 구성을 생성합니다. 여기에는 bind DN (`uid=openshiftworkshop,...`), 로그인을 `ose-user` 그룹으로 제한하는 `memberOf` 필터가 포함된 LDAP URL (`ldaps://ldap.jumpcloud.com`), 속성 매핑 (`dn` -> ID, `mail` -> email, `cn` -> display name, `uid` -> username)이 구성되어 있으며, 위에서 생성한 CA 인증서와 bind 패스워드를 참조합니다.
+
+**OAuth 구성 이해:**
+
+`oauth-cluster.yaml` 파일은 LDAP Identity Provider를 구성합니다. 주요 요소는 다음과 같습니다:
+
+**주요 파라미터:**
+
+* **name**: 이 Identity Provider의 고유 식별자 (여러 개를 가질 수 있습니다)
+* **mappingMethod: claim**: 사용자 이름이 할당되는 방식 (첫 번째 Identity Provider가 우선함)
+* **attributes**: LDAP 필드를 OpenShift 사용자 속성에 매핑
+* **bindDN/bindPassword**: LDAP 검색을 위한 자격 증명
+* **ca**: LDAP 서버 SSL을 검증하기 위한 인증서
+* **url**: LDAP 서버 위치 및 검색 필터
+
+자세한 LDAP 구성은 link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/configuring-ldap-identity-provider[Configuring an LDAP identity provider, window=blank] 문서를 참조하십시오.
+
+**OAuth 오퍼레이터 rollout 모니터링:**
+
+[source,bash,role="execute"]
+----
+oc rollout status deployment/oauth-openshift -n openshift-authentication --timeout=120s
+----
+
+NOTE: 완료되는 데 1~2분 정도 걸릴 수 있습니다. 5분 이상 실행된 경우에만 **Ctrl+C**를 누르고 명령을 다시 실행하십시오.
+
+대기 대상 메시지: `deployment "oauth-openshift" successfully rolled out`
+
+**OAuth pod가 실행 중인지 확인:**
+
+[source,bash,role="execute"]
+----
+oc get pods -n openshift-authentication
+----
+
+모든 oauth-openshift pod가 `Running` 상태이고 `Ready 1/1` 이어야 합니다.
+
+OAuth pod는 rollout 후 LDAP 연결을 완전히 초기화하는 데 약간의 시간이 필요합니다. 다음 단계로 넘어가기 전에 LDAP 로그인이 실제로 작동하는지 확인합니다:
+
+[source,bash,role="execute",subs="attributes"]
+----
+OCP_SERVER=$(oc whoami --show-server)
+echo "Waiting for LDAP authentication to be ready..."
+ELAPSED=0
+until oc login -u normaluser1 -p 'Op#nSh1ft' $OCP_SERVER --insecure-skip-tls-verify 2>&1 | grep -q "Login successful"; do
+  sleep 10; ELAPSED=$((ELAPSED+10))
+  [ $ELAPSED -ge 300 ] && echo "ERROR: Timed out - LDAP may not be configured correctly" && break
+done
+oc login -u {openshift_cluster_admin_username} -p {openshift_cluster_admin_password} $OCP_SERVER --insecure-skip-tls-verify 2>/dev/null
+echo "LDAP authentication is ready"
+----
+
+NOTE: 완료되는 데 1~2분 정도 걸릴 수 있습니다. 5분 이상 실행된 경우에만 **Ctrl+C**를 누르고 명령을 다시 실행하십시오.
+
+== 테스트 및 그룹 동기화
+
+=== 4단계: LDAP 인증 테스트
+
+**OCP Console** 탭을 새로 고침하고 로그아웃하면 로그인 페이지에 두 가지 Identity Provider가 모두 표시됩니다:
+
+image::ldap-login-selector.png[OpenShift login page showing htpasswd and ldap identity providers, link=self, window=blank]
+NOTE: 이 워크숍에서는 콘솔에 LDAP 사용자로 로그인하지 않습니다. admin으로 계속 조사를 진행할 수 있도록 **htpasswd**를 사용하여 다시 로그인해 주십시오.
+
+[cols="1,1"]
+|===
+| *Username:* | {openshift_cluster_admin_username}
+| *Password:* | {openshift_cluster_admin_password}
+|===
+
+먼저 로그인 명령을 위해 API 서버 URL을 캡처합니다:
+
+[source,bash,role="execute"]
+----
+export OCP_SERVER=$(oc whoami --show-server)
+echo "API Server: $OCP_SERVER"
+----
+
+일반 사용자로 로그인을 시도합니다:
+
+[source,bash,role="execute"]
+----
+oc login -u normaluser1 -p 'Op#nSh1ft' $OCP_SERVER --insecure-skip-tls-verify
+----
+
+`Login successful.`이 출력되어야 합니다 - 사용자가 LDAP 서버를 통해 정상적으로 인증되었습니다.
+
+**자신의 ID 확인:**
+
+[source,bash,role="execute"]
+----
+oc whoami
+----
+
+출력 결과: `normaluser1`
+
+**수행 가능한 작업 확인:**
+
+[source,bash,role="execute"]
+----
+oc auth can-i create project
+----
+
+출력 결과: `no` (이환경에서는 프로젝트 자체 프로비저닝이 비활성화되어 있습니다)
+
+첫 로그인 시 사용자가 **자동으로 생성**된 것을 확인할 수 있습니다. user 오브젝트를 보려면 admin으로 다시 로그인하십시오.
+
+**cluster admin으로 다시 로그인:**
+
+[source,bash,role="execute",subs="attributes"]
+----
+oc login -u {openshift_cluster_admin_username} -p {openshift_cluster_admin_password} --insecure-skip-tls-verify
+----
+
+**자동 생성된 사용자 조회:**
+
+[source,bash,role="execute"]
+----
+oc get users
+----
+
+첫 로그인 시 `normaluser1`이 자동으로 생성된 것을 확인할 수 있습니다.
+
+=== 5단계: LDAP 그룹을 OpenShift로 동기화
+
+LDAP 그룹 동기화는 LDAP 그룹을 OpenShift Groups로 가져와 RBAC 관리를 더 쉽게 만들어 줍니다.
+
+**그룹 동기화 구성 생성:**
+
+[source,bash,role="execute"]
+----
+cat <<EOF > $HOME/support/groupsync.yaml
+kind: LDAPSyncConfig
+apiVersion: v1
+url: ldaps://ldap.jumpcloud.com
+bindDN: uid=openshiftworkshop,ou=Users,o=5e615ba46b812e7da02e93b5,dc=jumpcloud,dc=com
+bindPassword: b1ndP^ssword
+rfc2307:
+  groupsQuery:
+    baseDN: ou=Users,o=5e615ba46b812e7da02e93b5,dc=jumpcloud,dc=com
+    derefAliases: never
+    filter: '(|(cn=ose-*))'
+  groupUIDAttribute: dn
+  groupNameAttributes:
+  - cn
+  groupMembershipAttributes:
+  - member
+  usersQuery:
+    baseDN: ou=Users,o=5e615ba46b812e7da02e93b5,dc=jumpcloud,dc=com
+    derefAliases: never
+  userUIDAttribute: dn
+  userNameAttributes:
+  - uid
+EOF
+----
+
+이 구성은 `ose-*`와 일치하는 LDAP 그룹을 검색하고, 일치하는 OpenShift Groups를 생성한 다음, LDAP의 멤버십 정보를 채웁니다.
+
+**그룹 동기화 실행:**
+
+[source,bash,role="execute"]
+----
+oc adm groups sync --sync-config=$HOME/support/groupsync.yaml --confirm
+----
+
+출력 결과에 생성된 그룹이 표시됩니다:
+
+----
+group/ose-fancy-dev
+group/ose-user
+group/ose-normal-dev
+group/ose-teamed-app
+----
+
+**동기화된 그룹 확인:**
+
+[source,bash,role="execute"]
+----
+oc get groups
+----
+
+다음과 같이 표시됩니다:
+
+----
+NAME             USERS
+ose-fancy-dev    fancyuser1, fancyuser2
+ose-normal-dev   normaluser1, teamuser1, teamuser2
+ose-teamed-app   teamuser1, teamuser2
+ose-user         fancyuser1, fancyuser2, normaluser1, teamuser1, teamuser2
+----
+
+**특정 그룹 상세 확인:**
+
+[source,bash,role="execute"]
+----
+oc get group ose-fancy-dev -o yaml
+----
+
+그룹 정보에는 다음이 포함됩니다:
+
+* LDAP 메타데이터 (동기화 시간, LDAP DN, LDAP 서버)
+* 그룹 내 사용자 목록
+
+**콘솔에서도 확인:** **OCP Console**에서 **User Management (사용자 관리) -> Groups (그룹)** 메뉴로 이동합니다:
+
+image::ldap-groups-console.png[User Management Groups showing synced LDAP groups with member counts, link=self, window=blank]
+`ose-fancy-dev` 그룹을 클릭하면 fancyuser1과 fancyuser2가 멤버로 나열되어 있는 것을 볼 수 있습니다. 이제 **User Management (사용자 관리) -> Users (사용자)** 메뉴를 클릭합니다:
+
+image::ldap-users-console.png[User Management Users showing only users who have logged in, link=self, window=blank]
+`normaluser1`만 (그리고 `admin`만) 표시되는 것에 유의하십시오. 다른 사용자들은 LDAP 그룹에는 존재하지만 아직 로그인하지 않았기 때문에 OpenShift가 이들의 User 오브젝트를 생성하지 않았습니다.
+
+이것은 중요한 차이점입니다: **그룹 멤버십은 즉시 동기화**되지만, **User 오브젝트는 첫 로그인 시 생성**됩니다. 프로덕션 환경에서는 50명의 멤버가 있는 그룹에 User 오브젝트가 10개만 있을 수 있는데, 이는 단순히 40명이 아직 로그인하지 않았음을 의미합니다.
+
+[source,bash,role="execute"]
+----
+oc get users
+----
+
+CLI를 통해 동일한 내용을 확인합니다 - 인증을 거친 사용자만 여기에 나타납니다.
+
+=== 6단계: 그룹으로 RBAC 구성
+
+클러스터 전체 리소스를 볼 수 있도록 `ose-fancy-dev` 그룹에 **cluster-reader** 권한을 부여합니다:
+
+[source,bash,role="execute"]
+----
+oc adm policy add-cluster-role-to-group cluster-reader ose-fancy-dev
+----
+
+**cluster-reader란 무엇입니까?** 수정 권한 없이 관리 정보(모든 프로젝트, 노드, 클러스터 설정)를 볼 수 있도록 허용하는 역할(Role)입니다.
+
+콘솔에서 이를 확인할 수 있습니다. **User Management (사용자 관리) -> RoleBindings (역할 바인딩)** 메뉴로 이동한 후, Kind 필터를 **Cluster-wide RoleBindings (클러스터 전역 역할 바인딩)**로 전환하고 `cluster-reader`를 검색합니다:
+
+image::ldap-clusterrolebinding-reader.png[Cluster-wide RoleBindings showing ose-fancy-dev group bound to cluster-reader, link=self, window=blank]
+첫 번째 행은 우리가 방금 구성한 대로 모든 네임스페이스에서 `ose-fancy-dev` 그룹이 `cluster-reader`에 바인딩되어 있음을 보여줍니다.
+
+역할(Role)에 대한 자세한 정보는 link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/using-rbac[Using RBAC to define and apply permissions, window=blank] 문서를 참조하십시오.
+
+**일반 사용자로 테스트:**
+
+[source,bash,role="execute"]
+----
+oc login -u normaluser1 -p 'Op#nSh1ft' $OCP_SERVER --insecure-skip-tls-verify
+oc whoami
+----
+
+IMPORTANT: `oc whoami`가 `normaluser1`을 표시하는지 확인하십시오. 만약 여전히 `admin`이 표시된다면 로그인이 실패한 것이므로, 30초 대기 후 다시 시도하십시오.
+
+[source,bash,role="execute"]
+----
+oc get projects
+----
+
+`app-` 프로젝트가 보이지 않아야 합니다 - normaluser1은 프로젝트 특정 그룹에 속해 있지 않습니다. 모든 인증된 사용자에게 접근을 허용하는 한두 개의 시스템 네임스페이스가 보일 수 있으며, 이는 정상입니다.
+
+**시니어 개발자(fancy developer)로 테스트:**
+
+[source,bash,role="execute"]
+----
+oc login -u fancyuser1 -p 'Op#nSh1ft' $OCP_SERVER --insecure-skip-tls-verify
+oc whoami
+oc get projects
+----
+
+이제 클러스터의 **모든 프로젝트**를 볼 수 있습니다:
+
+----
+NAME                                     STATUS
+default                                  Active
+kube-system                              Active
+openshift-authentication                 Active
+openshift-monitoring                     Active
+...
+----
+
+이로써 그룹 기반 RBAC이 정상적으로 작동함이 증명되었습니다.
+
+**현재 사용자 확인:**
+
+[source,bash,role="execute"]
+----
+oc whoami
+oc whoami --show-context
+----
+
+== RBAC 및 프로젝트
+
+=== 7단계: 협업을 위한 프로젝트 생성
+
+cluster admin으로 다시 로그인합니다:
+
+[source,bash,role="execute",subs="attributes"]
+----
+oc login -u {openshift_cluster_admin_username} -p {openshift_cluster_admin_password} --insecure-skip-tls-verify
+----
+
+일반적인 SDLC 프로젝트 구조를 생성합니다:
+
+[source,bash,role="execute"]
+----
+oc adm new-project app-dev --display-name="Application Development"
+oc adm new-project app-test --display-name="Application Testing"
+oc adm new-project app-prod --display-name="Application Production"
+----
+
+TIP: 생성된 프로젝트들은 이제 콘솔의 프로젝트 드롭다운 메뉴에서 볼 수 있습니다. **Home (홈) > Projects (프로젝트)** 메뉴로 이동하여 디스플레이 이름과 함께 세 프로젝트가 모두 표시되는지 확인하십시오.
+
+**프로젝트 생성 확인:**
+
+[source,bash,role="execute"]
+----
+oc get projects | grep app-
+----
+
+=== 8단계: 프로젝트에 그룹 매핑
+
+`ose-teamed-app` 그룹에 dev 및 test 프로젝트에 대한 **edit** 권한을 부여합니다:
+
+[source,bash,role="execute"]
+----
+oc adm policy add-role-to-group edit ose-teamed-app -n app-dev
+oc adm policy add-role-to-group edit ose-teamed-app -n app-test
+----
+
+production 프로젝트에 대한 **view** 권한을 부여합니다:
+
+[source,bash,role="execute"]
+----
+oc adm policy add-role-to-group view ose-teamed-app -n app-prod
+----
+
+`ose-fancy-dev` 그룹에 production 프로젝트에 대한 **edit** 권한을 부여합니다:
+
+[source,bash,role="execute"]
+----
+oc adm policy add-role-to-group edit ose-fancy-dev -n app-prod
+----
+
+**프로젝트의 역할 바인딩(role binding) 조회:**
+
+[source,bash,role="execute"]
+----
+oc get rolebindings -n app-dev
+----
+
+**특정 역할 바인딩 상세 설명 확인:**
+
+[source,bash,role="execute"]
+----
+oc describe rolebinding -n app-dev | grep -A 5 ose-teamed-app
+----
+
+**콘솔에서 확인하십시오.** **User Management (사용자 관리) -> RoleBindings (역할 바인딩)** 메뉴로 이동하여 `app-dev` 프로젝트를 선택하고, **Namespace RoleBindings (네임스페이스 역할 바인딩)**로 필터링합니다:
+
+image::ldap-rolebindings-app-dev.png[RoleBindings for app-dev showing ose-teamed-app group with edit role, link=self, window=blank]
+`ose-teamed-app` 그룹이 `app-dev` 프로젝트에서 `edit` 역할을 가지고 있음을 바로 확인할 수 있습니다. 이제 프로젝트를 `app-prod`로 전환합니다:
+
+image::ldap-rolebindings-app-prod.png[RoleBindings for app-prod showing ose-fancy-dev with edit and ose-teamed-app with view, link=self, window=blank]
+한눈에 특권 분리가 되어 있는 것을 확인할 수 있습니다 - `ose-fancy-dev` 그룹은 production 프로젝트에 대해 `edit` 접근 권한을 가지고 있는 반면, `ose-teamed-app` 그룹은 `view` 권한만 가지고 있습니다. 이러한 액세스 검토는 CLI 출력을 파싱하는 것보다 콘솔을 사용할 때 훨씬 더 신속하게 진행할 수 있습니다.
+
+=== 9단계: 프로젝트 권한 테스트
+
+**normaluser1로 테스트 (그룹 접근 권한 없음):**
+
+[source,bash,role="execute"]
+----
+oc login -u normaluser1 -p 'Op#nSh1ft' $OCP_SERVER --insecure-skip-tls-verify
+oc whoami
+----
+
+[source,bash,role="execute"]
+----
+oc get projects | grep app-
+----
+
+결과: `app-` 프로젝트가 보이지 않습니다. 이 사용자는 프로젝트 특정 그룹에 속해 있지 않습니다.
+
+**teamuser1로 테스트 (ose-teamed-app 그룹 멤버):**
+
+[source,bash,role="execute"]
+----
+oc login -u teamuser1 -p 'Op#nSh1ft' $OCP_SERVER --insecure-skip-tls-verify
+oc whoami
+----
+
+[source,bash,role="execute"]
+----
+oc get projects | grep app-
+----
+
+이제 다음과 같이 표시됩니다:
+
+----
+NAME       DISPLAY NAME              STATUS
+app-dev    Application Development   Active
+app-prod   Application Production    Active
+app-test   Application Testing       Active
+----
+
+**development에서의 권한 검증 (edit 접근 권한):**
+
+[source,bash,role="execute"]
+----
+oc auth can-i create deployment -n app-dev
+oc auth can-i create pod -n app-dev
+oc auth can-i create service -n app-dev
+----
+
+모두 `yes`를 반환해야 합니다 (teamuser1은 app-dev 프로젝트에 대해 **edit** 역할을 가지고 있습니다).
+
+**production에서의 권한 검증 (view 전용 접근 권한):**
+
+[source,bash,role="execute"]
+----
+oc auth can-i create deployment -n app-prod
+oc auth can-i create pod -n app-prod
+----
+
+둘 다 `no`를 반환해야 합니다 (teamuser1은 app-prod 프로젝트에 대해 **view** 역할만 가지고 있습니다).
+
+**view 권한이 허용하는 작업 확인:**
+
+[source,bash,role="execute"]
+----
+oc auth can-i get pods -n app-prod
+oc auth can-i list deployments -n app-prod
+----
+
+둘 다 `yes`를 반환합니다 (view 역할은 읽기 작업을 허용합니다).
+
+**완벽합니다!** 이 실습은 운영 팀이 테스트 리소스를 직접 생성하지 않고도 RBAC이 올바르게 구성되었는지 검증하는 방법을 잘 보여줍니다.
+
+== 보안 모범 사례
+
+**Identity Provider 구성 후 kubeadmin 제거 확인:**
+
+[source,bash,role="execute",subs="attributes"]
+----
+oc login -u {openshift_cluster_admin_username} -p {openshift_cluster_admin_password} --insecure-skip-tls-verify
+----
+
+먼저, 실제 사용자에게 cluster-admin 권한을 부여합니다:
+
+[source,bash,role="execute"]
+----
+oc adm policy add-cluster-role-to-user cluster-admin fancyuser1
+----
+
+정상 작동 여부 검증:
+
+[source,bash,role="execute"]
+----
+oc login -u fancyuser1 -p 'Op#nSh1ft' $OCP_SERVER --insecure-skip-tls-verify
+oc auth can-i '*' '*'
+----
+
+출력 결과: `yes`
+
+**프로덕션 환경에서는 항상 kubeadmin을 제거해야 합니다:**
+
+Identity Provider가 정상적으로 작동하는 것을 확인하고 최소 한 명 이상의 LDAP/OIDC 사용자에게 cluster-admin 권한을 부여한 후, `kube-system` 네임스페이스에서 kubeadmin Secret을 삭제하십시오. 이렇게 하면 부트스트랩 계정이 제거되고 모든 클러스터 접근이 기업용 Identity Provider를 통해 이루어지도록 강제할 수 있습니다. 이 워크숍 클러스터에서는 이미 kubeadmin이 제거되었으며, 대신 `admin` HTPasswd 계정을 사용하고 있습니다.
+
+**CronJob을 통한 LDAP 그룹 동기화 자동화:**
+
+그룹 동기화를 수동으로 실행하는 대신, 프로덕션 환경에서는 일반적으로 일정한 주기(예: 매시간)마다 동기화 작업을 자동으로 실행하는 Kubernetes CronJob을 생성합니다. 이를 통해 LDAP 그룹 멤버십의 변경 사항이 수동 개입 없이 OpenShift에 반영됩니다.
+
+CronJob은 다음을 수행합니다:
+
+* 정기적인 일정에 맞춰 실행 (예: 매시간 실행을 위해 `*/60 * * * *` 설정)
+* 적절한 권한을 가진 ServiceAccount 사용
+* ConfigMap으로부터 그룹 동기화 구성을 마운트
+* `--confirm` 플래그와 함께 `oc adm groups sync` 명령 실행
+
+전체 구현 세부 정보는 link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/ldap-syncing#ldap-syncing-running-all-ldap-sync_configuring-ldap-syncing[official documentation on automating LDAP sync, window=blank] 공식 문서를 참조하십시오.
+
+**이 실습에서는 학습 목적으로 수동 그룹 동기화만으로도 충분합니다.**
+
+== 정리 및 요약
+
+=== 요약
+
+외부 디렉터리에 연결하고, 그룹을 동기화하며, 이러한 그룹을 프로젝트 수준의 RBAC에 매핑한 후, 각기 다른 접근 권한을 가진 세 명의 사용자로 로그인하여 검증함으로써 엔드 투 엔드로 LDAP 인증을 구성했습니다.
+
+**프로덕션 권장 사항:**
+
+1. HTPasswd 대신 항상 LDAP/OIDC 사용
+2. 실제 Identity Provider를 구성한 후 kubeadmin 제거
+3. CronJob을 활용하여 그룹 동기화 자동화
+4. 개별 사용자가 아닌 그룹 단위로 RBAC 지정
+5. 최소 권한 원칙(least-privilege) 준수: edit 대신 view, admin 대신 edit 적용
+
+=== 추가 리소스
+
+* **인증 및 인가 가이드:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/index[Official documentation, window=blank]
+* **Identity Providers 개요:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/understanding-identity-provider[Understanding identity providers, window=blank]
+* **LDAP 구성:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/configuring-ldap-identity-provider[Configuring LDAP identity provider, window=blank]
+* **RBAC 문서:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/using-rbac[Using RBAC, window=blank]
+* **그룹 동기화:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/ldap-syncing[Syncing LDAP groups, window=blank]
+
+=== 정리
+
+다른 모듈로 진행하기 전에 클러스터를 원래의 인증 상태로 복원합니다:
+
+[source,bash,role="execute",subs="attributes"]
+----
+oc login -u {openshift_cluster_admin_username} -p {openshift_cluster_admin_password} --insecure-skip-tls-verify
+bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/cleanup-scripts/cleanup-ldap.sh)
+----

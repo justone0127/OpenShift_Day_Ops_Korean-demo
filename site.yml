@@ -1,0 +1,62 @@
+---
+site:
+  title: OpenShift Ops Day Roadshow
+  url: https://github.com/rhpds/openshift-days-ops-showroom
+  start_page: openshift-days-ops-track::index.adoc
+
+content:
+  sources:
+    - url: .
+      start_path: content
+
+ui:
+  bundle:
+    url: https://github.com/jnewsome97/rhdp_showroom_theme_execute/releases/download/rh-one-2025-execute-v4/ui-bundle.zip
+    snapshot: true
+  supplemental_files:
+    - path: ./content/supplemental-ui
+    - path: ./content/lib
+    - path: .nojekyll
+    - path: ui.yml
+      contents: "static_files: [ .nojekyll ]"
+
+runtime:
+  cache_dir: ./.cache/antora
+
+antora:
+  extensions:
+    - require: ./content/lib/dev-mode.js
+      enabled: false
+
+output:
+  dir: ./www
+
+# Module attributes for ifeval conditionals in nav.adoc
+# In production, these are injected by the showroom workload via user_data
+# For local preview, enable all modules by setting to "true"
+asciidoc:
+  attributes:
+    toclevels: 2
+    # Module flags - matches catalog parameter names (module_enable_*)
+    # Getting Started
+    module_enable_install: 'true'
+    # Core Operations
+    module_enable_appmgmt: 'true'
+    module_enable_ingress: 'true'
+    module_enable_netsec: 'true'
+    module_enable_debugging: 'true'
+    module_enable_gitops: 'true'
+    # Identity & Access
+    module_enable_ldap: 'true'
+    module_enable_oidc: 'true'
+    # Day 2 Operations
+    module_enable_observability: 'true'
+    module_enable_performance: 'true'
+    # Advanced Topics
+    module_enable_virt: 'true'
+    module_enable_devhub: 'true'
+    module_enable_ols: 'true'
+    module_enable_acm: 'true'
+    module_enable_security: 'true'
+    module_enable_ztwim: 'true'
+    module_enable_vault: 'true'

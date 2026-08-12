@@ -1,0 +1,361 @@
+= Ingress 및 로드 밸런싱
+:page-toclevels: 1
+
+**소요 시간:** 25분 +
+**형식:** Ingress 구성을 위한 실습
+
+include::partial$console-access.adoc[]
+
+== 시나리오
+
+애플리케이션이 성공적으로 배포되어 구동 중입니다 - 그런데 외부 트래픽은 실제로 어떻게 애플리케이션에 도달하게 될까요? 이 모듈에서는 Ingress Controller를 점검하고, TLS 기반의 route를 생성한 후 이를 보호하는 방법(부하 상태에서의 속도 제한(rate limiting), HTTP에서 HTTPS로의 리다이렉트 강제, 보안 헤더 추가)을 실습합니다. 조치 전후의 테스트를 통해 각 기능이 원활하게 작동함을 직접 검증하게 됩니다.
+
+image::diagrams/03_ingress.png[OpenShift Ingress Load Balancer Flow, align=center, link=self, window=blank]
+
+== Ingress Controller 및 로드 밸런싱
+
+**Ingress Controller**(기본적으로 HAProxy가 사용되나 타사 ingress controller 교체도 가능합니다)는 클러스터 내부로 유입되는 HTTP/S 트래픽의 수용 처리를 전담합니다.
+
+=== Ingress Controller 구성 정보 조회
+
+[source,bash,role="execute"]
+----
+oc get ingresscontroller default -n openshift-ingress-operator -o yaml | head -60
+----
+
+핵심적인 설정 매개변수 항목 정보는 다음과 같습니다:
+
+* `replicas` - 고가용성(HA) 수호를 위한 라우터 pod의 복제 수 설정값
+* `routeAdmission.wildcardPolicy` - 와일드카드(wildcard) 형식의 route 수용 여부 조절
+* `defaultCertificate` - *.apps 도메인을 커버할 기본 TLS 인증서 정보
+* `endpointPublishingStrategy` - 라우터를 어떤 방식으로 외부에 노출할지 규정 (HostNetwork, LoadBalancer, NodePort 방식 등)
+
+=== 라우터 Pods 현황 조회
+
+[source,bash,role="execute"]
+----
+oc get pods -n openshift-ingress -o wide
+----
+
+라우터 pod들은 수신 유입되는 HTTP/HTTPS 트래픽의 전반을 통제합니다. 본 실습용 클러스터의 라우터는 HostNetwork 방식을 취하여 control-plane node들 위에 상주하며 구동 중입니다. 즉, 이 라우터 pod들은 해당 node 물리 랜카드의 80번 및 443번 포트에 수동 연결되지 않고 하드웨어 포트를 직접 점유해 대기 수신합니다.
+
+**OCP Console**의 **Workloads (워크로드) -> Pods (파드)** 메뉴에서도 이를 확인할 수 있습니다. 프로젝트 선택 드롭다운 메뉴에서 **Show default projects (기본 프로젝트 표시)** 토글을 켠 뒤, `openshift-ingress`를 선택하십시오:
+
+image::ingress-images/ingress-router-pods.png[Router pods in the openshift-ingress namespace, link=self, window=blank]
+
+=== 엔드포인트 게시 전략 검증
+
+[source,bash,role="execute"]
+----
+oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.status.endpointPublishingStrategy}' | jq . 2>/dev/null || oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.status.endpointPublishingStrategy}' | python3 -m json.tool
+----
+
+== Routes: OpenShift 전용 Ingress 리소스
+
+OpenShift **Routes**는 내부 service 요소를 외부에 노출하는 기능을 제공합니다. 이는 Kubernetes의 일반 Ingress 명세 규격에 비해 한층 더 다양하고 뛰어난 엔터프라이즈 기능을 기본적으로 제공합니다.
+
+=== 실습용 애플리케이션 설치
+
+본 단락 실습에서는 테스트용 애플리케이션을 구동합니다. 아래 스크립트를 가동하여 신규 프로젝트 생성 및 애플리케이션 배포 상태를 온전하게 기획하십시오:
+
+[source,bash,role="execute"]
+----
+oc new-project ingress-demo 2>/dev/null || oc project ingress-demo && \
+oc get deployment test-app -n ingress-demo 2>/dev/null || \
+oc new-app --name=test-app --image=registry.access.redhat.com/ubi9/httpd-24 -n ingress-demo
+----
+
+NOTE: 터미널상에서 기동 모니터링 출력으로 대기가 걸리면, **Ctrl+C**를 입력해 프롬프트 입력을 되찾으십시오.
+
+[source,bash,role="execute"]
+----
+oc create route edge test-app --service=test-app 2>/dev/null || echo "Route already exists"
+----
+
+pod가 구동을 완료하여 활성 상태에 돌입할 때까지 잠시 대기합니다:
+
+[source,bash,role="execute"]
+----
+oc rollout status deployment/test-app -n ingress-demo --timeout=60s
+----
+
+NOTE: 작업이 정착하기까지 다소의 시간이 걸릴 수 있습니다. 구동이 5분 이상 무한 지체되는 특수한 예외가 아닐 경우 수 초 내에 자동 처리되므로 잠시 기다리십시오.
+
+이제 생성된 네트워크 연계 정보를 추적하겠습니다. **OCP Console**에서 **Networking (네트워킹) -> Routes (라우트)** (프로젝트: `ingress-demo`)로 이동하십시오. 생성한 `test-app` route의 가동 정보 및 도메인 접속 가능한 실제 URL, 연결 대상 target service 맵 정보가 표기됩니다:
+
+image::ingress-images/ingress-weathernow-route.png[test-app route in the console, link=self, window=blank]
+
+해당 route 명칭을 마우스로 클릭하면 TLS 암호화 기법 및 유입 통제 라우터 연결 제어 정보 등의 상세 내역을 파악할 수 있습니다:
+
+image::ingress-images/ingress-route-details.png[test-app route details showing TLS edge termination, link=self, window=blank]
+
+=== Route 설정 명세 정보 조회
+
+[source,bash,role="execute"]
+----
+oc get route test-app -o yaml
+----
+
+주요 Route 설정 필드 정보:
+
+* `spec.host` - 외부 클라이언트에서 사용해 접속할 호스트명 (hostname)
+* `spec.to.name` - 백엔드에서 받아 처리할 타겟 Service 리소스 명칭
+* `spec.tls.termination` - 암호화 해제 기법 방식 지정 (본 예제에서는 edge 기법 사용)
+
+=== Route 호출 점검
+
+보안 HTTPS (edge TLS) 접속 테스트를 전개합니다:
+
+[source,bash,role="execute"]
+----
+curl -sk https://$(oc get route test-app -o jsonpath='{.spec.host}') | head -5
+----
+
+이 트래픽 요청 흐름은 다음과 같습니다: **Client -> Ingress Controller -> Service -> Pod**
+
+웹 서버로부터 가동 중임을 뜻하는 기본 HTML 웹 문구 결과가 리턴됩니다.
+
+== TLS 종단 처리 기법
+
+OpenShift Routes는 세 종류의 유연한 암호화 종단 모드를 정식 지원합니다:
+
+[cols="1,2,2"]
+|===
+|종류 |설명 |적용 권장 대상
+
+|**edge**
+|TLS 암호화 세션이 라우터 단에서 즉시 종단 해제되며, 내부 pod 구간은 일반 HTTP 방식으로 중계 전송됩니다.
+|가장 빈번하게 이용되는 보편적 기법입니다. 통합 인증서 관리가 라우터 단에서 수렴되어 간소화됩니다.
+
+|**passthrough**
+|암호화 흐름이 라우터의 어떤 해제 조치 없이 그대로 관통하여 개별 내부 pod 영역으로 인계됩니다.
+|애플리케이션(pod) 스스로 직접 독립된 보안 인증서를 보유 및 보완해야 하는 엄격한 특수 조건에 적합합니다.
+
+|**reencrypt**
+|일차적인 TLS 해제 처리가 라우터에서 단행되며, 내부 pod 구간 진입을 위해 다른 내부 보안 인증서를 얹어 재암호화해 전달합니다.
+|라우터에서 트래픽을 필터링 통제하면서도 내부 전송 패스 상의 철저한 엔드투엔드(End-to-End) 기밀 유지가 필수적일 때 사용합니다.
+|===
+
+=== TLS 구성 정보 추적
+
+생성한 edge 방식의 route에 매핑된 암호화 정보를 조회해 봅니다:
+
+[source,bash,role="execute"]
+----
+oc get route test-app -o jsonpath='{.spec.tls}' | jq . 2>/dev/null || oc get route test-app -o jsonpath='{.spec.tls}' | python3 -m json.tool
+----
+
+Edge 종단이란 다음과 같은 구성을 뜻합니다:
+
+* TLS 암호화 종단이 클러스터의 입구인 Ingress Controller (HAProxy) 단에서 전면 수행됩니다.
+* 라우터로부터 실 백엔드 pod 구간 사이는 암호화되지 않은 일반 HTTP 프로토콜로 경유합니다.
+* 라우터는 클러스터 설치 시 기본 탑재된 와일드카드(wildcard) 보안 인증서를 활용해 처리합니다.
+
+=== 클러스터 상의 전체 Routes 조회
+
+[source,bash,role="execute"]
+----
+oc get routes -A | head -20
+----
+
+`edge`, `passthrough`, `reencrypt` 등 각양각색의 TLS 통제 방식들이 상호 혼용되어 가동되고 있음을 식별할 수 있습니다.
+
+**OCP Console**의 **Networking (네트워킹) -> Routes (라우트)** 메뉴로 이동한 뒤 (프로젝트 필터는 **All Projects (모든 프로젝트)** 선택) 클러스터 전체 영역의 구성 현황을 원스톱으로 추적할 수도 있습니다:
+
+image::ingress-images/ingress-routes-all.png[All routes across the cluster with TLS termination badges, link=self, window=blank]
+
+== 고급 설정 명세 구성
+
+=== Route 보호 기능 수동 주입
+
+Routes 명세는 어노테이션(annotation) 메타 구성을 얹어 속도 제한(rate limiting) 유발 제어, 특수 보안 전송 헤더 통제, 일반 HTTP 동작 방향 등을 정밀 조율할 수 있습니다. 이를 주입하여 전후 변화를 체감해 보십시오.
+
+**HTTP to HTTPS 리다이렉션 자동 강제**
+
+기본 상태에서는 edge 방식의 route에 보안 적용되지 않는 일반 HTTP 포트로 접근을 감행하면 기본 안내 페이지(503)를 보게 됩니다. 하지만 실서비스를 운영하는 프로덕션 환경에서는 HTTP 유입 발생 시 즉각 안전한 HTTPS 주소로 브라우저가 이동(redirect)되도록 자동 제어하는 것이 일반적입니다.
+
+우선, 조치하기 전에 현재의 HTTP 접속 처리 현황을 진단해 보십시오:
+
+[source,bash,role="execute"]
+----
+curl -sk -o /dev/null -w "HTTP request: %{http_code}\n" "http://$(oc get route test-app -o jsonpath='{.spec.host}')"
+----
+
+보안 자동 강제 리다이렉트 구성을 해당 route 명세에 업데이트합니다:
+
+[source,bash,role="execute"]
+----
+oc patch route test-app -n ingress-demo --type=merge \
+  -p '{"spec":{"tls":{"insecureEdgeTerminationPolicy":"Redirect"}}}'
+----
+
+[source,bash,role="execute"]
+----
+sleep 3
+ROUTE_HOST=$(oc get route test-app -o jsonpath='{.spec.host}')
+echo "HTTP request (should 302 redirect):"
+curl -sk -o /dev/null -w "  Status: %{http_code} → %{redirect_url}\n" "http://$ROUTE_HOST"
+echo "Following the redirect:"
+curl -skL -o /dev/null -w "  Status: %{http_code}\n" "http://$ROUTE_HOST"
+----
+
+수행 결과에 기입된 `302` 표기를 통해 접속 시도가 HTTPS 영역으로 원활히 자동 리다이렉트 유도됨을 확인할 수 있습니다. 리다이렉트를 따르고 난 후의 `403` 상태값은 해당 데모용 이미지 웹 서버 상에 별도의 커스텀 index 파일 등이 조성되어 있지 않아 웹 데몬 자체가 반환해 내는 통상적인 기본 출력입니다. 중요한 진단 결과는 이 이중 접속 경로 강제 교정 통제가 완벽히 먹혀 들어갔다는 사실입니다 - 일반 평문 HTTP 요청은 더 이상 무보안 상태로 통과하지 못합니다.
+
+`insecureEdgeTerminationPolicy` 설정 시 조율 가능한 옵션들은 다음과 같이 매핑됩니다:
+
+* **Redirect** - 수신되는 HTTP 요청 건을 HTTPS로 리다이렉트(302) 처리 (가장 권장)
+* **None** - 일반 HTTP 요청을 전면 차단 파괴 (503 반환)
+* **Allow** - 일반 HTTP 접속 통로와 HTTPS 암호화 접속 통로를 둘 다 허용 (권장하지 않음)
+
+**HSTS (HTTP Strict Transport Security) 보안 주입**
+
+HSTS 프로토콜은 접속 브라우저에게 "사용자가 수동으로 `http://`로 입력하여도 강제로 브라우저 로컬 단에서 무조건 HTTPS 전송 흐름을 유지할 것"을 명시 지시하는 모던 보안 표준 조약 규격입니다. 이는 중간에서 트래픽을 가로채 강제로 보안을 허무는 다운그레이드 변조 가해 공격을 원천 봉쇄해 줍니다.
+
+HSTS 구성 활성화 이전의 통상 HTTP 응답 정보의 보안 헤더 매핑 내역을 확인합니다 (HSTS를 기동하지 않았으므로 수색 결과 검출되지 않아야 정상입니다):
+
+[source,bash,role="execute"]
+----
+curl -sk -D - "https://$(oc get route test-app -o jsonpath='{.spec.host}')" 2>&1 | grep -i strict || echo "No HSTS header"
+----
+
+HSTS 작동 지시 어노테이션 주입을 적용해 줍니다:
+
+[source,bash,role="execute"]
+----
+oc annotate route test-app -n ingress-demo \
+  haproxy.router.openshift.io/hsts_header="max-age=31536000;includeSubDomains" --overwrite
+----
+
+[source,bash,role="execute"]
+----
+sleep 3
+curl -sk -D - "https://$(oc get route test-app -o jsonpath='{.spec.host}')" 2>&1 | grep -i strict
+----
+
+이제 모든 응답 결과 셋의 보안 라인에 `strict-transport-security` 구성 헤더가 매핑되어 방출됩니다. 이 응답 규격을 한 차례라도 정독한 최신 브라우저는 향후 만 1년(`max-age=31536000`초 지정 기준)에 해당하는 기간 동안 해당 도메인에 접근을 전개할 때 평문 HTTP 통신 경로를 스스로 거부하며 원천적으로 완벽한 HTTPS 보안 전송만을 취하게 됩니다.
+
+**임계 부하 상황 하에서의 속도 제한 제어 (Rate Limiting Under Load)**
+
+한 번에 대량 접속이 몰리는 이상 유입 등을 보호하기 위해 인입 가능한 동시 접속 커넥션 개수를 통제해 보겠습니다:
+
+[source,bash,role="execute"]
+----
+oc annotate route test-app -n ingress-demo \
+  haproxy.router.openshift.io/rate-limit-connections=true \
+  haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp=2 \
+  haproxy.router.openshift.io/rate-limit-connections.rate-http=10 \
+  --overwrite
+----
+
+어노테이션 기입 작업이 기획 완료되었습니다 - 그런데 이 규칙이 실제로 트래픽 현업 장벽에서 주효하게 구동될까요? 테스트를 통해 확인해 보겠습니다. 한 번에 급격하게 20개의 동시 다발 접속 요청 스크립트를 방출해 봅니다:
+
+[source,bash,role="execute"]
+----
+echo "=== With rate limiting (max 2 concurrent) ==="
+ROUTE_HOST=$(oc get route test-app -o jsonpath='{.spec.host}')
+sleep 5
+RESULTS=""
+for i in $(seq 1 20); do
+  curl -sk -o /dev/null -w "%{http_code}\n" "https://$ROUTE_HOST" &
+done
+wait 2>/dev/null
+----
+
+NOTE: 터미널 처리가 중간에 올스톱된 형태로 정체될 경우 **Ctrl+C**를 눌러 나와 주십시오.
+
+정상 접속을 뜻하는 `403` 결과와, 내부 유입 한도 포화 상태로 감지된 유입분을 HAProxy 게이트 라인에서 단호하게 탈락시켜 전송 패스를 차단시킨 `000` 상태 코드가 상호 뒤섞여 출력됩니다. `000` 코드의 다수 검출은 해당 라우터가 제한 커넥션 오버플로우 트래픽을 실제 소스 처리부 pod로 전달하지 않고 선제 차단해 인프라 가용성을 자가 보호했음을 명백히 고증합니다.
+
+NOTE: 시스템 환경 및 CPU 사양, 전송 딜레이 수치 등에 따라 상세 `403` 대 `000` 도출 분배율 카운트는 매 수행 시점마다 일부 상이할 수 있습니다.
+
+이제 수동 속도 제한 패널 구성을 다시 원래 상태로 철회(지정 어노테이션 뒤에 `-` 기입하여 제거)하여 차이를 체감하겠습니다:
+
+[source,bash,role="execute"]
+----
+oc annotate route test-app -n ingress-demo \
+  haproxy.router.openshift.io/rate-limit-connections- \
+  haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp- \
+  haproxy.router.openshift.io/rate-limit-connections.rate-http-
+----
+
+[source,bash,role="execute"]
+----
+echo "=== Without rate limiting ==="
+sleep 5
+for i in $(seq 1 20); do
+  curl -sk -o /dev/null -w "%{http_code}\n" "https://$(oc get route test-app -o jsonpath='{.spec.host}')" &
+done
+wait 2>/dev/null
+----
+
+NOTE: 작업 완료 후 대기 정체 현상이 유지되면 **Ctrl+C**로 복귀하십시오.
+
+탈락 및 거절 처리된 `000` 무승부 응답 없이, 전 영역의 20기 접속 요청 모두가 백엔드 내부 애플리케이션 수신 경로까지 침투해 모두 정상 수신 `403` 코드를 리턴해 냈습니다. 이 극명한 테스트의 비교 조견표를 통해 인프라 운영자가 기입한 단 몇 글자의 어노테이션 정보 주입 하나가 거대한 플랫폼 관문 제어 장벽을 완벽하게 탈바꿈한다는 사실을 확인할 수 있습니다.
+
+=== Ingress Controller 스케일 조율
+
+클러스터 전반의 Ingress Controller는 IngressController CR(Custom Resource) 명세상의 `spec.replicas` 매개변수 값을 편집해 동적으로 늘려 나갈 수 있습니다. 라우터 복제수(replicas) 규모를 확대 배치함으로써 외부 전송 로드 밸런서 하부의 가용 데이터 중계 처리량 허용치를 증폭해 낼 수 있게 됩니다.
+
+하지만 본 압축형 컴팩트(compact) 클러스터 인프라에서는 각 개별 node 단마다 고르게 1기씩의 라우터가 분배(anti-affinity 제어 기본 탑재로 인해 동일 물리 머신 상에 이중으로 라우터 파드가 중복 배치되는 것이 엄격히 방어됨) 배포되어 구동 중인 이미 풀-스케일 한계 구동 상태입니다. 즉 복제수 강제 오버 스케일 시도는 node 용량 한계에 부딪혀 결국 `Pending` 대기 정체 파드를 유발할 수 있으며, 역으로 축소 강행 시에는 해당 라우터 상실 node와 연계된 접속 트래픽 중단 장애로 비치게 됩니다.
+
+[source,bash,role="execute"]
+----
+echo "Current replicas: $(oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.spec.replicas}')"
+echo "Router pods:"
+oc get pods -n openshift-ingress -o wide
+----
+
+풍부한 유휴 노드 대수가 담보된 대규모 프로덕션 혹은 퍼블릭 클라우드 인프라에서는 주로 아래와 같은 선언을 통해 스케일아웃을 적용하게 됩니다:
+
+[source,bash,role="copypaste"]
+----
+# 예시 가이드이며 본 소규모 데모 클러스터에서는 수행하지 마십시오.
+oc patch ingresscontroller default -n openshift-ingress-operator --type=merge -p '{"spec":{"replicas":5}}'
+----
+
+콘솔 환경에서는 **Administration (관리) -> Cluster Settings (클러스터 설정) -> ClusterOperators (클러스터 오퍼레이터)** 경로로 이동한 뒤, **ingress** 항목을 선택 클릭하여 Ingress Controller의 통합 상태와 세부 가용 현황을 일목요연하게 추적할 수 있습니다:
+
+image::ingress-images/ingress-operator-conditions.png[Ingress operator conditions showing Available, Progressing, Degraded status, link=self, window=blank]
+
+== 정리 및 요약
+
+[source,bash,role="execute"]
+----
+# Remove annotations and reset route
+oc annotate route test-app -n ingress-demo \
+  haproxy.router.openshift.io/hsts_header- \
+  haproxy.router.openshift.io/rate-limit-connections- \
+  haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp- \
+  haproxy.router.openshift.io/rate-limit-connections.rate-http- 2>/dev/null
+oc patch route test-app -n ingress-demo --type=merge \
+  -p '{"spec":{"tls":{"insecureEdgeTerminationPolicy":""}}}' 2>/dev/null
+echo "Cleanup complete"
+----
+
+=== 요약
+
+**습득한 기술 지식 내용:**
+
+* Ingress Controller (HAProxy 기반)는 HostNetwork 상에서 클러스터의 모든 외부 유입 트래픽 수신을 전담함
+* Routes를 가동해 내부 service를 외부 노출해 내며 다양한 TLS 암호화 방식(edge, passthrough, reencrypt)을 조율함
+* `insecureEdgeTerminationPolicy: Redirect` 구성을 주입해 강제 보안 HTTPS 경로 자동 전이를 강제 안착함
+* HSTS 보안 전송 유도 전송 헤더를 활성화해 다운그레이드 위조 해킹 피해 요소를 사전 차단함
+* 동시 속도 제한 제어 기법을 연계해 트래픽 폭주 재난 속에서도 서비스 백엔드 가용성을 안정적으로 수호하고 이를 직접 검증해 냄
+
+**핵심 주요 운영 커맨드 요약:**
+
+[source,bash]
+----
+# Ingress Controller 상태 점검
+oc get ingresscontroller -n openshift-ingress-operator
+
+# 전체 구동 중인 Routes 검색 현황 확인
+oc get routes -A
+
+# 라우터 처리부 Pod 현원 배치 상태 추적
+oc get pods -n openshift-ingress -o wide
+----
+
+=== 추가 리소스
+
+* **Ingress Controller 공식 문서:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/networking/configuring-ingress-cluster-traffic[클러스터 Ingress 트래픽 구성 가이드, window=blank]
+* **Routes 어노테이션 정보:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/networking/configuring-ingress-cluster-traffic#nw-route-specific-annotations_route-configuration[Route 연계 전용 세부 어노테이션 규격 목록, window=blank]

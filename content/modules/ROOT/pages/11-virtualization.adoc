@@ -1,0 +1,414 @@
+= OpenShift Virtualization
+:page-toclevels: 1
+
+**소요 시간:** 20-25분
+
+include::partial$console-access.adoc[]
+
+== 시나리오
+
+데이터베이스, 미들웨어, Windows 서비스 등 일부 workload는 아직 컨테이너화할 수 없습니다. OpenShift Virtualization을 사용하면 KubeVirt(RHEL KVM을 기반으로 구축된 CNCF 프로젝트)를 활용해 동일한 플랫폼에서 VM을 컨테이너와 함께 실행할 수 있습니다. 동일한 scheduler, 동일한 networking, 동일한 monitoring, 동일한 RBAC, 동일한 `oc` 명령어를 그대로 사용합니다.
+
+이 모듈에서는 console에서 VM을 생성하고, 이것이 실제로 내부적으로는 어떻게 pod에 불과한지 확인하며, nodes 간에 live migrate를 수행하고, 복제(clone)하고, snapshot을 찍는 등 컨테이너와 동일한 도구를 사용하여 VM을 관리하는 과정을 학습합니다.
+
+=== 사전 요구 사항 확인
+
+OpenShift Virtualization이 이미 설치되어 있어야 합니다. 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc get csv -n openshift-cnv | grep kubevirt
+----
+
+예상 출력 결과에 `Succeeded`가 표시되는지 확인하십시오:
+----
+kubevirt-hyperconverged-operator.v4.20.x   OpenShift Virtualization   4.20.x   Succeeded
+----
+
+== VM 생성 및 탐색
+
+=== VM 생성
+
+먼저, 이 모듈을 위한 project를 생성하십시오:
+
+[source,bash,role="execute"]
+----
+oc new-project vm-demo
+----
+
+이제 AWS나 Azure와 같은 클라우드 환경에서 제공하는 것과 유사한 경험을 지원하는 console을 사용하여 VM을 생성하겠습니다.
+
+**Step 1: Open the Create Wizard**
+
+. OpenShift console의 좌측 상단 드롭다운 메뉴에서 **Fleet Virtualization (플릿 가상화)** 뷰로 전환하십시오 (ACM이 활성화되어 있지 않은 경우 **Virtualization (가상화)**으로 표시됨).
+. **Create (생성)** 드롭다운을 클릭하고 **From InstanceType (인스턴스 유형에서)**을 선택하십시오.
++
+image::virt-create-dropdown.png[Create VirtualMachine dropdown showing From InstanceType option, link=self, window=blank]
+. 상단의 **Project (프로젝트)** 드롭다운에 `vm-demo`가 선택되어 있는지 확인하십시오. 선택되어 있지 않다면 검색하여 지금 선택하십시오.
++
+image::virt-select-project.png[Project dropdown showing vm-demo search and selection, link=self, window=blank]
+
+**Step 2: Select Boot Source and InstanceType**
+
+1. wizard 상단 볼륨 목록에서 **Red Hat Enterprise Linux 9** boot source를 선택하십시오.
+2. **Select InstanceType (인스턴스 유형 선택)** 아래에서 **Red Hat provided (Red Hat 제공)** -> **General Purpose (범용)** -> **medium: 1 CPUs, 4 GiB Memory**를 선택하십시오.
+
+OpenShift Virtualization은 클라우드의 인스턴스 패밀리와 유사한 기정의된 컴퓨팅 프로필인 **InstanceTypes**를 제공합니다:
+
+[cols="1,2"]
+|===
+|시리즈 |사용 사례
+
+|**U** (Universal) |범용 workloads
+|**O** (Overcommitted) |CPU overcommit을 포함한 개발/테스트
+|**CX** (Compute) |CPU 집약적 workloads
+|**M** (Memory) |Memory 집약적 workloads (databases, caching 등)
+|**N** (Network) |Network 집약적 workloads
+|===
+
+image::virt-create-wizard.png[VM creation wizard showing InstanceType selection and VM details, link=self, window=blank]
+
+**Step 3: Configure and Create**
+
+IMPORTANT: VM 이름을 정확히 `rhel9-vm`으로 지정하고 project가 `vm-demo`로 설정되어 있는지 확인하십시오. 이 모듈의 나머지 부분에서 사용되는 명령어는 이 이름들을 기준으로 하므로, 다른 값을 사용하면 명령이 실패하게 됩니다.
+
+**VirtualMachine details (가상 머신 상세 정보)** 섹션에서:
+
+1. **Name (이름)**을 `rhel9-vm`으로 변경하십시오.
+2. 기본값을 유지하십시오: **30 GiB** disk, 기본 storage class
+3. **Start this VirtualMachine after creation (생성 후 가상 머신 시작)** 체크박스가 선택된 상태를 유지하십시오.
+4. **Create VirtualMachine (가상 머신 생성)**을 클릭하십시오.
+
+VM 상세 페이지가 열립니다. VM이 부팅되면서 상태가 **Provisioning (프로비저닝)**에서 **Running (실행 중)**으로 변경되는 것을 볼 수 있습니다:
+
+image::virt-provisioning.png[VM details page showing Provisioning status, link=self, window=blank]
+
+**Step 4: Access the VM Console**
+
+VM이 Running 상태가 되면, **Console (콘솔)** 탭을 클릭하십시오. VM의 부팅 출력이 표시되는 VNC console을 확인할 수 있습니다:
+
+image::virt-vnc-boot.png[VNC console showing RHEL 9 boot output, link=self, window=blank]
+**Open web console (웹 콘솔 열기)**를 클릭하여 새 창에서 VM console을 엽니다:
+
+image::virt-open-web-console.png[Open web console link, link=self, window=blank]
+console 상단에 **Guest login credentials (게스트 로그인 자격 증명)**이 표시되며, 이를 사용해 로그인할 수 있습니다:
+
+image::virt-console-creds.png[VNC console with guest credentials shown at top, link=self, window=blank]
+CLI를 통해 자격 증명을 확인할 수도 있습니다:
+
+[source,bash,role="execute"]
+----
+DATA=$(oc get vm rhel9-vm -n vm-demo -o jsonpath='{.spec.template.spec.volumes[?(@.name=="cloudinitdisk")].cloudInitNoCloud.userData}')
+echo "Username: $(echo "$DATA" | grep 'user:' | awk '{print $2}')"
+echo "Password: $(echo "$DATA" | grep 'password:' | awk '{print $2}')"
+----
+
+크기를 정하고, boot image를 정하고, 배포합니다. YAML은 필요하지 않습니다.
+
+=== 단지 하나의 Pod일 뿐입니다
+
+이는 운영 팀에게 매우 중요한 개념입니다. 생성된 VM은 `virt-launcher` pod 내부에서 실행됩니다. 즉, 기존에 pods를 관리하던 모든 지식이 VM에도 동일하게 적용된다는 것을 의미합니다. 동일한 scheduler, 동일한 RBAC, 동일한 리소스 쿼터, 동일한 `oc` 명령어를 사용합니다. VM과 컨테이너를 관리하기 위해 별도의 도구, 별도의 팀, 또는 별도의 운영 문서를 유지할 필요가 없습니다:
+
+[source,bash,role="execute"]
+----
+oc get pods -n vm-demo
+----
+
+다음과 같은 결과가 표시됩니다:
+
+----
+NAME                          READY   STATUS    RESTARTS   AGE
+virt-launcher-rhel9-vm-xxxxx   2/2     Running   0          3m
+----
+
+이것이 바로 배포한 VM이며, 실체는 하나의 pod입니다. 동일한 `oc` 명령어가 동작합니다:
+
+[source,bash,role="execute"]
+----
+oc describe pod -l vm.kubevirt.io/name=rhel9-vm -n vm-demo | tail -10
+----
+
+== 모니터링 및 네트워킹
+
+=== 통합 모니터링
+
+VM metrics는 컨테이너와 동일한 Prometheus 스택으로 유입되므로 하나의 대시보드에서 모든 것을 볼 수 있습니다. VM만을 위한 별도의 monitoring 도구는 필요하지 않습니다.
+
+VM 상세 페이지에서 **Metrics (메트릭)** 탭을 클릭하여 다음을 확인해 보십시오:
+
+* 시간 경과에 따른 Memory 사용량
+* 시간 경과에 따른 CPU 사용량
+* Storage 총 읽기/쓰기
+* Storage IOPS
+* Storage latency (지연 시간)
+
+image::virt-metrics-tab.png[VM Metrics tab showing Memory CPU and Storage graphs, link=self, window=blank]
+또는 CLI에서 조회할 수도 있으며, VM은 다른 pod와 마찬가지로 리소스를 소비합니다:
+
+[source,bash,role="execute"]
+----
+oc adm top pods -n vm-demo
+----
+
+=== VM 노출 (컨테이너와 동일한 네트워킹)
+
+VM은 컨테이너와 동일한 SDN 상에서 pod IP를 부여받습니다. 따라서 동일한 Services, 동일한 Routes, 동일한 NetworkPolicies를 사용합니다. VM과 컨테이너에 대해 단일 networking 모델이 적용됩니다:
+
+[source,bash,role="execute"]
+----
+oc get vmi rhel9-vm -n vm-demo -o jsonpath='{.status.interfaces[0].ipAddress}' && echo ""
+----
+
+VM을 가리키는 Service를 생성하십시오:
+
+[source,bash,role="execute"]
+----
+oc apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: rhel9-vm-ssh
+  namespace: vm-demo
+spec:
+  selector:
+    vm.kubevirt.io/name: rhel9-vm
+  ports:
+  - port: 22
+    targetPort: 22
+EOF
+----
+
+[source,bash,role="execute"]
+----
+oc get svc rhel9-vm-ssh -n vm-demo
+----
+
+이제 Service를 통해 VM에 접속할 수 있습니다. 이는 컨테이너를 외부로 노출하는 방식과 동일합니다. 동일한 label selectors, 동일한 service types, 동일한 networking 모델이 적용됩니다.
+
+웹 애플리케이션(Apache, IIS, Tomcat 등)을 실행하는 VM의 경우, 포트 80/443에 대해 Service를 생성하고 TLS edge termination이 적용된 Route를 생성할 수 있으며, 이는 컨테이너에서 사용하는 워크플로우와 완전히 동일합니다. 다중 계층(multi-tier) 애플리케이션을 마이그레이션할 때 MTV를 사용하여 VM을 이동하고 Services 및 Routes로 연결하면 애플리케이션 변경 없이 OpenShift 상에서 바로 가동할 수 있습니다.
+
+== VM 라이프사이클
+
+=== 라이브 마이그레이션
+
+이는 OpenShift Virtualization을 상용 서비스에 적합하게 만들어주는 핵심 기능입니다. node 패치, OS 업그레이드, 하드웨어 교체 등이 필요할 때 node를 비워야(drain) 합니다. 이때 컨테이너들은 자동으로 다른 곳으로 재조정되며, VM 역시 자동으로 live migrate가 진행됩니다. `oc adm drain` 명령어가 이 두 작업을 모두 처리합니다. 점검 시간(maintenance windows) 동안 다운타임이 전혀 발생하지 않습니다.
+
+**Step 1: Prepare for Migration**
+
+Live migration을 수행하려면 소스 및 타겟 nodes의 CPU 기능이 호환되어야 합니다. 워크숍 cluster의 노드 풀에는 Intel과 AMD 노드가 섞여 있을 수 있으며, CPU 명령어 세트가 호환되지 않으면 서로 다른 CPU 벤더 간에는 VM 마이그레이션이 불가능합니다. 이 스크립트는 VM의 CPU 벤더를 감지하여 2개 이상의 노드가 존재하는 동일 벤더의 노드로 VM을 고정함으로써 유효한 마이그레이션 대상이 존재하도록 구성합니다:
+
+[source,bash,role="execute"]
+----
+bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/11-virtualization/prepare-migration.sh)
+----
+
+NOTE: VM을 다른 node로 이동해야 하는 경우 약 1분 정도 소요될 수 있습니다. 계속 진행하기 전에 `Ready - Node:` 출력이 나타날 때까지 대기하십시오.
+
+NOTE: 실제 운영 환경에서는 cluster 내에 동질의 CPU 하드웨어를 구성하거나 VM의 스펙(spec)에 특정 CPU 모델을 명시하는 방식으로 이를 처리합니다. 이는 KubeVirt 및 OpenShift Virtualization을 배포할 때 공통적으로 고려해야 할 운영 사항입니다.
+
+**Step 2: Note the Current Node**
+
+마이그레이션 전에 VM이 현재 어느 node에 있는지 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc get vmi rhel9-vm -n vm-demo -o jsonpath='Node: {.status.nodeName}' && echo ""
+----
+
+**Step 3: Trigger the Migration**
+
+. VM 상세 페이지에서 우측 상단의 **Actions (작업)** 드롭다운을 클릭하십시오.
+. **Migration (마이그레이션)** 위에 마우스를 올려 하위 메뉴를 펼치십시오.
+. **Compute (컴퓨트)**를 선택하십시오. 이는 VM의 실행 상태(CPU/memory)를 다른 node로 마이그레이션합니다.
++
+image::virt-actions-migrate.png[Actions dropdown showing Migration submenu with Compute and Storage options, link=self, window=blank]
+. 마이그레이션 대화 상자에서 **Automatically selected Node (자동으로 선택된 노드)**가 선택된 상태 그대로 두고 **Migrate VirtualMachine (가상 머신 마이그레이션)**을 클릭하십시오.
++
+image::virt-migrate-auto-node.png[Migration dialog with Automatically selected Node option, link=self, window=blank]
+
+**Step 4: Watch the Migration**
+
+live migration이 진행되는 동안 VM 상태가 **Migrating (마이그레이션 중)**으로 변경됩니다:
+
+image::virt-migrating-status.png[VM details showing Migrating status, link=self, window=blank]
+마이그레이션은 보통 30초 이내에 빠르게 완료됩니다. 상태가 다시 **Running (실행 중)**으로 돌아오면, node가 변경되었는지 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc get vmi rhel9-vm -n vm-demo -o jsonpath='Node: {.status.nodeName}' && echo ""
+----
+
+VM이 계속 실행되는 동안 정상적으로 이동되었습니다. 다운타임이나 재접속 없이 완료됩니다.
+
+=== VM 복제
+
+테스트, 개발 환경 구성 또는 확장(scaling out)을 위해 VM의 또 다른 복사본이 필요합니까? VM을 복제(clone)해 보십시오. 이는 VM의 disk 및 구성의 전체 복사본을 만듭니다.
+
+**Step 1: Start the Clone**
+
+. **rhel9-vm** 상세 페이지에서 **Actions (작업)** -> **Clone (복제)**을 클릭하십시오.
++
+image::virt-actions-clone.png[Actions dropdown with Clone option highlighted, link=self, window=blank]
+. 이름을 `rhel9-vm-clone`으로 변경하십시오.
+. **Start VirtualMachine once created (생성 후 가상 머신 시작)** 체크박스를 선택하십시오.
+. **Clone (복제)**을 클릭하십시오.
++
+image::virt-clone-config.png[Clone VirtualMachine dialog with name and configuration, link=self, window=blank]
+
+**Step 2: Watch the Clone Progress**
+
+대화 상자에 복제 진행 상황이 표시됩니다: **Request sent (요청 전송됨)** -> **In process (진행 중)** -> **Created (생성됨)**:
+
+image::virt-clone-in-progress.png[Clone progress showing In process status, link=self, window=blank]
+복제가 완료되면, console이 복제된 가상 머신의 상세 페이지로 이동합니다. 좌측 사이드바에서 두 VM을 모두 확인할 수 있습니다:
+
+image::virt-clone-complete.png[Clone complete showing both rhel9-vm and rhel9-vm-clone in the VM list, link=self, window=blank]
+복제본은 독립된 자체 disk를 가집니다. 즉, 한쪽을 변경해도 다른 쪽에 영향을 주지 않습니다. 골든 이미지를 만드는 경우에 이 방식을 사용합니다. 원하는 형태로 VM을 완전하게 구성한 다음, 각 환경에 맞게 복제하십시오.
+
+IMPORTANT: 계속하기 전에 좌측 사이드바에서 다시 **rhel9-vm**을 클릭해 원본으로 돌아가십시오. 다음 단계(snapshot 및 복구)는 복제본이 아닌 원본 VM에서 수행해야 합니다.
+
+=== 스냅샷
+
+운영 팀이라면 패치를 하다가 장애를 겪어본 경험이 다들 있을 것입니다. Snapshots는 일종의 안전망 역할을 합니다. 변경 작업을 수행하기 전에 VM의 disk 및 구성을 캡처해 두면, 문제가 발생했을 때 몇 초 만에 되돌릴 수 있습니다.
+
+**Step 1: Take a Snapshot**
+
+. 복제본이 아닌 원본 **rhel9-vm**의 상세 페이지로 이동하십시오. **Actions (작업)** -> **Take snapshot (스냅샷 생성)**을 클릭하십시오.
++
+image::virt-actions-snapshot.png[Actions dropdown with Take snapshot option, link=self, window=blank]
+. 기본 이름(`rhel9-vm-snapshot`) 그대로 유지하고 **Save (저장)**를 클릭하십시오.
++
+image::virt-snapshot-config.png[Take snapshot dialog with default name and disk selection, link=self, window=blank]
+NOTE: `cloudinitdisk`가 포함되지 않는다는 경고가 나타나는 것은 예상된 동작입니다. cloud-init은 첫 부팅 시에만 실행되므로 캡처할 필요가 없습니다.
+
+**Step 2: Verify the Snapshot**
+
+**Snapshots (스냅샷)** 탭을 클릭하십시오. 작업이 완료되면 snapshot 상태가 **Ready (준비 완료)**로 나타납니다:
+
+image::virt-snapshot-ready.png[Snapshots tab showing rhel9-vm-snapshot with Ready status, link=self, window=blank]
+**Step 3: Break Something**
+
+snapshot이 실질적인 안전망 역할을 하는지 검증하기 위해 VM에 인위적인 변경을 적용해 보겠습니다. 먼저 VM 로그인 자격 증명을 획득하십시오:
+
+[source,bash,role="execute"]
+----
+DATA=$(oc get vm rhel9-vm -n vm-demo -o jsonpath='{.spec.template.spec.volumes[?(@.name=="cloudinitdisk")].cloudInitNoCloud.userData}')
+echo "Username: $(echo "$DATA" | grep 'user:' | awk '{print $2}')"
+echo "Password: $(echo "$DATA" | grep 'password:' | awk '{print $2}')"
+----
+
+이제 VM console에 연결하십시오:
+
+[source,bash,role="execute"]
+----
+virtctl console rhel9-vm -n vm-demo
+----
+
+연결이 되면 **Enter** 키를 눌러 로그인 프롬프트를 띄우십시오. 상단의 자격 증명으로 로그인한 후, 복구 완료 후에 확인할 수 있도록 VM 내부에서 다음 명령어들을 실행하십시오:
+
+[source,bash]
+----
+touch /home/rhel/important-data.txt
+cat /etc/hostname
+sudo hostnamectl set-hostname broken-vm
+cat /etc/hostname
+----
+
+호스트 이름이 `rhel9-vm`에서 `broken-vm`으로 변경되는 것을 볼 수 있습니다. 완료되면 **Ctrl+5**를 눌러 console에서 빠져나오거나, Terminal 탭의 **새로고침 버튼**을 클릭하여 원래 터미널로 복귀하십시오.
+
+이제 VM 상태가 변경되었습니다. 새 파일이 생성되었고 호스트 이름도 수정되었습니다. snapshot으로 복구하여 이 두 가지 변경 사항이 모두 이전 상태로 되돌아가는지 검증하겠습니다.
+
+**Step 4: Restore from Snapshot**
+
+. VM을 **Stop (중지)** 하십시오. 우측 상단의 작업 버튼 중 사각형 아이콘의 **Stop (중지)** 버튼을 클릭하십시오.
+. VM이 **Stopped (중지됨)** 상태로 표시되면, **Snapshots (스냅샷)** 탭으로 이동하여 snapshot 옆의 케밥 메뉴(점 3개)를 클릭하고 **Restore VirtualMachine from snapshot (스냅샷에서 가상 머신 복구)**을 선택하십시오.
++
+image::virt-snapshot-restore-menu.png[Snapshot kebab menu showing Restore VirtualMachine from snapshot option, link=self, window=blank]
+. **Restore (복구)**를 클릭하여 승인하십시오.
++
+image::virt-restore-confirmation.png[Restore snapshot confirmation dialog, link=self, window=blank]
+. 삼각형 아이콘의 **Start (시작)** 버튼을 클릭하여 VM을 다시 시작하십시오.
+
+VM이 실행 중 상태가 되면 로그인 자격 증명을 다시 가져옵니다:
+
+[source,bash,role="execute"]
+----
+DATA=$(oc get vm rhel9-vm -n vm-demo -o jsonpath='{.spec.template.spec.volumes[?(@.name=="cloudinitdisk")].cloudInitNoCloud.userData}')
+echo "Username: $(echo "$DATA" | grep 'user:' | awk '{print $2}')"
+echo "Password: $(echo "$DATA" | grep 'password:' | awk '{print $2}')"
+----
+
+VM console에 연결하십시오:
+
+[source,bash,role="execute"]
+----
+virtctl console rhel9-vm -n vm-demo
+----
+
+NOTE: 커널 메시지나 systemd 서비스와 같은 부팅 과정의 텍스트가 스크롤되는 것이 나타날 수 있습니다. `rhel9-vm login:` 프롬프트가 나타날 때까지 대기하고, 필요한 경우 **Enter** 키를 누르십시오. 이전 명령의 자격 증명을 확인하기 위해 상단으로 스크롤이 불가능한 경우, `Ctrl+]`를 눌러 console에서 빠져나온 후 Terminal 탭을 새로고침하고 자격 증명 조회 명령을 다시 실행하십시오.
+
+해당 자격 증명으로 로그인한 후 복구가 성공했는지 검증하십시오:
+
+[source,bash]
+----
+ls /home/rhel/important-data.txt
+cat /etc/hostname
+----
+
+`ls` 명령어 결과로 `No such file or directory`가 출력되어야 합니다. 즉, 이전에 생성한 파일이 사라졌음을 뜻합니다. `cat /etc/hostname` 명령어 결과는 `broken-vm`이 아닌 원본 호스트 이름인 `rhel9-vm`을 출력해야 합니다. 즉, 호스트 이름 변경이 성공적으로 복구되었습니다. 디스크가 snapshot을 캡처했던 정확한 시점의 상태로 되돌아갔습니다. 이 방식을 통해 처음부터 다시 구성하지 않고도 잘못 설치된 OS 패치나 구성을 원상 복구할 수 있습니다.
+
+Terminal 탭의 **새로고침 버튼**을 클릭하여 console에서 빠져나오십시오.
+
+== 정리 및 요약
+
+=== 요약
+
+[cols="1,2"]
+|===
+|기능 |운영 상의 장점
+
+|**VMs are pods**
+|동일한 `oc` 명령어, 동일한 scheduler, 동일한 RBAC 적용
+
+|**InstanceTypes**
+|클라우드 방식의 provisioning - 사양 선택, 이미지 선택, 배포 진행
+
+|**Same networking**
+|VM과 컨테이너 모두에서 Services 및 Routes가 작동함
+
+|**Same monitoring**
+|Prometheus 대시보드에 VM과 컨테이너의 metrics가 일체형으로 표출됨
+
+|**Live migration**
+|VM 다운타임 없이 점검용 node drain 수행 가능
+
+|**Cloning**
+|개발/테스트/스테이징 환경용 골든 이미지 기반 신속한 provisioning 지원
+
+|**Snapshots**
+|패치나 업그레이드 전 특정 시점으로의 rollback 지원
+|===
+
+**핵심 가치:** 가상 머신과 컨테이너를 단일 플랫폼에서 병행하여 실행할 수 있습니다. 동일한 도구 세트와 운영 기술을 공유합니다. 마이그레이션 준비가 되면 Migration Toolkit for Virtualization (MTV)을 사용하여 기존 VM을 마이그레이션하거나, 지속적으로 가동할 수 있습니다. OpenShift는 두 방식 모두 지원합니다. Windows Server는 SVVP 인증을 받았으며, RHEL/Fedora/CentOS는 사전 캐싱된 이미지로부터 단 몇 초 만에 부팅됩니다.
+
+=== 정리
+
+VM disk 및 namespaces 삭제는 수 분 가량 소요됩니다. 이는 백그라운드에서 실행되므로 즉시 다음 모듈로 넘어갈 수 있습니다.
+
+[source,bash,role="execute"]
+----
+(
+  virtctl stop rhel9-vm -n vm-demo 2>/dev/null || true
+  virtctl stop rhel9-vm-clone -n vm-demo 2>/dev/null || true
+  sleep 10
+  oc delete namespace vm-demo --ignore-not-found --wait=false
+) &>/dev/null &
+echo "Cleanup running in background - you can continue to the next module"
+----
+
+=== 추가 리소스
+
+* **OpenShift Virtualization:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/virtualization/index[Virtualization documentation, window=blank]
+* **virtctl Reference:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/virtualization/virt-using-the-cli-tools#virt-virtctl-commands_virt-using-the-cli-tools[virtctl commands, window=blank]
+* **Live Migration:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/virtualization/live-migration[Live migration documentation, window=blank]
+* **VM Snapshots:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/virtualization/backup-restore[Backup and restore documentation, window=blank]

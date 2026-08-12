@@ -1,0 +1,377 @@
+= Zero-Trust Workload Identity Manager (ZTWIM)
+:page-toclevels: 1
+
+== 모듈 개요
+
+**소요 시간:** 10분 +
+**형식:** 개념 설명 + 확인 실습 + 퀴즈 +
+**대상 참석자:** Security Engineers, Platform Engineers, IT Operations
+
+include::partial$console-access.adoc[]
+
+[IMPORTANT]
+.누리페이 침해사고 — 3단계 공격
+====
+DB 비밀번호를 손에 넣은 공격자는 그 순간부터 **정상 사용자**였습니다.
+내부 서비스들은 "10.128.0.0/14 대역에서 왔으면 우리 편"이라는 규칙으로 서로를 믿었고,
+공격자는 이미 그 대역 안에 있었습니다.
+
+이 모듈에서 막을 공격입니다.
+====
+
+[NOTE]
+====
+이 모듈은 **어떤 상황에 필요한 기술인지**를 이해하는 데 초점을 둡니다.
+SPIRE 플랫폼과 실습 워크로드는 사전 배포 스크립트가 이미 준비했습니다.
+====
+
+== 학습 목표
+
+이 모듈을 마칠 때쯤 여러분은 다음을 설명할 수 있게 됩니다:
+
+* "네트워크 위치 기반 신뢰"가 왜 무너지는가
+* SPIFFE 워크로드 신원(SVID)이 정확히 무엇을 대체하는가
+* 이 기술이 실무의 어떤 상황에서 필요해지는가
+
+== 왜 네트워크 위치는 신원이 아닌가
+
+대부분의 내부 시스템은 이렇게 만들어져 있습니다.
+
+[source,text]
+----
+방화벽 / VPC 경계 ──── 안에 들어온 것은 신뢰
+                      "내부망이니까 괜찮아요"
+----
+
+이 구조를 흔히 **M&M 보안**이라고 부릅니다. 껍질은 딱딱한데 속은 말랑합니다.
+그리고 이 구조에는 치명적인 성질이 하나 있습니다 — **한 번만 뚫리면 됩니다.**
+
+누리페이에서 벌어진 일이 정확히 그것입니다.
+공격자가 결제 API 컨테이너 하나를 장악한 순간, 그는 "내부"에 있었습니다.
+정산 서비스도, 회원 DB도, 그를 막을 이유를 가지고 있지 않았습니다.
+**출처 IP가 내부 대역이었으니까요.**
+
+여기서 근본 오류는 이것입니다:
+
+[quote]
+____
+IP 주소는 **어디에 있는지**를 말해 줄 뿐, **누구인지**를 말해 주지 않습니다.
+____
+
+Kubernetes에서는 이 문제가 더 심각합니다. Pod IP는 재시작할 때마다 바뀌고,
+같은 노드에서 전혀 다른 팀의 워크로드가 나란히 돌아갑니다.
+"10.128.x.x 대역"에는 여러분의 결제 서비스도, 방금 배포된 정체불명의 사이드카도 함께 들어 있습니다.
+
+== SPIFFE가 바꾸는 것
+
+**SPIFFE**(Secure Production Identity Framework for Everyone)는
+워크로드에게 **암호학적으로 증명 가능한 신원**을 부여하는 오픈 표준입니다.
+**SPIRE**가 그 표준의 런타임 구현이고, **ZTWIM**은 SPIRE를 OpenShift에서 운영 가능한 형태로 제공하는 Red Hat 오퍼레이터입니다.
+
+핵심 아이디어는 단순합니다. 신뢰의 근거를 **네트워크 위치에서 워크로드 신원으로** 옮깁니다.
+
+[cols="1,2,2",options="header"]
+|===
+| | 기존 방식 | SPIFFE 방식
+
+| 신뢰의 근거
+| 출처 IP 대역
+| 워크로드가 제시하는 X.509 인증서(SVID)
+
+| 신원의 출처
+| 네트워크 구성
+| Kubernetes namespace + ServiceAccount
+
+| 자격 증명 수명
+| 비밀번호 — 사실상 무기한
+| 인증서 — 기본 1시간, 자동 갱신
+
+| 탈취 시 대응
+| 전 시스템 비밀번호 교체
+| 만료를 기다리거나 해당 신원만 폐기
+
+| 검증 방향
+| 단방향 (서버만 증명)
+| 양방향 mTLS (서로 증명)
+|===
+
+발급되는 신원은 다음과 같은 형태의 URI입니다:
+
+[source,text]
+----
+spiffe://<trust-domain>/ns/<namespace>/sa/<serviceaccount>
+                        └─────────────────────────────────┘
+                        Kubernetes의 실제 신원에 직접 묶여 있습니다
+----
+
+이 값은 워크로드가 **스스로 주장하는 것이 아닙니다.** SPIRE 에이전트가 노드에서
+해당 프로세스가 정말 그 namespace의 그 ServiceAccount로 실행 중인지 확인한 뒤 발급합니다.
+공격자가 다른 pod에서 이 인증서를 흉내 낼 방법이 없습니다.
+
+== 확인 실습 — 무엇이 발급되었나
+
+`postgresql-spiffe` (서버)와 `postgresql-spiffe-client` (클라이언트)가 각각 배포되어 있습니다.
+두 워크로드 모두 `spiffe-helper` 사이드카가 인증서를 `/opt/postgresql-certs/` 에 자동으로 유지합니다.
+
+.실습 절차
+. 두 pod가 모두 `2/2 Running` 인지 확인합니다 (애플리케이션 컨테이너 + `spiffe-helper` 사이드카):
++
+[source,bash,subs="+macros,+attributes",role=execute]
+----
+oc get pods -n postgresql-spiffe
+oc get pods -n postgresql-spiffe-client
+----
++
+[NOTE]
+====
+pod가 보이지 않으면 bastion에서 사전 배포 스크립트를 실행하십시오 (수 분 소요):
+
+[source,bash,subs="+macros,+attributes",role=execute]
+----
+cd ~/{workshop_repo_dir}/setup-scripts/security-track-scripts && ./setup-security-track.sh ztwim
+----
+====
++
+. 클라이언트에게 발급된 인증서를 열어 봅니다:
++
+[source,bash,subs="+macros,+attributes",role=execute]
+----
+oc rsh -n postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
+  sh -c 'openssl x509 -in /opt/postgresql-certs/svid.pem -noout -subject -dates -ext subjectAltName'
+----
++
+출력에서 세 가지를 확인하십시오:
++
+[source,text]
+----
+subject=C = US, O = SPIRE, CN = postgresql_spiffe          <1>
+notBefore=...  notAfter=...                                 <2>
+X509v3 Subject Alternative Name:
+    URI:spiffe://<trust-domain>/ns/postgresql-spiffe-client/sa/postgresql-spiffe-client   <3>
+----
+<1> *CN* — PostgreSQL의 데이터베이스 사용자 이름과 일치합니다. DB는 이 값을 사용자명으로 매핑합니다.
+<2> *유효 기간* — `notAfter` 가 `notBefore` 로부터 약 **1시간** 뒤입니다. 비밀번호에는 없던 개념입니다.
+<3> *SPIFFE ID* — 이 신원이 어느 namespace의 어느 ServiceAccount에 묶여 있는지 명시되어 있습니다.
+
+세 번째 항목이 이 모듈 전체의 요점입니다.
+이 인증서는 "누리페이의 결제 클라이언트"라는 **검증 가능한 주장**이며,
+그 주장의 근거는 네트워크가 아니라 Kubernetes의 실제 신원입니다.
+
+=== 🧠 퀴즈 1
+
+SPIFFE 인증서의 기본 수명이 **1시간**으로 짧게 설정되는 이유로 **가장 적절한** 것은?
+
+[none]
+* (A) 인증서 파일 크기를 줄여 네트워크 대역폭을 절약하기 위해
+* (B) 탈취되더라도 악용 가능한 시간 창(window)을 좁히고, 폐기(revocation) 인프라 없이도 자동으로 무효화되도록 하기 위해
+* (C) TLS 표준이 1시간을 초과하는 인증서를 금지하기 때문
+* (D) 짧은 인증서가 암호학적으로 더 강력하기 때문
+
+.정답 및 해설 보기
+[%collapsible]
+====
+**정답: (B)**
+
+두 가지 효과가 있습니다.
+
+**첫째, 피해 범위를 시간으로 제한합니다.** 누리페이의 비밀번호는 3년간 유효했기 때문에
+공격자는 서두를 이유가 없었습니다. 1시간짜리 인증서라면 그 여유가 사라집니다.
+
+**둘째, 폐기 문제를 우회합니다.** X.509에서 인증서를 중간에 무효화하는 것(CRL, OCSP)은
+운영이 까다롭고 실제로 잘 동작하지 않는 것으로 악명 높습니다.
+수명을 짧게 하면 **"폐기"가 그냥 "기다리기"가 됩니다.**
+
+이것이 가능한 이유는 갱신이 자동이기 때문입니다. `spiffe-helper` 사이드카가 만료 전에
+새 인증서를 받아 파일을 교체하고, 애플리케이션은 재시작하지 않습니다.
+수동으로 관리해야 한다면 1시간 수명은 운영이 불가능합니다.
+====
+
+== 확인 실습 — 비밀번호 없는 연결, 그리고 거부
+
+이제 이 신원이 실제로 어떻게 쓰이는지 봅니다.
+
+.실습 절차
+. 클라이언트에서 PostgreSQL에 연결합니다. **비밀번호를 입력하는 곳이 없다는 점**에 주목하십시오:
++
+[source,bash,subs="+macros,+attributes",role=execute]
+----
+oc rsh -n postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
+  psql "host=postgresql-spiffe.postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb sslmode=verify-full sslcert=/opt/postgresql-certs/svid.pem sslkey=/opt/postgresql-certs/svid.key sslrootcert=/opt/postgresql-certs/svid_bundle.pem" \
+  -c "SELECT current_user, ssl_is_used();"
+----
++
+예상 출력:
++
+[source,text]
+----
+   current_user    | ssl_is_used
+-------------------+-------------
+ postgresql_spiffe | t
+(1 row)
+----
++
+`current_user` 가 인증서의 CN에서 왔습니다.
+DB는 "이 연결이 누구인가"를 **인증서로** 판단했고, 비밀번호는 애초에 관여하지 않았습니다.
++
+`sslmode=verify-full` 은 가장 엄격한 모드입니다 — 서버 인증서 검증, 호스트명 일치 확인,
+그리고 클라이언트 인증서 제시를 모두 요구합니다. 양쪽이 서로를 증명하는 **상호 TLS(mTLS)** 입니다.
++
+. 이번에는 공격자의 입장이 되어 봅니다. **같은 namespace 안에서**, 네트워크로는 완전히 도달 가능한 pod를 띄우고 접속을 시도합니다:
++
+[source,bash,subs="+macros,+attributes",role=execute]
+----
+oc run attacker --image=registry.redhat.io/rhel9/postgresql-16:latest \
+  -n postgresql-spiffe-client --command -- sleep infinity
+oc wait --for=condition=Ready pod/attacker -n postgresql-spiffe-client --timeout=90s
+oc exec -n postgresql-spiffe-client attacker -- \
+  psql "host=postgresql-spiffe.postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb" 2>&1 | head -3
+----
++
+예상 출력:
++
+[source,text]
+----
+psql: error: connection to server at "postgresql-spiffe.postgresql-spiffe.svc" failed:
+FATAL:  connection requires a valid client certificate
+----
+
+[IMPORTANT]
+====
+**이것이 누리페이에서 일어나지 않았던 일입니다.**
+
+이 pod는 모든 조건을 갖추고 있었습니다 — 같은 namespace, 같은 네트워크 대역,
+DNS로 서버 이름을 해석할 수 있고, 5432 포트에 도달합니다.
+`NetworkPolicy` 도 이 트래픽을 막지 않았습니다.
+
+그런데 거부되었습니다. **신원을 증명하지 못했기 때문**입니다.
+네트워크 도달 가능성과 접근 권한이 완전히 분리되어 있습니다.
+====
+
+. 테스트 pod를 정리합니다:
++
+[source,bash,subs="+macros,+attributes",role=execute]
+----
+oc delete pod attacker -n postgresql-spiffe-client
+----
+
+=== 🧠 퀴즈 2
+
+위 실습에서 `attacker` pod는 서버에 네트워크로 완전히 도달할 수 있었는데도 거부되었습니다.
+동일한 보호를 `NetworkPolicy` 만으로 달성하려 할 때의 **근본적인** 한계는?
+
+[none]
+* (A) NetworkPolicy는 PostgreSQL의 5432 포트를 제어할 수 없다
+* (B) NetworkPolicy는 label과 namespace 기준으로 트래픽을 허용/차단하는데, label은 워크로드가 스스로 붙이는 것이므로 위조 가능한 주장이다
+* (C) NetworkPolicy는 OVN-Kubernetes에서만 동작한다
+* (D) NetworkPolicy는 성능 저하가 커서 프로덕션에 부적합하다
+
+.정답 및 해설 보기
+[%collapsible]
+====
+**정답: (B)**
+
+`NetworkPolicy` 는 훌륭한 도구이고 반드시 써야 합니다. 다만 그것이 검증하는 것은
+**"이 트래픽이 어디서 왔는가"** 입니다.
+
+문제는 그 "어디"의 근거입니다. `podSelector` 는 pod의 label을 봅니다.
+그런데 label은 매니페스트에 적는 **자기 신고**입니다.
+해당 namespace에 pod를 만들 권한이 있는 사람은 원하는 label을 붙일 수 있습니다.
+
+SPIFFE는 다릅니다. SVID는 워크로드가 발급하는 것이 아니라 **SPIRE가 검증 후 발급**합니다.
+SPIRE 에이전트는 노드에서 요청 프로세스를 직접 확인해 그것이 정말 그 ServiceAccount로
+실행 중인지 판별합니다. 위조하려면 노드 자체를 장악해야 합니다.
+
+**둘은 대체 관계가 아니라 계층 관계입니다.**
+NetworkPolicy는 공격 표면을 줄이고(도달 자체를 차단), SPIFFE는 도달한 연결의 신원을 검증합니다.
+누리페이에는 두 번째 계층이 아예 없었습니다.
+====
+
+== 실무에서는 어떤 상황에 필요한가
+
+이 기술이 항상 필요한 것은 아닙니다. 다음 상황에서 도입 가치가 분명해집니다.
+
+[cols="1,2",options="header"]
+|===
+| 상황 | 왜 SPIFFE가 답이 되는가
+
+| *서비스 간 인증이 IP/네트워크 대역에 의존하는 경우*
+| 가장 전형적인 도입 사유입니다. 침해 이후 횡적 이동을 막을 계층이 아예 없는 상태입니다.
+
+| *공유 자격 증명을 여러 서비스가 함께 쓰는 경우*
+| 하나가 유출되면 전부 교체해야 하고, 그래서 아무도 교체하지 않게 됩니다. 워크로드별 신원은 이 문제를 구조적으로 없앱니다.
+
+| *멀티 클러스터 / 하이브리드 환경*
+| trust domain을 연합(federation)하면 클러스터 경계를 넘어 동일한 신원 체계를 씁니다. 네트워크 구성에 의존하지 않으므로 온프레미스-클라우드 혼합 환경에서 특히 유효합니다.
+
+| *감사에서 "누가 이 데이터에 접근했는가"를 증명해야 하는 경우*
+| 공유 계정으로는 답할 수 없는 질문입니다. 워크로드별 인증서는 접근 주체를 특정합니다.
+
+| *레거시 애플리케이션을 수정하지 않고 mTLS를 적용해야 하는 경우*
+| `spiffe-helper` 사이드카가 표준 PEM 파일을 파일시스템에 놓아 줍니다. 애플리케이션은 평범한 TLS 클라이언트 인증서를 쓰는 것처럼 동작하면 됩니다 — 실습에서 `psql` 이 그렇게 했습니다.
+|===
+
+[TIP]
+.Service Mesh와는 어떤 관계인가요?
+====
+Red Hat OpenShift Service Mesh(Istio)도 mTLS를 제공하며, 내부적으로 SPIFFE 신원 형식을 씁니다.
+
+차이는 적용 지점입니다. Service Mesh는 사이드카 프록시가 **HTTP/gRPC 트래픽을 가로채** 처리하므로
+애플리케이션은 아무것도 모릅니다. 반면 ZTWIM은 워크로드에 **인증서 자체를 건네줍니다.**
+
+그래서 실습처럼 **PostgreSQL 프로토콜**을 쓰는 경우나, 애플리케이션이 인증서를 직접 다뤄야 하는 경우,
+또는 메시 밖의 워크로드까지 같은 신원 체계로 묶어야 하는 경우에 ZTWIM이 적합합니다.
+둘을 함께 쓰는 구성도 흔합니다.
+====
+
+== 학습 내용 요약
+
+* **IP 주소는 위치이지 신원이 아닙니다.** 경계 방어는 한 번만 뚫리면 되는 구조이며, 침해 이후의 횡적 이동을 막지 못합니다.
+* **SPIFFE 신원(SVID)** 은 X.509 인증서를 Kubernetes namespace + ServiceAccount에 묶습니다. 워크로드의 자기 신고가 아니라 SPIRE가 검증 후 발급합니다.
+* **짧은 수명(기본 1시간) + 자동 갱신**이 핵심입니다. 탈취 시 악용 창을 좁히고, 운영이 까다로운 폐기 인프라를 불필요하게 만듭니다.
+* **mTLS는 양방향 검증**입니다. 클라이언트도 서버도 서로에게 신원을 증명합니다.
+* **네트워크 도달 가능성과 접근 권한이 분리됩니다.** 같은 namespace에 있어도 유효한 신원이 없으면 거부됩니다.
+* NetworkPolicy와 SPIFFE는 **대체가 아니라 계층**입니다. 전자는 도달을 줄이고, 후자는 도달한 연결을 검증합니다.
+
+== 보안 트랙 마무리
+
+세 개의 방어선을 모두 확인했습니다.
+
+[cols="1,2,2",options="header"]
+|===
+| 공격 단계 | 누리페이에서 일어난 일 | 우리가 세운 방어선
+
+| 1단계
+| `latest` 태그 이미지의 RCE 취약점으로 컨테이너 장악
+| *RHACS* — 취약한 배포를 admission 단계에서 차단
+
+| 2단계
+| `env` 한 줄로 3년 묵은 DB 비밀번호 획득
+| *Secrets Management* — 수명·감사·정책이 있는 전용 저장소로 이관
+
+| 3단계
+| 내부 대역이라는 이유로 모든 서비스가 공격자를 신뢰
+| *ZTWIM* — 네트워크 위치가 아닌 암호학적 신원으로 검증
+|===
+
+각각은 독립적으로도 가치가 있지만, 함께일 때 의미가 달라집니다.
+공격은 한 단계씩 진행되고, **어느 한 단계에서든 막히면 그 뒤는 일어나지 않습니다.**
+
+== 정리
+
+.실습 절차
+. 보안 트랙 전체를 정리합니다:
++
+[source,bash,subs="+macros,+attributes",role=execute]
+----
+cd ~/{workshop_repo_dir}/setup-scripts/security-track-scripts
+./setup-security-track.sh cleanup
+----
+
+[NOTE]
+====
+RHACS 정책의 Enforcement 설정은 콘솔에서 수동으로 되돌려야 합니다:
+*Platform Configuration* → *Policy Management* → *Latest tag* → *Response method* → `Inform only`
+====
+
+더 알아보려면 Red Hat의 https://github.com/validatedpatterns/layered-zero-trust[Layered Zero Trust Validated Pattern]을 참고하십시오.
+이 트랙에서 다룬 세 요소가 하나의 검증된 참조 아키텍처로 통합되어 있습니다.

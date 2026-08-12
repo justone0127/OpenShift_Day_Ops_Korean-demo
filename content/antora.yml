@@ -1,0 +1,25 @@
+name: openshift-days-ops-track
+title: OpenShift Ops Day Roadshow
+version: main
+nav:
+  - modules/ROOT/nav.adoc
+
+asciidoc:
+  attributes:
+    lab_name: "OpenShift Ops Day Roadshow"
+    release-version: main
+    page-pagination: true
+    guid: my-guid
+    # 보안 트랙(15/16/17) 사전 배포 스크립트가 들어 있는 리포지토리.
+    # 이 리포지토리를 포크했다면 아래 두 값을 포크 주소로 바꾸십시오.
+    workshop_repo_url: 'https://github.com/justone0127/OpenShift_Day_Ops_Korean.git'
+    workshop_repo_dir: 'OpenShift_Day_Ops_Korean'
+    ssh_user: lab-user
+    ssh_password: ''
+    ssh_command: ''
+    ols_azure_url: 'https://llm-gpt4-lightspeed.openai.azure.com/'
+    page-links:
+    - url: https://docs.redhat.com/en/documentation/openshift_container_platform/4.20
+      text: OpenShift Docs
+    - url: https://access.redhat.com
+      text: Red Hat Customer Portal

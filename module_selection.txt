@@ -1,0 +1,21 @@
+  방법 A. Showroom Pod에서 직접 스크립트 수동 실행 (가장 추천)
+  컨테이너 내부에는 여전히 ConfigMap을 통해 MODULE_ENABLE_* 환경 변수가 올바르게 주입되어 있습니다. 따라서 새 Git 등록을 완료한 후, 터미널(또는 oc CLI)을 통해 환경 변수 주입 스크립트를 수동으로 한
+  번 실행해주면 동적으로 default-site.yml이 정상 반영됩니다.
+
+   1 # Showroom Namespace에서 showroom content 컨테이너를 대상으로 주입 스크립트 실행
+   2 oc exec deployment/showroom -n <showroom-namespace> -c content -- bash -c '/showroom/repo/.workshop/inject-env-vars.sh'
+  스크립트 실행 완료 후, Antora가 자동으로 변경 사양을 감지해 가이드를 재빌드하며 선택한 모듈만 정상 노출됩니다.
+
+  방법 B. 해당 한국어 번역 Git 리포지토리의 default-site.yml 직접 수정
+  만약 특정 행사에 제공할 모듈 구성이 미리 확정되어 있다면, 새로 등록할 한국어 번역 Git 리포지토리 내의 default-site.yml 파일에서 제외할 모듈의 플래그를 아예 'false'로 명시적으로 수정하여 커밋한 뒤
+  등록하는 방법도 가능합니다.
+  (예: 가상화 모듈을 안 쓸 경우, 번역 Git의 default-site.yml에서 module_enable_virt: 'false'로 선언하여 푸시)
+
+
+
+***최종***
+
+
+oc exec deployment/showroom -n showroom-mtnv5-1 -c content -- bash -c '/showroom/repo/.workshop/inject-env-vars.sh && cd /showroom/repo && antora site.yml --to-dir=/showroom/www'
+
+
