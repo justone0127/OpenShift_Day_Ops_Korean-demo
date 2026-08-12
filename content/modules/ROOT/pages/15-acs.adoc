@@ -250,10 +250,27 @@ image::acs-security-14.png[Policy behavior 의 Actions 화면 — Enforcement �
 `Inform` 은 위반을 목록에 기록만 합니다. `Inform and enforce` 는 여기에
 **실제 차단**을 더합니다.
 +
-. 선택하면 아래에 lifecycle 단계별 enforcement 설정이 나타납니다.
-  **`Deploy` 를 켭니다.** (`Build` 는 그대로 두어도 됩니다.)
+. 선택하면 아래에 *Configure enforcement behavior* 가 나타나고, lifecycle 단계별
+  카드가 표시됩니다. **`Deploy` 카드의 `Enforce on Deploy` 토글을 켭니다.**
 +
-NOTE: 이 설정이 이 모듈의 핵심입니다. 켜는 순간 정책이 "기록"에서 "차단"으로 바뀝니다.
+image::acs-security-15.png[Configure enforcement behavior 에서 Enforce on Deploy 토글을 켠 화면, link=self, window=blank, width=100%]
++
+[cols="1,3",options="header"]
+|===
+| 카드 | 이 실습에서
+
+| *Build* — `Enforce on Build`
+| 끈 상태로 둡니다. CI 파이프라인에서 이미지를 검사하는 단계입니다.
+
+| *Deploy* — `Enforce on Deploy`
+| **켭니다.** 정책을 위반하는 배포 요청 자체가 거부됩니다.
+
+| *Runtime* — `Enforce on Runtime`
+| 회색으로 비활성입니다. 이 정책에 런타임 조건이 없어서 그렇습니다 — 정상입니다.
+|===
++
+NOTE: `Enforce on Deploy` 하나가 이 모듈의 핵심입니다.
+  켜는 순간 정책이 "기록"에서 "차단"으로 바뀝니다.
 +
 . *Next* → *Review* 로 넘긴 뒤 *Save* 를 클릭합니다.
 
