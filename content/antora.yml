@@ -14,6 +14,13 @@ asciidoc:
     # 이 리포지토리를 포크했다면 아래 두 값을 포크 주소로 바꾸십시오.
     workshop_repo_url: 'https://github.com/justone0127/OpenShift_Day_Ops_Korean-demo.git'
     workshop_repo_dir: 'OpenShift_Day_Ops_Korean-demo'
+    # 다중 사용자 배포 — 참가자마다 계정과 네임스페이스가 하나씩 주어집니다.
+    # 프로덕션에서는 inject-env-vars.sh 가 LAB_USER 로부터 아래 값을 다시 씁니다.
+    # 단일 사용자로 쓰려면 세 네임스페이스를 접두사 없는 이름으로 바꾸십시오.
+    lab_user: 'user1'
+    narupay_ns: 'user1-narupay'
+    spiffe_server_ns: 'user1-postgresql-spiffe'
+    spiffe_client_ns: 'user1-postgresql-spiffe-client'
     ssh_user: lab-user
     ssh_password: ''
     ssh_command: ''

@@ -79,6 +79,15 @@ ATTRS="${ATTRS}    module_enable_vault: '${MODULE_ENABLE_VAULT:-true}'"$'\n'
 # TOC depth - only show main sections
 ATTRS="${ATTRS}    toclevels: 2"$'\n'
 
+# 보안 트랙 다중 사용자 배포 — 참가자마다 네임스페이스가 분리됩니다.
+# LAB_USER 는 이 Showroom 인스턴스를 쓰는 참가자 계정(user1, user2, ...)입니다.
+# setup-multiuser.sh 가 만드는 네임스페이스 이름과 반드시 일치해야 합니다.
+LAB_USER_VALUE="${LAB_USER:-${USER_NAME:-user1}}"
+ATTRS="${ATTRS}    lab_user: '${LAB_USER_VALUE}'"$'\n'
+ATTRS="${ATTRS}    narupay_ns: '${NARUPAY_NS:-${LAB_USER_VALUE}-narupay}'"$'\n'
+ATTRS="${ATTRS}    spiffe_server_ns: '${SPIFFE_SERVER_NS:-${LAB_USER_VALUE}-postgresql-spiffe}'"$'\n'
+ATTRS="${ATTRS}    spiffe_client_ns: '${SPIFFE_CLIENT_NS:-${LAB_USER_VALUE}-postgresql-spiffe-client}'"$'\n'
+
 # Standard workshop variables
 ATTRS="${ATTRS}    api_url: '${API_URL:-}'"$'\n'
 ATTRS="${ATTRS}    master_url: '${MASTER_URL:-}'"$'\n'

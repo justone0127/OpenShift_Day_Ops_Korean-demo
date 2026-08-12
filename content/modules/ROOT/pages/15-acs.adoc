@@ -41,7 +41,7 @@ NOTE: RHACS 콘솔에도 동일한 admin 자격 증명을 사용합니다.
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc get deployment -n narupay -l workshop=narupay-security-track \
+oc get deployment -n {narupay_ns} -l workshop=narupay-security-track \
   -L posture -o wide
 ----
 +
@@ -89,7 +89,7 @@ RHACS는 **배포된 순간부터 계속** 워크로드를 평가합니다. CI�
 .실습 절차
 . RHACS 콘솔 왼쪽 메뉴에서 *Violations* 를 클릭합니다.
 . 필터 입력창에 `Deployment` → `Name` 을 선택하고 `payment-api` 를 입력한 뒤 Enter를 누릅니다.
-  (또는 `Namespace` 필터에 `narupay` 를 입력합니다.)
+  (또는 `Namespace` 필터에 `{narupay_ns}` 를 입력합니다.)
 +
 image::acs-security-08.png[RHACS Violations 목록 화면, link=self, window=blank, width=100%]
 +
@@ -211,6 +211,13 @@ NOTE: RHACS 버전에 따라 *Workloads* 로 표시될 수 있습니다. 도착�
 이 차이가 결정적입니다. 탐지는 개발자에게 "고쳐 주세요" 메일을 보내는 것이고,
 차단은 **애초에 클러스터에 들어오지 못하게** 하는 것입니다. 사람의 선의에 기대지 않는 통제입니다.
 
+[NOTE]
+====
+RHACS 정책은 **클러스터 전역**입니다. 다른 참가자가 먼저 이 단계를 마쳤다면
+정책이 이미 `Inform and enforce` 로 되어 있을 수 있습니다.
+그 경우 설정을 확인만 하고 다음 단계로 넘어가시면 됩니다 — 결과는 같습니다.
+====
+
 .실습 절차
 . 왼쪽 메뉴에서 *Platform Configuration* → *Policy Management* 로 이동합니다.
 . 검색창에 `latest` 를 입력하여 *Latest tag* 정책을 찾습니다.
@@ -241,13 +248,22 @@ oc get securedcluster -n stackrox -o jsonpath='{.items[0].spec.admissionControl}
 이제 6개월 전과 똑같은 배포를 다시 시도해 봅니다.
 
 .실습 절차
+. 먼저 6개월 전에 쓰인 매니페스트 사본을 내려받습니다.
+  여러분의 네임스페이스에 ConfigMap 으로 보관되어 있습니다:
++
+[source,bash,subs="+macros,+attributes",role=execute]
+----
+oc extract configmap/narupay-lab-manifests -n {narupay_ns} --to=$HOME/narupay-lab --confirm
+ls $HOME/narupay-lab
+----
++
 . 취약 버전을 삭제하고 동일한 매니페스트를 다시 적용합니다:
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc delete deployment payment-api -n narupay
+oc delete deployment payment-api -n {narupay_ns}
 sleep 5
-oc apply -f ~/narupay-lab/payment-api-vulnerable.yaml
+oc apply -f $HOME/narupay-lab/payment-api-vulnerable.yaml
 ----
 +
 . 결과를 확인합니다. 다음과 유사한 오류가 나타나야 합니다:
@@ -276,15 +292,15 @@ Policy: Latest tag
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc apply -f ~/narupay-lab/payment-api-secure.yaml
-oc get deployment payment-api-secure -n narupay
+oc apply -f $HOME/narupay-lab/payment-api-secure.yaml
+oc get deployment payment-api-secure -n {narupay_ns}
 ----
 
 === 두 매니페스트는 무엇이 달랐나
 
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-diff ~/narupay-lab/payment-api-vulnerable.yaml ~/narupay-lab/payment-api-secure.yaml
+diff $HOME/narupay-lab/payment-api-vulnerable.yaml $HOME/narupay-lab/payment-api-secure.yaml
 ----
 
 핵심 차이는 네 가지입니다:
