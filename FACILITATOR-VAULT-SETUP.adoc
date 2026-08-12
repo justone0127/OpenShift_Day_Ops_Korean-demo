@@ -267,10 +267,19 @@ helm version --short
 == 정리
 
 보안 트랙 전체를 정리할 때 Vault 도 함께 제거됩니다.
+`cleanup` 은 SPIRE 플랫폼까지 지우고 namespace 삭제가 끝날 때까지 기다리므로,
+곧바로 `all` 로 재구성할 수 있습니다.
 
 [source,bash]
 ----
 ./setup-security-track.sh cleanup
+----
+
+SPIRE 플랫폼은 그대로 두고 워크로드만 다시 배포하려면:
+
+[source,bash]
+----
+./setup-security-track.sh cleanup-lab
 ----
 
 Vault 만 제거하려면:

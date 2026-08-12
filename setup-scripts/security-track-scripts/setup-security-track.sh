@@ -9,8 +9,9 @@
 #   ./setup-security-track.sh acs       # 모듈 1 (RHACS) 만
 #   ./setup-security-track.sh ztwim     # 모듈 2 (ZTWIM) 만
 #   ./setup-security-track.sh vault     # 모듈 3 (Secrets Management) 만
-#   ./setup-security-track.sh status    # 현재 준비 상태 점검
-#   ./setup-security-track.sh cleanup   # 전부 정리
+#   ./setup-security-track.sh status      # 현재 준비 상태 점검
+#   ./setup-security-track.sh cleanup     # 전부 정리 (SPIRE 플랫폼 포함, 재구성용)
+#   ./setup-security-track.sh cleanup-lab # 실습 워크로드만 정리 (SPIRE 플랫폼 유지)
 #
 # all 은 Vault 설치·구성·시드까지 포함합니다. 실습 환경에 RHACS 와 ZTWIM 오퍼레이터는
 # 사전 설치되어 있지만 Vault 는 없으므로, 이 스크립트가 Helm 으로 직접 설치합니다.
@@ -283,10 +284,60 @@ status() {
   hr
 }
 
-cleanup() {
-  hr
-  log "보안 트랙 정리 중..."
+# SPIRE CR 이 실제로 어느 namespace 에 있는지 찾습니다.
+# 환경에 따라 openshift- 접두사 유무가 달라서 하드코딩하지 않습니다.
+ztwim_namespace() {
+  local ns cand
+  ns="$(oc get spireserver --all-namespaces \
+        -o jsonpath='{.items[0].metadata.namespace}' 2>/dev/null || true)"
+  if [[ -n "${ns}" ]]; then echo "${ns}"; return 0; fi
+  for cand in openshift-zero-trust-workload-identity-manager \
+              zero-trust-workload-identity-manager; do
+    if oc get ns "${cand}" >/dev/null 2>&1; then echo "${cand}"; return 0; fi
+  done
+  echo "openshift-zero-trust-workload-identity-manager"
+}
 
+wait_ns_gone() {
+  local ns="$1" timeout="${2:-180}" elapsed=0
+  oc get ns "${ns}" >/dev/null 2>&1 || return 0
+  log "namespace ${ns} 삭제 대기 중..."
+  while oc get ns "${ns}" >/dev/null 2>&1; do
+    if [[ "${elapsed}" -ge "${timeout}" ]]; then
+      warn "namespace ${ns} 가 아직 Terminating 입니다. 다음 배포가 실패할 수 있습니다."
+      return 1
+    fi
+    sleep 5
+    elapsed=$((elapsed + 5))
+  done
+  return 0
+}
+
+# SPIRE 플랫폼(CR + datastore)을 제거합니다. 오퍼레이터와 namespace 는 보존합니다 —
+# 오퍼레이터는 실습 환경이 사전 설치해 제공하는 것이라 우리가 지울 대상이 아닙니다.
+#
+# datastore PVC 를 함께 지우는 이유: SPIRE 서버는 등록 엔트리와 CA 를 sqlite 에
+# 보관하므로, PVC 를 남기면 "새로 구성"해도 이전 상태가 그대로 살아납니다.
+cleanup_spire_platform() {
+  local ns pvc
+  ns="$(ztwim_namespace)"
+
+  log "SPIRE 커스텀 리소스 제거 (namespace: ${ns})..."
+  oc delete spireoidcdiscoveryprovider,spireserver,spireagent,spiffecsidriver,zerotrustworkloadidentitymanager \
+    cluster -n "${ns}" --ignore-not-found --timeout=180s 2>/dev/null || true
+
+  log "SPIRE 서버 datastore PVC 제거..."
+  for pvc in $(oc get pvc -n "${ns}" -o name 2>/dev/null | grep -i spire || true); do
+    oc delete "${pvc}" -n "${ns}" --ignore-not-found --timeout=120s 2>/dev/null || true
+  done
+
+  oc delete configmap spire-bundle -n "${ns}" --ignore-not-found >/dev/null 2>&1 || true
+
+  log "ZTWIM 오퍼레이터와 namespace ${ns} 는 그대로 둡니다 (실습 환경 제공 요소)."
+}
+
+# 실습 워크로드만 제거합니다. SPIRE 플랫폼은 건드리지 않습니다.
+cleanup_workloads() {
   log "나루페이 워크로드 제거..."
   oc delete namespace "${NARUPAY_NS}" --ignore-not-found --wait=false
 
@@ -301,10 +352,34 @@ cleanup() {
   fi
 
   rm -rf "${LAB_DIR}"
+}
 
-  log "정리 완료."
+# 기본 cleanup — 지우고 처음부터 다시 구성하는 용도입니다.
+# 다음 all 이 Terminating namespace 때문에 실패하지 않도록 삭제 완료까지 기다립니다.
+cleanup() {
+  hr
+  log "보안 트랙 전체 정리 중..."
+
+  cleanup_workloads
+  cleanup_spire_platform
+
+  wait_ns_gone "${NARUPAY_NS}" || true
+  wait_ns_gone postgresql-spiffe || true
+  wait_ns_gone postgresql-spiffe-client || true
+  wait_ns_gone vault || true
+
+  log "정리 완료. 이제 ./setup-security-track.sh all 로 새로 구성할 수 있습니다."
   log "RHACS 정책의 Enforcement 설정은 콘솔에서 수동으로 되돌려야 합니다"
   log "  (Policy Management → Latest tag → Response method → Inform only)"
+}
+
+# 실습 워크로드만 정리하고 SPIRE 플랫폼은 유지합니다.
+# 같은 환경에서 워크로드만 다시 배포할 때 SPIRE 재구성 시간을 아낄 수 있습니다.
+cleanup_lab_only() {
+  hr
+  log "실습 워크로드만 정리 중 (SPIRE 플랫폼 유지)..."
+  cleanup_workloads
+  log "정리 완료. SPIRE 플랫폼은 그대로 두었습니다."
 }
 
 print_summary() {
@@ -381,10 +456,11 @@ main() {
       setup_vault || true
       print_summary
       ;;
-    status)  status ;;
-    cleanup) cleanup ;;
+    status)      status ;;
+    cleanup)     cleanup ;;
+    cleanup-lab) cleanup_lab_only ;;
     *)
-      echo "사용법: $0 [all|acs|ztwim|vault|status|cleanup]" >&2
+      echo "사용법: $0 [all|acs|ztwim|vault|status|cleanup|cleanup-lab]" >&2
       exit 1
       ;;
   esac

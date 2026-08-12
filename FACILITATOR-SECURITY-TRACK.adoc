@@ -169,13 +169,48 @@ NOTE: `openshift-zero-trust-workload-identity-manager` namespace 에
 
 === 정리
 
-[source,bash]
-----
-./setup-security-track.sh cleanup
-----
+정리 방식이 두 가지입니다. 목적에 따라 고르십시오.
+
+[cols="1,3",options="header"]
+|===
+| 명령 | 용도
+
+| `./setup-security-track.sh cleanup`
+| **처음부터 다시 구성할 때.** 실습 워크로드 + SPIRE 플랫폼(CR·datastore)까지 제거하고,
+  namespace 삭제가 끝날 때까지 기다립니다.
+
+| `./setup-security-track.sh cleanup-lab`
+| **같은 환경에서 워크로드만 다시 배포할 때.** SPIRE 플랫폼을 유지하므로
+  재배포가 훨씬 빠릅니다.
+|===
+
+`cleanup` 이 제거하는 것:
+
+* `narupay` / `postgresql-spiffe` / `postgresql-spiffe-client` / `vault` namespace
+* `~/narupay-lab/` 매니페스트 사본
+* SPIRE CR — `SpireServer`, `SpireAgent`, `SpiffeCSIDriver`,
+  `SpireOIDCDiscoveryProvider`, `ZeroTrustWorkloadIdentityManager`
+* SPIRE 서버 **datastore PVC** 와 `spire-bundle` ConfigMap
+
+[IMPORTANT]
+====
+datastore PVC 를 함께 지우는 것이 핵심입니다. SPIRE 서버는 등록 엔트리와 CA 를
+sqlite 에 보관하므로, PVC 를 남기면 "새로 구성"해도 **이전 상태가 그대로 살아납니다.**
+====
+
+**ZTWIM 오퍼레이터와 그 namespace 는 지우지 않습니다.** 실습 환경이 사전 설치해
+제공하는 요소이므로, 삭제하면 우리가 만들지 않은 인프라까지 파괴됩니다.
 
 NOTE: RHACS 정책의 Enforcement 설정은 스크립트가 되돌리지 않습니다.
 콘솔에서 *Policy Management* → *Latest tag* → *Response method* → `Inform only` 로 수동 복원하십시오.
+
+.전체 재구성 절차
+[source,bash]
+----
+./setup-security-track.sh cleanup   # 삭제 완료까지 대기
+./setup-security-track.sh all
+./verify-vault.sh
+----
 
 == 진행 시 주의점
 
