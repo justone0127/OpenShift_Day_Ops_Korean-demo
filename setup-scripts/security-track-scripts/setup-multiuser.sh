@@ -283,9 +283,15 @@ deploy_user() {
   log "[$(display_user "${u}")] 배포 중..."
 
   # 모듈 1 / 3 — 나루페이 워크로드
-  render_narupay "${MANIFEST_DIR}/payment-api-vulnerable.yaml" "${ns_pay}" | oc apply -f - >/dev/null
-  render_narupay "${MANIFEST_DIR}/payment-api-secure.yaml"     "${ns_pay}" | oc apply -f - >/dev/null
-  render_narupay "${MANIFEST_DIR}/legacy-secret-app.yaml"      "${ns_pay}" | oc apply -f - >/dev/null
+  # 매니페스트에 Namespace 가 함께 들어 있지만, 뒤따르는 리소스가
+  # "namespace not found" 로 실패하지 않도록 먼저 만들어 둡니다.
+  oc create namespace "${ns_pay}" >/dev/null 2>&1 || true
+  local m
+  for m in payment-api-vulnerable payment-api-secure legacy-secret-app; do
+    if ! render_narupay "${MANIFEST_DIR}/${m}.yaml" "${ns_pay}" | oc apply -f - >/dev/null; then
+      warn "[$(display_user "${u}")] ${m} 배포 실패"
+    fi
+  done
 
   # 모듈 1 의 차단 시연에서 참가자가 다시 apply 할 매니페스트.
   # 사용자마다 터미널이 다르므로 파일 대신 ConfigMap 으로 제공합니다.
@@ -295,11 +301,32 @@ deploy_user() {
     --dry-run=client -o yaml | oc apply -f - >/dev/null
 
   # 모듈 2 — ZTWIM 실습 워크로드
-  if [[ -f "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe.yaml" ]]; then
-    render_ztwim "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe.yaml" "${pfx}" postgresql-spiffe \
-      | oc apply -f - >/dev/null
-    render_ztwim "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe-client.yaml" "${pfx}" postgresql-spiffe-client \
-      | oc apply -f - >/dev/null
+  #
+  # 접두사가 없는 단일 환경에서는 원래 스크립트를 그대로 씁니다.
+  # 그쪽에 네임스페이스 생성 후 대기와 검증 로직이 들어 있어 더 안전합니다.
+  if [[ -z "${pfx}" ]]; then
+    if [[ -x "${ZTWIM_SCRIPTS}/configure-ztwim-postgresql-lab.sh" ]]; then
+      log "[$(display_user "${u}")] ZTWIM 실습 워크로드 배포..."
+      "${ZTWIM_SCRIPTS}/configure-ztwim-postgresql-lab.sh" deploy || \
+        warn "[$(display_user "${u}")] ZTWIM 워크로드 배포 실패"
+    else
+      warn "configure-ztwim-postgresql-lab.sh 를 찾을 수 없습니다"
+    fi
+  elif [[ -f "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe.yaml" ]]; then
+    # 사용자별 접두사가 붙는 경우에는 매니페스트를 렌더링해 적용합니다.
+    # 네임스페이스가 같은 스트림에서 만들어지므로, 먼저 만들고 잠깐 기다린 뒤
+    # 나머지를 적용해야 "namespace not found" 를 피할 수 있습니다.
+    local base
+    for base in postgresql-spiffe postgresql-spiffe-client; do
+      oc create namespace "${pfx}${base}" >/dev/null 2>&1 || true
+    done
+    for base in postgresql-spiffe postgresql-spiffe-client; do
+      local src="${ZTWIM_SCRIPTS}/demo-${base}.yaml"
+      [[ -f "${src}" ]] || continue
+      if ! render_ztwim "${src}" "${pfx}" "${base}" | oc apply -f - >/dev/null; then
+        warn "[${u}] ${pfx}${base} 워크로드 배포 실패"
+      fi
+    done
   fi
 
   # 권한 — 계정은 환경이 이미 만들어 두었다고 가정하고 RoleBinding 만 부여.
