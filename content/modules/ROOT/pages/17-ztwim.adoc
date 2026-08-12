@@ -186,20 +186,26 @@ X509v3 Subject Alternative Name:
 ----
 oc rsh -n postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
   psql "host=postgresql-spiffe.postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb sslmode=verify-full sslcert=/opt/postgresql-certs/svid.pem sslkey=/opt/postgresql-certs/svid.key sslrootcert=/opt/postgresql-certs/svid_bundle.pem" \
-  -c "SELECT current_user, ssl_is_used();"
+  -c "SELECT current_user, ssl, client_dn FROM pg_stat_ssl WHERE pid = pg_backend_pid();"
 ----
 +
 예상 출력:
 +
 [source,text]
 ----
-   current_user    | ssl_is_used
--------------------+-------------
- postgresql_spiffe | t
+   current_user    | ssl |              client_dn
+-------------------+-----+--------------------------------------
+ postgresql_spiffe | t   | /C=US/O=SPIRE/CN=postgresql_spiffe
 (1 row)
 ----
 +
-`current_user` 가 인증서의 CN에서 왔습니다.
+세 값이 한 줄에 모여 있는 것이 이 실습의 핵심입니다:
++
+* `current_user` — DB가 인식한 사용자. **인증서의 CN에서 왔습니다.**
+* `ssl` = `t` — 이 연결이 TLS로 암호화되었습니다.
+* `client_dn` — 클라이언트가 제시한 **인증서의 주체**입니다.
+  앞 단계에서 `openssl` 로 확인한 값과 같습니다.
++
 DB는 "이 연결이 누구인가"를 **인증서로** 판단했고, 비밀번호는 애초에 관여하지 않았습니다.
 +
 `sslmode=verify-full` 은 가장 엄격한 모드입니다 — 서버 인증서 검증, 호스트명 일치 확인,
