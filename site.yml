@@ -2,8 +2,7 @@
 site:
   title: OpenShift Ops Day Roadshow
   url: https://github.com/rhpds/openshift-days-ops-showroom
-  # 보안 트랙 전용 구성. 전체 로드쇼로 되돌리려면 index.adoc 으로 변경하십시오.
-  start_page: openshift-days-ops-track::15-00-security-story.adoc
+  start_page: openshift-days-ops-track::index.adoc
 
 content:
   sources:

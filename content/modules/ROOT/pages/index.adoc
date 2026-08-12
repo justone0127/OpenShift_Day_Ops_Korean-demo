@@ -1,8 +1,8 @@
 = 설정 및 개요
 :page-toclevels: 1
 
-**소요 시간:** 15-20분 +
-**형식:** 핸즈온 데모
+**소요 시간:** 10분 +
+**형식:** 환경 확인 + 워크숍 안내
 
 include::partial$console-access.adoc[]
 
@@ -35,13 +35,17 @@ oc get clusterversion
 
 == 워크숍 소개
 
-모든 ops 팀은 Kubernetes를 도입할 때 다음과 같은 동일한 한계에 부딪히게 됩니다: 
+클러스터는 잘 돌아갑니다. 그런데 다음 질문에는 바로 답하기 어렵습니다:
 
-- 클러스터는 작동 중이지만, 인증은 누가 처리합니까? 
-- 누군가 실수로 삭제한 namespace는 어떻게 백업하고 복구합니까? 
-- 새벽 2시에 pod가 예기치 않게 다운되었을 때 어디를 확인해야 합니까?
+- 6개월 전 CI 스캔을 통과한 이미지가, **지금도** 안전합니까?
+- `Secret` 에 넣어 둔 비밀번호는 실제로 얼마나 보호되고 있습니까?
+- 내부망에서 들어온 요청은 **무엇을 근거로** 신뢰합니까?
 
-본 워크숍에서는 핸즈온 실습을 통해 이러한 질문들에 대한 해답을 찾아갑니다. 직접 시스템을 다운시키고 복구하며, 실제 장애 모드를 진단하고, 프로덕션 수준의 보안을 구성해 보면서 OpenShift에서 장애가 발생했을 때의 모습과 얼마나 신속하게 복구할 수 있는지 확인하게 됩니다.
+본 워크숍은 하나의 침해사고를 따라가며 이 세 질문에 차례로 답합니다.
+공격이 어떻게 세 단계를 통과했는지 보고, 각 단계를 막는 방어선을
+직접 세워 보게 됩니다.
+
+실습은 관찰과 판단 중심입니다. 긴 YAML을 붙여넣을 일은 없습니다.
 
 === 워크숍 인터페이스
 
@@ -72,37 +76,44 @@ image::showroom-tabs.png[OCP Console, Terminal, RHACS, ArgoCD, Developer Hub 탭
 |Red Hat Developer Hub - 소프트웨어 카탈로그와 셀프 서비스 템플릿을 제공하는 개발자 포털입니다.
 |===
 
+NOTE: 이번 세션에서는 **OCP Console**, **Terminal**, **RHACS** 세 개의 탭을 사용합니다.
+나머지 탭은 다른 트랙에서 쓰이며 이번 실습에는 필요하지 않습니다.
+
 TIP: 음영 처리된 명령어 블록은 **클릭이 가능**하며, 클릭 시 자동으로 **Terminal (터미널)** 탭으로 전환되어 명령어가 실행됩니다.
 
 === 모듈 구성
 
+이번 세션은 **하나의 침해사고 시나리오로 이어지는 세 개의 모듈**로 구성됩니다.
+각 모듈이 공격 단계 하나씩을 막습니다. 왼쪽 내비게이션 순서대로 진행하십시오.
+
+[cols="1,2,2",options="header"]
+|===
+| 모듈 | 막는 공격 단계 | 무엇을 하는가
+
+| **인트로 — 침해사고**
+| —
+| 사건의 전말과 3단계 공격 경로를 확인합니다. 워밍업 퀴즈 3문항.
+
+| **모듈 1 — RHACS**
+| 1단계: 취약한 이미지와 과도한 권한
+| 취약/강화 워크로드를 콘솔에서 비교하고, 정책을 탐지에서 **차단**으로 전환해
+  취약한 배포가 실제로 거부되는 것을 확인합니다.
+
+| **모듈 2 — ZTWIM**
+| 3단계: 네트워크 위치 기반 신뢰
+| 워크로드에 발급된 암호학적 신원(SVID)을 확인하고, 비밀번호 없이 연결되는 것과
+  신원 없는 접속이 거부되는 것을 봅니다.
+
+| **모듈 3 — Secrets Management**
+| 2단계: 훔칠 수 있는 정적 비밀번호
+| `Secret` 의 실제 보호 수준을 직접 측정하고, 전용 저장소가 무엇을 바꾸는지 확인합니다.
+|===
+
 [NOTE]
 ====
-**본 워크숍은 모듈형으로 구성되어 있습니다.** 현재 세션에는 특정 모듈 집합만 활성화되어 있으며, **왼쪽 내비게이션 영역**에 있는 모듈만 실습이 가능합니다. 전체 카탈로그는 다음과 같습니다:
+모듈 2(ZTWIM)가 공격 3단계를, 모듈 3(Secrets)이 2단계를 다룹니다. 순서가 바뀐 이유는
+**신원으로 대체할 수 있는 것을 먼저 없애고, 그래도 남는 비밀을 마지막에 다루기** 위해서입니다.
 ====
-
-[cols="1,3"]
-|===
-|Area |What you'll do
-
-|**플랫폼 기본 사항 (Platform Fundamentals)**
-|클러스터 상태 점검, etcd 메트릭 확인, 30초 안에 애플리케이션 배포 및 외부 노출
-
-|**애플리케이션 운영 (Application Operations)**
-|워크로드 배포, 의도적인 readiness probe 장애 발생 및 해결, 실제 부하 상태에서 Horizontal Pod Autoscaler(HPA)를 통한 스케일링, 네트워크 정책 설정
-
-|**ID 및 액세스 (Identity & Access)**
-|LDAP 및 OIDC 인증 통합, 그룹 동기화, 서로 다른 사용자로 로그인하여 RBAC 테스트
-
-|**Day 2 운영 (Day 2 Operations)**
-|경고(alerting) 규칙 생성, 로깅 설정, 분산 트레이싱 구성, VPA를 통한 워크로드 적정 크기 산정
-
-|**고급 기능 (Advanced Capabilities)**
-|컨테이너와 함께 VM을 실행하고 실시간 마이그레이션(live-migrate) 수행, ACM을 통한 다중 클러스터 관리, ACS를 통한 취약점 스캔
-
-|**개발자 생산성 (Developer Productivity)**
-|Developer Hub에 애플리케이션 등록, 골든 패스(golden path) 템플릿이 기존의 운영 요청 티켓을 셀프 서비스로 어떻게 대체하는지 확인
-|===
 
 == 플랫폼 살펴보기
 
@@ -132,10 +143,6 @@ TIP: 인증 오류가 발생하는 경우 **Try Again (다시 시도)**을 클�
 | *비밀번호:* | {openshift_cluster_admin_password}
 |===
 
-#=== 2단계: Administrator 뷰로 전환
-
-#콘솔 왼쪽 상단에서 퍼스펙티브 전환 드롭다운을 볼 수 있습니다. 이 드롭다운을 클릭하고 **Administrator (어드민)**를 선택하십시오.
-
 === 2단계: 대시보드 개요
 
 **Home (홈) → Overview (개요)** 메뉴에서 **Overview (개요)** 대시보드를 확인할 수 있습니다.
@@ -150,314 +157,21 @@ image::ocp-dashboard-overview.png[OpenShift Administrator 대시보드 개요, l
 
 이 하나의 대시보드에서 클러스터 상태, 사용량, 인벤토리, 최근 이벤트를 별도의 설정 없이 모두 한눈에 확인할 수 있습니다.
 
-== 플랫폼 기능
-
-image::diagrams/01_control_plane.png[컨트롤 플레인의 역할, 300, align=center, link=self, window=blank]
-아래에 소개하는 모니터링, 컨테이너 레지스트리, 인그레스 라우팅 기능은 그 누구도 로그인하기 전부터 이미 완벽히 동작하고 있었습니다. 이를 직접 증명해 보겠습니다.
-
-=== 모니터링
-
-이 클러스터에 그 누구도 Prometheus를 수동으로 설치하지 않았습니다. 이미 스스로 동작하고 있습니다.
-
-**Prometheus 탐색 (CLI)**
-
-[source,bash,role="execute"]
-----
-oc get pods -n openshift-monitoring | grep prometheus
-----
-
-이미 실행 중인 Prometheus 관련 pod들을 확인할 수 있습니다 (일부 출력 생략):
-
-----
-prometheus-k8s-0                                        6/6     Running   0          55m
-prometheus-k8s-1                                        6/6     Running   0          55m
-prometheus-operator-admission-webhook-c9f987dd7-bld9f   1/1     Running   0          71m
-prometheus-operator-admission-webhook-c9f987dd7-h4jtc   1/1     Running   0          71m
-prometheus-operator-bb6c949f9-6rpnl                     2/2     Running   0          66m
-----
-
-**메트릭 확인 (Console)**
-
-1. 콘솔에서 **Observe (모니터링) → Dashboards (대시보드)** 메뉴로 이동하십시오.
-2. **Dashboard (대시보드)**로 레이블이 지정된 드롭다운을 클릭하십시오 (기본적으로 "API Performance"로 설정되어 있을 수 있습니다).
-3. 드롭다운 목록에서 **Kubernetes / Compute Resources / Cluster**를 선택하십시오.
-4. 실시간 메트릭 정보를 확인할 수 있습니다:
-   - CPU 사용량
-   - 메모리 사용량
-   - 네트워크 I/O
-   - 파일시스템 I/O
-
-image::observe-cluster-metrics-dashboard.png[Kubernetes 클러스터 메트릭 대시보드, link=self, window=blank]
-**추가적인 설정이 필요 없습니다.** 완전히 내장되어 제공되는 기본 기능입니다.
-
-**Prometheus 쿼리 실행 (고급)**
-
-1. **Observe (모니터링) → Metrics (메트릭)** 메뉴로 이동하십시오.
-2. 다음 PromQL 쿼리를 작성해 보십시오:
-+
-[source,role="copypaste"]
-----
-sum(rate(container_cpu_usage_seconds_total[5m])) by (namespace)
-----
-+
-3. **Run Queries (쿼리 실행)**를 클릭하십시오.
-
-각 namespace별로 상세 분할된 CPU 사용량을 확인할 수 있습니다. 어떤 namespace가 가장 많은 CPU 리소스를 소비하고 있는지 식별하는 매우 유용한 방법입니다.
-
-NOTE: 어떤 namespace가 가장 많은 CPU를 소비하고 있는지 확인해 보십시오. 보통 `openshift-monitoring`과 `openshift-etcd`가 리스트 상위에 위치하게 되는데, 이는 클러스터 자체의 인프라 시스템을 구동하고 있기 때문입니다.
-
-이 모든 정보는 클러스터가 기동되는 즉시 사용 가능한 상태로 제공됩니다.
-
-image::prometheus-cpu-by-namespace-query.png[Prometheus 쿼리 결과 - 네임스페이스별 CPU, link=self, window=blank]
-=== 컨테이너 레지스트리
-
-누군가 이미지 레지스트리를 설정했는지 확인해 보겠습니다:
-
-[source,bash,role="execute"]
-----
-oc get pods -n openshift-image-registry
-----
-
-출력 (일부 생략):
-
-----
-NAME                                               READY   STATUS    RESTARTS      AGE
-cluster-image-registry-operator-86c45576b9-v8j48   1/1     Running   1 (73m ago)   89m
-image-registry-5cd768f9b5-nnrx5                    1/1     Running   0             72m
-image-registry-5cd768f9b5-pcnqk                    1/1     Running   0             72m
-node-ca-2487m                                      1/1     Running   0             72m
-node-ca-5lh4f                                      1/1     Running   0             72m
-...
-----
-
-이미 인증 체계, 고가용성(HA) 복제본(replica) 및 스토리지가 완벽히 구성된 상태로 실행 중입니다. 역시 아무도 추가 설치하지 않았습니다.
-
-**Image Stream 확인**
-
-Image Stream은 레지스트리 URL을 하드코딩하지 않고도 컨테이너 이미지를 지정할 수 있는 OpenShift 고유의 방식입니다. 이미지가 업데이트되면 빌드 및 배포가 해당 변경 사항을 자동으로 감지하고 반영할 수 있습니다.
-
-[source,bash,role="execute"]
-----
-oc get imagestreams -n openshift
-----
-
-사전 로드된 빌더 이미지 목록이 표시됩니다 (일부 출력 생략):
-
-----
-NAME                   IMAGE REPOSITORY                                                     TAGS
-cli                    image-registry.openshift-image-registry.svc:5000/openshift/cli      latest
-dotnet                 image-registry.openshift-image-registry.svc:5000/openshift/dotnet   6.0,8.0,9.0,6.0-ubi8,8.0-ubi8,9.0-ubi8...
-nodejs                 image-registry.openshift-image-registry.svc:5000/openshift/nodejs   20-minimal-ubi8,20-minimal-ubi9,20-ubi8...
-python                 image-registry.openshift-image-registry.svc:5000/openshift/python   3.11-ubi8,3.11-ubi9,3.12-minimal-ubi10...
-----
-
-이것들은 **즉시 사용 가능한** 상태이며, Docker Hub의 사용량 한도 제한(rate limit)을 받지 않고 외부 종속성도 필요하지 않습니다.
-
-=== 라우팅
-
-인그레스 라우팅 역시 마찬가지로 이미 동작 중입니다. 확인해 보십시오:
-
-[source,bash,role="execute"]
-----
-oc get routes -A | head -10
-----
-
-Route (OpenShift의 인그레스 추상화 - 일부 출력 생략) 정보를 볼 수 있습니다:
-
-----
-NAMESPACE                  NAME                  HOST/PORT
-open-cluster-management    acm-cli-downloads     acm-cli-downloads.apps.cluster...
-openshift-authentication   oauth-openshift       oauth-openshift.apps.cluster...
-openshift-console          console               console-openshift-console.apps.cluster...
-openshift-console          downloads             downloads-openshift-console.apps.cluster...
-----
-
-Route(라우트)는 자동화된 TLS 인증서 및 DNS 연동과 함께 HAProxy 기반의 인그레스를 제공합니다. 원하시는 경우 표준 Kubernetes의 `Ingress` 리소스 사용도 지원합니다.
-
-**직접 해보기: 30초 만에 애플리케이션 배포 및 외부 노출**
-
-아무것도 없는 빈 상태에서 공개 접속 가능한 URL을 가진 앱을 실행하는 것이 얼마나 빠른지 확인해 보겠습니다. 다음 단 세 개의 명령어로 가능합니다:
-
-[source,bash,role="execute"]
-----
-oc new-project quick-demo
-oc new-app --name=hello --image=registry.access.redhat.com/ubi9/httpd-24
-oc create route edge hello --service=hello
-----
-
-URL을 받아와서 테스트해 보십시오:
-
-[source,bash,role="execute"]
-----
-curl -sk https://$(oc get route hello -n quick-demo -o jsonpath='{.spec.host}') | head -3
-----
-
-httpd 테스트 페이지 HTML 결과가 표시되어야 합니다. 이것이 바로 서비스, TLS 종단(TLS-terminated) 라우트, 자동 DNS가 완벽히 구성된 상태로 배포된 애플리케이션의 결과이며, 단 세 번의 명령으로 달성되었습니다.
-
-정리 작업 (다음 실습을 위해 백그라운드에서 자동 실행됩니다):
-
-[source,bash,role="execute"]
-----
-oc delete project quick-demo &>/dev/null &
-----
-
-== 클러스터 관리
-
-=== 노드
-
-현재 어떤 노드 환경에서 클러스터가 구동 중인지 확인해 보겠습니다:
-
-[source,bash,role="execute"]
-----
-oc get nodes
-----
-
-이 실습 환경은 **콤팩트 클러스터(compact cluster)** 구성을 사용하고 있으며, 3개의 노드가 컨트롤 플레인(control plane)과 워커(worker)의 역할을 동시에 유기적으로 수행합니다:
-
-----
-NAME                            STATUS   ROLES                         AGE   VERSION
-control-plane-cluster-xxxxx-1   Ready    control-plane,master,worker   20h   v1.33.6
-control-plane-cluster-xxxxx-2   Ready    control-plane,master,worker   20h   v1.33.6
-control-plane-cluster-xxxxx-3   Ready    control-plane,master,worker   20h   v1.33.6
-----
-
-NOTE: 노드 이름과 개수는 배포 방식에 따라 다를 수 있습니다. 실제 프로덕션 클러스터 환경에서는 대개 컨트롤 플레인 노드와 워커 노드가 물리적/논리적으로 완전히 구분됩니다. 본 워크숍은 모든 노드가 두 역할을 함께 처리하는 콤팩트 토폴로지를 사용합니다.
-
-**노드 세부 정보 확인 (Console)**
-
-1. **Compute (컴퓨팅) → Nodes (노드)** 메뉴로 이동하십시오.
-+
-image::compute-nodes-menu.png[Nodes 옵션이 표시된 Compute 메뉴, link=self, window=blank]
-+
-2. 임의의 노드를 선택하여 클릭하십시오.
-3. **Overview (개요)** 탭에서 다음 정보를 즉시 모니터링할 수 있습니다:
-   - **Status (상태)** - 노드가 안정적인 헬스 상태인지 여부를 보이고 발생한 제반 이슈를 플래그로 표시합니다. 이 워크숍 클러스터에서는 CPU 및 메모리에 대한 초과 할당(overcommit) 경고가 발생한 것을 볼 수 있는데, 이는 각 pod의 **limits (제한값)** 총합이 노드의 물리 용량을 초과하여 생기는 현상입니다. 이것이 곧 노드에 치명적인 장애가 있음을 의미하지는 않습니다. 아래의 **Utilization (사용량)** 섹션에서 실제 물리 사용량 대비 잔여 사용 가능 용량을 점검하십시오. 실제 사용량의 여유 수치가 넉넉하다면 이러한 overcommit 경고는 아무런 문제가 되지 않습니다. 다수의 연관 Operator들이 밀집 설치된 실습용 클러스터 특성상 일부 경고(alert)들이 발행된 상태로 보이는 것 역시 매우 자연스럽고 일반적인 현상입니다.
-+
-그러나 아래의 **Utilization (사용량) 그래프**를 살펴보면, 실제 CPU와 메모리의 물리 점유율은 잔여 여유 용량 내에서 매우 안전하고 이상적으로 유지되고 있습니다. 다음의 핵심 차이를 이해하는 것이 중요합니다. 보장되는 할당 기준인 **requests (요청값)**은 노드 용량 내에 안전하게 안착하는 반면, 최대로 증가할 수 있는 기준인 **limits (제한값)**의 총합은 실제 노드의 수용한계를 초과할 수 있습니다. 현실적으로 실습 워크숍 환경에서 모든 pod가 순간적으로 동시에 트래픽 피크 한계치(burst)까지 리소스를 최대치로 소모하는 시나리오는 극히 드눕니다. 실제 상용 환경(production)에서는 limits 수치를 합리적인 크기로 조정(right-sizing)하거나, 노드를 유연하게 추가 배치하여 확장하거나, 워크로드들이 동시에 리소스를 급증하여 사용하지 않는 특성을 감안해 이 정도의 overcommit 수준을 용인하는 방식을 선택할 수 있습니다.
-   - **Utilization (사용량) 그래프** - 시계열 단위의 CPU, 메모리, 파일시스템, 네트워크 등의 상태 흐름을 추적할 수 있습니다. 이론상의 논리 제한 수치가 아닌, 사용 가능한 물리 잔여량(available)과 실제 점유 실측량(actual usage)을 직접 입체적으로 비교 분석하십시오.
-   - **Pod count (Pod 수)** - 해당 노드 인프라 위에서 구동 중인 pod들의 활성 개수입니다.
-4. **Pods (Pod)** 탭을 누르면, 해당 노드에서 가동되는 전체 pod의 실시간 개별 CPU 및 메모리 사용 수준을 전수 조사할 수 있습니다.
-
-활성 경고 상태, 실시간 사용량 그래프 및 상세 개별 pod 단위 리소스 소모 수준이 하나의 전용 콘솔 창에 전부 표시되므로, 별도의 노드 터미널 SSH 직접 접속이 전혀 불필요합니다.
-
-image::nodes-console-view.png[노드 콘솔 뷰, link=self, window=blank]
-=== 인프라 관리
-
-**MachineSets - 자동화된 인프라 스케일링**
-
-OpenShift는 인프라의 확장을 완전 자동화하기 위해 **MachineSets** 기능을 지원합니다. 클라우드 플랫폼(AWS, Azure, GCP 등) 상에서 MachineSets는 개별 가용 영역(availability zone) 전반에 걸친 worker 노드 인스턴스 자원들을 기민하게 통제 관리해 줍니다. 따라서 호스트 장비를 수동으로 구성해 올리는 고단한 수작업을 할 필요 없이 단순히 replica count 값의 크기를 변경하는 것만으로 스케일 업(scale up) 처리를 즉각 수행할 수 있습니다.
-
-NOTE: ACM이 클러스터에 배포되면 `machinesets`는 두 종류의 API 그룹(Cluster API 및 OpenShift Machine API)에 병렬로 공존하게 됩니다. 우리는 OpenShift의 고유 Machine API를 정확히 타게팅하여 제어하기 위해 전체 리소스 명칭인 `machinesets.machine.openshift.io`를 사용합니다.
-
-[source,bash,role="execute"]
-----
-oc get machinesets.machine.openshift.io -n openshift-machine-api
-----
-
-여러분이 구동 중인 콤팩트 클러스터 환경은 단일 MachineSet의 replica 규모가 0으로 정의되어 있습니다. 가동 중인 3개의 노드가 컨트롤 플레인과 워커 역할을 모두 담당하므로, 인프라 내에 별도의 물리적 worker 장비를 추가 확보하여 기동해 놓을 필요가 없기 때문입니다:
-
-----
-NAME                           DESIRED   CURRENT   READY   AVAILABLE   AGE
-cluster-xxxxx-worker-0         0         0                             20h
-----
-
-In a production cloud deployment, you'd see multiple MachineSets (one per availability zone) with active worker replicas that can be scaled up or down.
-
-콘솔 상에서는 **Compute (컴퓨팅) -> MachineSets (머신셋)** 경로를 통해 이를 추적할 수 있습니다:
-
-image::machinesets-console.png[콤팩트 클러스터에서 0/0으로 표시된 worker MachineSet 개요를 보여주는 MachineSets 콘솔 뷰, link=self, window=blank]
-실제 운영용 프로덕션 환경에서는 이 화면을 통해 각 MachineSet에 연결된 구체적 머신 장비 개수, 장치 인스턴스 타입, 실시간 CPU 및 메모리 프로필 등이 표시되며, 관리자는 원하는 목표 수치(desired count)를 콘솔 상에서 직접 수정하여 마우스 클릭 몇 번만으로 인프라 확장 제어를 실행할 수 있습니다.
-
-개별 머신 리소스 세부 자원 내역을 조회하는 것도 가능합니다:
-
-[source,bash,role="execute"]
-----
-oc get machines.machine.openshift.io -n openshift-machine-api
-----
-
-OpenShift가 지능적으로 제어하고 관리하고 있는 하위 물리/가상 컴퓨팅 인스턴스들의 구조적 목록이 표시됩니다.
-
-=== 워커 노드 스케일링
-
-원하는 시점에 워커 노드를 즉각 증설하려면 MachineSet 자원의 replica 사양 크기를 단순 조절하기만 하면 됩니다:
-
-WARNING: 본 명령어를 직접 실행하지 마십시오. 이는 예시 목적으로만 제공됩니다. 본 워크숍 실습 인프라에는 물리적인 잔여 유휴 호스트 자원이 존재하지 않으므로 스케일링을 가동할 수 없습니다.
-
-[source,bash]
-----
-# 예시 - 특정 가용 영역의 worker 인스턴스를 0에서 1로 확장
-oc scale machineset.machine.openshift.io <machineset-name> --replicas=1 -n openshift-machine-api
-----
-
-OpenShift는 지능적으로 해당 물리/가상 인스턴스 장비를 즉각 할당하고 필요한 설정을 주입한 뒤 자동으로 전체 클러스터의 새 멤버 노드로 참여 처리해 줍니다. 단 한 줄의 명령만으로 완벽한 인프라 자동 확장이 보장됩니다.
-
-NOTE: 본 워크숍 환경은 베어메탈(bare metal) 기반으로 운영되고 있어, 즉시 투입할 수 있는 예비 장비가 부족하므로 스케일 제어를 단순 교육용 예시 형태로만 소개합니다. 실제 AWS, Azure, GCP와 같은 퍼블릭 클라우드 환경에서는 Machine API 엔진이 백그라운드에서 신규 인프라 가상화 머신 인스턴스를 자율적으로 자동 프로비저닝하여 즉시 증설해 줍니다.
-
-=== 무중단 무선 업그레이드
-
-현재 클러스터 버전을 확인해 봅니다:
-
-[source,bash,role="execute"]
-----
-oc get clusterversion
-----
-
-출력:
-
-----
-NAME      VERSION   AVAILABLE   PROGRESSING   SINCE   STATUS
-version   4.x       True        False         32m     Cluster version is 4.x
-----
-
-**업그레이드 가능 목록 확인 (Console)**
-
-1. **Administration (관리) → Cluster Settings (클러스터 설정)** 메뉴로 진입하십시오.
-+
-image::cluster-settings-details.png[클러스터 설정의 Details 탭, link=self, window=blank]
-+
-2. 가용한 경우 **Select a version (버전 선택)** 버튼을 클릭하십시오.
-3. 전환 및 상향이 가능한 다양한 업그레이드 지원 경로를 확인하십시오.
-
-NOTE: 클러스터의 업그레이드 진단 상태 정보가 **Update status: Up to date (업데이트 상태: 최신)** 상태인 경우, 해당 **Select a version (버전 선택)** 버튼은 화면에 나타나지 않습니다. 이는 해당 업데이트 채널 안에서 클러스터가 이미 최신 권장 안정 릴리스 버전으로 최적 구동 중임을 뜻합니다.
-
-image::cluster-upgrade-versions.png[업그레이드 가능 버전 정보,width=600, link=self, window=blank]
-OpenShift는 전체 클러스터의 업그레이드 공정을 시스템이 자율적으로 완전히 자동화하여 해결합니다:
-
-- 컨트롤 플레인의 무중단 롤링 업그레이드
-- 워커 노드 시스템의 자동 롤아웃 업데이트
-- 전체 애플리케이션 가용성을 해치지 않는 완벽한 제로 다운타임(무중단) 아키처 지원
-
-=== 오퍼레이터 에코시스템
-
-클러스터에 유용한 부가 기능이나 솔루션을 탑재하고 싶으십니까? 현재 당장 클릭 한 번으로 인스톨할 수 있도록 에코시스템에 대기 중인 활성 Operator의 총수량을 직접 조회해 보겠습니다:
-
-[source,bash,role="execute"]
-----
-oc get packagemanifests -n openshift-marketplace | wc -l
-----
-
-Red Hat 공식 오퍼레이터, 공인 기술 파트너 제품군, 커뮤니티 개발 오픈소스 제품군 등이 모두 정렬된 수백 개의 다양한 Operator들을 즉시 원스톱 설치할 수 있습니다.
-
-**소프트웨어 카탈로그 탐색 (Console)**
-
-1. **Ecosystem (에코시스템) → Software Catalog (소프트웨어 카탈로그)** 메뉴로 이동하십시오.
-2. 화면 상단의 프로젝트 필터 드롭다운에서 실습 공간이 명시 지정되어 있지 않다면 **default (기본값)**를 클릭해 선택하십시오.
-3. 왼쪽 사이드바에 다음과 같은 전문 테마 카테고리 분류가 포함된 단일 소프트웨어 통합 카탈로그 화면이 표시됩니다:
-   - **AI/Machine Learning** - Red Hat OpenShift AI, Open Data Hub 등
-   - **CI/CD** - Red Hat OpenShift GitOps, Red Hat OpenShift Pipelines 등
-   - **Database** - Red Hat AMQ Streams (Kafka) 등
-   - **Security** - Red Hat Advanced Cluster Security 등
-   - **Storage** - Red Hat OpenShift Data Foundation 등
-   - **Integration & Delivery** - Red Hat Integration, Red Hat Service Mesh, Red Hat Serverless 등
-   - 기타 다양한 카테고리 지원
-4. 유형 분류 필터인 **Type (유형)**에서 **Operators (오퍼레이터)**를 체크 선택하여 전체 상세 오퍼레이터 자원 리스트들을 필터링하여 조회해 보십시오.
-5. 임의의 원하는 Operator 카드 타일을 자유롭게 클릭해 상세 설명 페이지와 기능을 탐색해 보십시오. 이는 단순 인프라 환경 조사 목적이므로 수동 설치 과정은 진행하지 않으셔도 됩니다.
-
-image::software-catalog-operators.png[사용 가능한 개별 Operator 카드 타일 정보를 확인할 수 있도록 Operators 유형으로 필터링 처리된 통합 소프트웨어 카탈로그 콘솔 화면, link=self, window=blank]
-카탈로그 타일을 둘러보고 흥미로워 보이는 항목을 편하게 클릭해 보십시오. 여러분을 위해 완벽하게 제어 가능한 클러스터 공간입니다. 마음껏 탐색해 보십시오.
-
 == 다음 단계
 
-지금까지 설치 후 별도의 아무런 공임 없이 즉시 자동화되어 가동되는 핵심 기능군(모니터링 체계, 이미지 레지스트리 허브, 라우팅 및 인그레스 정책, 자동화 노드 스케일링, 무중단 자동 업그레이드 관리 및 즉각 장착 가능한 풍부한 솔루션 카탈로그 생태계)을 직접 살펴보았습니다. 그 어떠한 복잡한 사전 인프라 세팅도 요구되지 않았습니다.
+여기까지가 준비 과정입니다. 확인하신 내용을 정리하면 다음과 같습니다.
 
-이후 실습부터는 본격적으로 오픈시프트의 상세 영역 속으로 깊게 뛰어들게 됩니다. 왼쪽 내비게이션 바에서 원하는 다음 모듈 장을 선택해 주도적으로 핸즈온 실습을 이어가 보십시오.
+* `oc` 명령이 정상 동작하고, 노드가 모두 `Ready` 입니다
+* 왼쪽은 가이드, 오른쪽은 작업 영역이며 명령어 블록은 클릭하면 터미널에서 실행됩니다
+* 이번 세션은 하나의 침해사고를 따라가는 세 개의 모듈로 이어집니다
+* OpenShift 콘솔 대시보드에서 클러스터 전반을 한눈에 볼 수 있습니다
+
+[IMPORTANT]
+====
+**환경 확인이 되셨으면 시작하겠습니다.**
+
+지금부터는 잘 돌아가는 클러스터가 아니라, **이미 뚫린 클러스터**를 보게 됩니다.
+새벽 3시 47분에 걸려 온 전화에서 시작합니다.
+====
+
+준비되셨으면 xref:15-00-security-story.adoc[보안 트랙 시작]으로 이동하십시오.

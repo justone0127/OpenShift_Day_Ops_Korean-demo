@@ -1,9 +1,7 @@
 site:
   title: OpenShift Ops Day Roadshow
   url: http://localhost:8080
-  # 보안 트랙 전용 구성. 전체 로드쇼로 되돌리려면 index.adoc 으로 변경하십시오.
-  # inject-env-vars.sh 는 아래 asciidoc.attributes 만 덮어쓰고 start_page 는 건드리지 않습니다.
-  start_page: openshift-days-ops-track::15-00-security-story.adoc
+  start_page: openshift-days-ops-track::index.adoc
 
 content:
   sources:
