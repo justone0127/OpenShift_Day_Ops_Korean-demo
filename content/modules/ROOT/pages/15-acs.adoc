@@ -228,9 +228,44 @@ NOTE: 정책이 *Disabled* 상태라면 먼저 활성화(Enable)하십시오.
 +
 . 정책 행 우측의 *⋮* (점 세 개) 메뉴 → *Edit policy* 를 클릭합니다.
 . *Policy behavior* 단계로 이동합니다.
-. *Response method* 를 `Inform and enforce` 로 변경합니다.
-. *Configure enforcement behavior* 에서 *Deploy* 토글을 **켭니다**.
-. 나머지 단계를 *Next* 로 넘긴 뒤 *Save* 를 클릭합니다.
++
+[IMPORTANT]
+.찾는 항목이 안 보이면 하위 단계를 확인하십시오
+====
+RHACS 버전에 따라 *Policy behavior* 안에 여러 하위 단계가 있습니다.
+화면 위쪽에 이런 식으로 표시됩니다:
+
+[source,text]
+----
+2  Policy behavior  >  Scope
+----
+
+`>` 뒤가 현재 하위 단계입니다. **`Scope` 화면에는 enforcement 설정이 없습니다.**
+*Back* 을 눌러 앞쪽 하위 단계로 이동하십시오. 거기에 아래 항목이 있습니다.
+====
++
+. enforcement 를 켭니다. 버전에 따라 화면이 두 가지 중 하나입니다:
++
+[cols="1,2",options="header"]
+|===
+| 화면에 보이는 것 | 할 일
+
+| *Response method* 라디오 버튼
+| `Inform and enforce` 를 선택합니다
+
+| *Configure enforcement behavior* 토글만 있음
+| 별도 선택 없이 바로 다음 항목으로 갑니다
+|===
++
+. *Configure enforcement behavior* 에서 **`Deploy` 토글을 켭니다.**
+  (`Build` / `Runtime` 토글은 그대로 두십시오.)
++
+NOTE: 이 토글 하나가 이 모듈의 핵심입니다. 켜는 순간 정책이 "기록"에서 "차단"으로 바뀝니다.
++
+. *Next* 로 나머지 단계를 넘긴 뒤 *Save* 를 클릭합니다.
++
+. 정책 목록으로 돌아와 *Latest tag* 행의 상태가 바뀌었는지 확인합니다.
+  enforcement 가 켜진 정책은 목록에서 구분되어 표시됩니다.
 
 [IMPORTANT]
 ====
