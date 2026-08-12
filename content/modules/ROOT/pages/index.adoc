@@ -38,21 +38,26 @@ image::ops-day-banner.png[OpenShift Ops Day, width=100%]
       <label for="nrp-cfg-pass">비밀번호</label>
       <input id="nrp-cfg-pass" class="nrp-config-pass" type="text" placeholder="진행자가 안내한 비밀번호" autocomplete="off" spellcheck="false">
     </div>
+    <div class="nrp-config-field">
+      <label for="nrp-cfg-api">클러스터 API 주소 (선택)</label>
+      <input id="nrp-cfg-api" class="nrp-config-api" type="text" placeholder="비워 두면 자동으로 가져옵니다" autocomplete="off" spellcheck="false">
+    </div>
     <button type="button" class="nrp-config-apply">적용</button>
   </div>
   <div class="nrp-config-msg"></div>
 </div>
 ++++
 
-NOTE: 클러스터 주소는 입력하지 않아도 됩니다. 명령이 실행될 때 자동으로 가져옵니다.
+NOTE: API 주소는 비워 두셔도 됩니다. 비워 두면 명령 실행 시 `oc whoami --show-server` 로
+현재 클러스터 주소를 자동으로 가져옵니다.
 
 .실습 절차
-. 위에 계정을 입력하고 *적용* 을 누른 뒤, 아래 명령을 실행하십시오:
+. 위에 값을 입력하고 *적용* 을 누른 뒤, 아래 명령을 실행하십시오:
 +
 [source,bash,role="execute"]
 ----
 export LAB_USER=__USER__
-export API=$(oc whoami --show-server)
+export API=__API__
 export KUBECONFIG=/tmp/kubeconfig-$LAB_USER
 oc login -u $LAB_USER -p __PASSWORD__ $API --insecure-skip-tls-verify=true
 echo "로그인 계정: $(oc whoami)   |   클러스터: $API"

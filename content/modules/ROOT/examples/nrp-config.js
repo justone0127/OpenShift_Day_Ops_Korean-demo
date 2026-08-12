@@ -15,8 +15,13 @@
 
   var KEY_USER = 'nrp.labUser';
   var KEY_PASS = 'nrp.labPassword';
+  var KEY_API = 'nrp.labApi';
   var PH_USER = '__USER__';
   var PH_PASS = '__PASSWORD__';
+  var PH_API = '__API__';
+
+  // API 주소를 비워 두면 터미널에서 현재 접속 중인 클러스터 주소를 그대로 씁니다.
+  var API_FALLBACK = '$(oc whoami --show-server)';
 
   function read(key) {
     try { return window.localStorage.getItem(key) || ''; } catch (e) { return ''; }
@@ -26,46 +31,53 @@
   }
 
   // 자리표시자를 값으로 바꿉니다. 원본은 data 속성에 보관해 두어 다시 바꿀 수 있게 합니다.
-  function applyTo(el, user, pass) {
+  function applyTo(el, user, pass, api) {
     if (!el.hasAttribute('data-nrp-template')) {
-      if (el.textContent.indexOf(PH_USER) === -1 && el.textContent.indexOf(PH_PASS) === -1) return;
-      el.setAttribute('data-nrp-template', el.textContent);
+      var txt = el.textContent;
+      if (txt.indexOf(PH_USER) === -1 && txt.indexOf(PH_PASS) === -1 && txt.indexOf(PH_API) === -1) return;
+      el.setAttribute('data-nrp-template', txt);
     }
     var tpl = el.getAttribute('data-nrp-template');
     el.textContent = tpl
       .split(PH_USER).join(user || PH_USER)
-      .split(PH_PASS).join(pass || PH_PASS);
+      .split(PH_PASS).join(pass || PH_PASS)
+      .split(PH_API).join(api || API_FALLBACK);
   }
 
-  function applyAll(user, pass) {
+  function applyAll(user, pass, api) {
     var nodes = document.querySelectorAll('.doc pre code, .doc code, .doc .nrp-echo');
-    Array.prototype.forEach.call(nodes, function (el) { applyTo(el, user, pass); });
+    Array.prototype.forEach.call(nodes, function (el) { applyTo(el, user, pass, api); });
   }
 
   function setup() {
     var form = document.querySelector('.nrp-config');
     var user = read(KEY_USER);
     var pass = read(KEY_PASS);
+    var api = read(KEY_API);
 
     // 위젯이 없는 페이지(모듈 2·3 등)에서도 저장된 값으로 치환합니다.
-    applyAll(user, pass);
+    applyAll(user, pass, api);
     if (!form) return;
 
     var inUser = form.querySelector('.nrp-config-user');
     var inPass = form.querySelector('.nrp-config-pass');
+    var inApi = form.querySelector('.nrp-config-api');
     var btn = form.querySelector('.nrp-config-apply');
     var msg = form.querySelector('.nrp-config-msg');
     if (!inUser || !inPass || !btn) return;
 
     inUser.value = user;
     inPass.value = pass;
+    if (inApi) inApi.value = api;
 
     function apply() {
       var u = inUser.value.trim();
       var p = inPass.value;
+      var a = inApi ? inApi.value.trim() : '';
       write(KEY_USER, u);
       write(KEY_PASS, p);
-      applyAll(u, p);
+      write(KEY_API, a);
+      applyAll(u, p, a);
       if (msg) {
         msg.textContent = u
           ? '적용되었습니다. 아래 명령들이 ' + u + ' 계정으로 바뀌었습니다.'
@@ -75,8 +87,9 @@
     }
 
     btn.addEventListener('click', apply);
-    inUser.addEventListener('keydown', function (e) { if (e.key === 'Enter') apply(); });
-    inPass.addEventListener('keydown', function (e) { if (e.key === 'Enter') apply(); });
+    [inUser, inPass, inApi].forEach(function (el) {
+      if (el) el.addEventListener('keydown', function (e) { if (e.key === 'Enter') apply(); });
+    });
 
     if (user && msg) {
       msg.textContent = '저장된 계정 ' + user + ' 이(가) 적용되어 있습니다.';
