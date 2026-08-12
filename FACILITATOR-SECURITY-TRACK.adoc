@@ -119,6 +119,18 @@ cd OpenShift_Day_Ops_Korean-demo/setup-scripts/security-track-scripts
 
 약 8~12분 소요됩니다. 대부분 Vault Helm 설치와 SPIRE 구성 대기 시간입니다.
 
+`all` 은 **Vault 설치·구성·시드까지 포함**하며, 가이드 진행 순서(RHACS → ZTWIM → Secrets)대로 준비합니다.
+끝나면 모듈별 결과를 `[✓]` / `[✗]` 로 요약하고, 하나라도 실패하면 **종료 코드 1** 을 반환합니다.
+
+[source,text]
+----
+  준비 결과:
+
+    [✓] 모듈 1 — RHACS                payment-api / payment-api-secure 배포 완료
+    [✓] 모듈 2 — ZTWIM                SPIRE + PostgreSQL mTLS 워크로드 준비 완료
+    [✗] 모듈 3 — Secrets Management   Vault 설치 실패 — FACILITATOR-VAULT-SETUP.adoc 트러블슈팅 참고
+----
+
 [IMPORTANT]
 ====
 **워크샵 시작 전에 반드시 완료해 두십시오.** 참가자 가이드에는 이 절차가 없으므로,
@@ -147,8 +159,8 @@ RHDP/AgnosticV 환경이라면 이 스크립트를 프로비저닝 단계에 포
 [source,bash]
 ----
 ./setup-security-track.sh acs      # 모듈 1 (RHACS)
-./setup-security-track.sh vault    # 모듈 3 (Secrets)
 ./setup-security-track.sh ztwim    # 모듈 2 (ZTWIM)
+./setup-security-track.sh vault    # 모듈 3 (Secrets Management, Vault 설치 포함)
 ----
 
 === 정리
