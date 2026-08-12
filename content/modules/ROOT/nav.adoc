@@ -1,0 +1,82 @@
+// OpenShift Ops Day Roadshow
+// Navigation with catalog parameter conditionals
+//
+// Flow: Setup → Core Ops → Identity → Day 2 Ops → Advanced
+//
+// Catalog parameters (from agnosticv):
+//   module_enable_install,
+//   module_enable_appmgmt, module_enable_ingress, module_enable_netsec,
+//   module_enable_debugging, module_enable_gitops,
+//   module_enable_ldap, module_enable_oidc,
+//   module_enable_observability, module_enable_performance,
+//   module_enable_virt, module_enable_devhub, module_enable_ols,
+//   module_enable_acm, module_enable_security,
+//   module_enable_ztwim, module_enable_vault
+
+// Setup & Overview (always shown)
+* xref:index.adoc[Setup & Overview]
+ifeval::["{module_enable_install}" == "true"]
+* xref:01-installation.adoc[Installation & Verification]
+endif::[]
+
+// Core Operations - deploy, expose, secure, debug
+ifeval::["{module_enable_appmgmt}" == "true"]
+* xref:02-app-mgmt.adoc[Application Management]
+endif::[]
+ifeval::["{module_enable_ingress}" == "true"]
+* xref:03-ingress-loadbalancing.adoc[Ingress & Load Balancing]
+endif::[]
+ifeval::["{module_enable_netsec}" == "true"]
+* xref:04-network-security.adoc[Network Security]
+endif::[]
+ifeval::["{module_enable_debugging}" == "true"]
+* xref:05-debugging-troubleshooting.adoc[Debugging & Troubleshooting]
+endif::[]
+ifeval::["{module_enable_gitops}" == "true"]
+* xref:06-gitops.adoc[GitOps]
+endif::[]
+
+// Identity & Access
+ifeval::["{module_enable_ldap}" == "true"]
+* xref:07-ldap-authentication.adoc[Identity - LDAP]
+endif::[]
+ifeval::["{module_enable_oidc}" == "true"]
+* xref:08-oidc-authentication.adoc[Identity - OIDC]
+endif::[]
+
+// Day 2 Operations
+ifeval::["{module_enable_observability}" == "true"]
+* xref:09-observability.adoc[Observability & Logging]
+endif::[]
+ifeval::["{module_enable_performance}" == "true"]
+* xref:10-performance-tuning.adoc[Performance Tuning]
+endif::[]
+
+// Advanced Topics
+ifeval::["{module_enable_virt}" == "true"]
+* xref:11-virtualization.adoc[Virtualization]
+endif::[]
+ifeval::["{module_enable_devhub}" == "true"]
+* xref:12-developer-hub.adoc[Developer Hub]
+endif::[]
+ifeval::["{module_enable_ols}" == "true"]
+* xref:13-openshift-lightspeed.adoc[Lightspeed]
+endif::[]
+ifeval::["{module_enable_acm}" == "true"]
+* xref:14-acm.adoc[ACM Multi-Cluster Management]
+endif::[]
+// Security Track — 누리페이 침해사고 시나리오 (15 → 16 → 17)
+// 인트로 페이지는 ACS 모듈과 함께 노출됩니다.
+ifeval::["{module_enable_security}" == "true"]
+* xref:15-00-security-story.adoc[보안 트랙 시작 — 누리페이 침해사고]
+* xref:15-acs.adoc[Advanced Cluster Security]
+endif::[]
+ifeval::["{module_enable_vault}" == "true"]
+* xref:16-secrets-management.adoc[Secrets Management]
+endif::[]
+ifeval::["{module_enable_ztwim}" == "true"]
+* xref:17-ztwim.adoc[Zero-Trust Workload Identity Manager]
+endif::[]
+
+// Conclusion (always shown)
+* xref:99-conclusion.adoc[Wrap Up]

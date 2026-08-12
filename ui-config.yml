@@ -1,0 +1,31 @@
+---
+type: showroom
+
+default_width: 30
+persist_url_state: true
+
+view_switcher:
+  enabled: true
+  default_mode: split
+
+antora:
+  name: openshift-days-ops-track
+  version: main
+
+tabs:
+  - name: OCP Console
+    url: 'https://console-openshift-console.${DOMAIN}'
+
+  - name: Terminal
+    path: /wetty
+    port: 443
+
+  - name: RHACS
+    url: 'https://central-stackrox.${DOMAIN}'
+
+  - name: ArgoCD
+    url: 'https://openshift-gitops-server-openshift-gitops.${DOMAIN}'
+
+  - name: Developer Hub
+    url: 'https://backstage-developer-hub-backstage.${DOMAIN}'
+

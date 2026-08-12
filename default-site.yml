@@ -1,0 +1,41 @@
+site:
+  title: OpenShift Ops Day Roadshow
+  url: http://localhost:8080
+  start_page: openshift-days-ops-track::index.adoc
+
+content:
+  sources:
+  - url: ./
+    start_path: content
+    branches: HEAD
+
+ui:
+  bundle:
+    url: https://github.com/jnewsome97/rhdp_showroom_theme_execute/releases/download/rh-one-2025-execute-v4/ui-bundle.zip
+    snapshot: true
+
+output:
+  dir: ./public
+
+asciidoc:
+  attributes:
+    toclevels: 2
+    # Module flags - inject-env-vars.sh overwrites this section at runtime
+    module_enable_install: 'true'
+    module_enable_appmgmt: 'true'
+    module_enable_ingress: 'true'
+    module_enable_netsec: 'true'
+    module_enable_waf: 'true'
+    module_enable_debugging: 'true'
+    module_enable_ldap: 'true'
+    module_enable_oidc: 'true'
+    module_enable_observability: 'true'
+    module_enable_backup: 'true'
+    module_enable_performance: 'true'
+    module_enable_virt: 'true'
+    module_enable_devhub: 'true'
+    module_enable_ols: 'true'
+    module_enable_acm: 'true'
+    module_enable_security: 'true'
+    module_enable_ztwim: 'true'
+    module_enable_vault: 'true'

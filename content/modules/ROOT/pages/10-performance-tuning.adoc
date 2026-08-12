@@ -1,0 +1,314 @@
+= Performance Tuning
+:page-toclevels: 1
+
+== 시작하기
+
+=== 모듈 개요
+
+**소요 시간:** 15-20분 +
+**대상 독자:** Platform Engineers, SRE, Operations Teams
+
+include::partial$console-access.adoc[]
+
+**도전 과제:** 애플리케이션에 성능 문제가 발생하고 있습니다. 리소스 고갈로 인한 pod 충돌, 부하 발생 시 느린 응답 시간, 불명확한 용량 계획 등이 이에 해당합니다.
+
+**이 모듈에서는:** OpenShift의 autoscaling 및 monitoring 도구를 사용하여 실제 성능 문제를 진단하고 해결합니다.
+
+=== 학습 목표
+
+* 리소스 관련 pod 장애 진단 및 해결
+* Vertical Pod Autoscaler (VPA)를 사용하여 애플리케이션 리소스 크기 적정화(right-size)
+* Horizontal Pod Autoscaler (HPA)를 구성하여 유동적인 부하 처리
+* 내장된 도구를 사용한 성능 모니터링
+
+== 1부: 오버 프로비저닝된 애플리케이션
+
+개발자가 "혹시 모를 상황에 대비해" 2Gi의 memory를 request하는 애플리케이션을 배포했습니다. 하지만 이것이 실제로 필요할까요?
+
+=== 애플리케이션 배포
+
+[source,bash,role="execute"]
+----
+oc new-project performance-demo
+----
+
+[source,bash,role="execute"]
+----
+oc apply -f https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/memory-hog.yaml
+----
+
+실행될 때까지 대기하십시오:
+
+[source,bash,role="execute"]
+----
+oc get pods -w
+----
+
+pod가 `Running` 상태가 되면 `Ctrl+C`를 누르십시오.
+
+=== 리소스 요청 정보 확인
+
+[source,bash,role="execute"]
+----
+oc get deployment memory-hog -o jsonpath='{.spec.template.spec.containers[0].resources}' | jq .
+----
+
+애플리케이션은 **2Gi memory**와 **500m CPU**를 request했습니다. 이는 단 하나의 pod를 위해 예약된 대량의 cluster 용량입니다.
+
+=== 실제 사용량 확인
+
+TIP: 이전 모듈에서 다른 사용자로 로그인했다면 admin으로 다시 로그인하십시오. Console: Username `{openshift_cluster_admin_username}` / Password `{openshift_cluster_admin_password}`. 인증 오류가 발생하는 경우 console 탭을 새로고침하고 다시 시도하십시오.
+
+metrics가 제공될 때까지 대기하십시오 (pod가 시작된 후 약 60초 소요). 대기하는 동안 **OCP Console** 탭으로 전환하여 **Workloads (워크로드) -> Pods (파드)** (project: `performance-demo`)로 이동하십시오. pod 이름을 클릭하고 **Metrics (메트릭)** 탭을 확인하십시오. 실시간으로 수집되는 memory 사용량을 확인할 수 있습니다. 이 애플리케이션은 CPU를 거의 사용하지 않으므로 CPU 사용량은 0에 가깝게 나타납니다.
+
+image::perf-pod-metrics.png[Pod Metrics tab showing CPU and memory usage graphs, link=self, window=blank]
+[source,bash,role="execute"]
+----
+echo "Waiting 60s for metrics to populate..."
+sleep 60
+oc adm top pod -l app=memory-hog
+----
+
+애플리케이션은 예약된 2Gi보다 훨씬 적은 memory를 사용하고 있습니다. 정확한 수치는 다르겠지만 일반적으로 200Mi 미만입니다. 이는 다른 pods가 사용할 수 없는 **1.8Gi 이상의 낭비되는 용량**입니다!
+
+== 2부: VPA를 활용한 적정 크기 조정
+
+Vertical Pod Autoscaler는 실제 사용량을 분석하고 올바른 리소스 값을 추천합니다.
+
+=== VPA 설치 (필요시)
+
+VPA가 설치되어 있는지 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc get pods -n openshift-vertical-pod-autoscaler
+----
+
+설치되어 있지 않은 경우:
+
+[source,bash,role="execute"]
+----
+oc apply -f https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/vpa-operator.yaml
+----
+
+operator가 준비될 때까지 대기하십시오 (약 1분 소요):
+
+[source,bash,role="execute"]
+----
+echo "Waiting for VPA operator..."
+ELAPSED=0
+until oc get csv -n openshift-vertical-pod-autoscaler 2>/dev/null | grep -q Succeeded; do
+  sleep 10; ELAPSED=$((ELAPSED+10))
+  [ $ELAPSED -ge 180 ] && echo "ERROR: Timed out - check 'oc get csv -n openshift-vertical-pod-autoscaler'" && break
+done
+echo "Waiting for VPA CRD to register..."
+until oc get crd verticalpodautoscalers.autoscaling.k8s.io 2>/dev/null; do
+  sleep 5; ELAPSED=$((ELAPSED+5))
+  [ $ELAPSED -ge 240 ] && echo "ERROR: Timed out waiting for CRD" && break
+done
+echo "VPA operator ready"
+----
+
+=== VPA 권장 사항 확인
+
+memory-hog deployment를 대상으로 하는 VPA 리소스를 생성하십시오. 여기서는 `updateMode: "Off"`를 사용합니다. 이는 VPA가 권장 값만 **추천**할 뿐, pods를 직접 변경하지 않는다는 것을 의미합니다. 운영 환경에서는 권장 사항을 검증하기 위해 `Off`로 시작한 다음, `Auto`로 전환하여 재시작 시 VPA가 자동으로 pods의 크기를 조정하도록 설정할 수 있습니다.
+
+[source,bash,role="execute"]
+----
+oc apply -f https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/vpa-memory-hog.yaml
+----
+
+VPA가 pod를 분석하고 권장 사항을 생성할 때까지 대기하십시오:
+
+[source,bash,role="execute"]
+----
+echo "Waiting for VPA recommendation..."
+ELAPSED=0
+until oc get vpa memory-hog-vpa -o jsonpath='{.status.recommendation}' 2>/dev/null | grep -q containerRecommendations; do
+  sleep 10; ELAPSED=$((ELAPSED+10))
+  [ $ELAPSED -ge 120 ] && echo "ERROR: Timed out - VPA may need more time, try running this block again" && break
+done
+oc get vpa memory-hog-vpa
+----
+
+다음과 같은 출력이 표시되어야 합니다:
+
+----
+NAME             MODE   CPU   MEM       PROVIDED   AGE
+memory-hog-vpa   Off    35m   262144k   True       2m
+----
+
+상세 권장 사항을 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc get vpa memory-hog-vpa -o jsonpath='{.status.recommendation.containerRecommendations[0]}' | jq .
+----
+
+다음과 유사한 출력이 표시되어야 합니다:
+
+----
+{
+  "containerName": "memory-hog",
+  "lowerBound": { "cpu": "25m", "memory": "262144k" },
+  "target": { "cpu": "35m", "memory": "262144k" },
+  "uncappedTarget": { "cpu": "35m", "memory": "262144k" },
+  "upperBound": { "cpu": "500m", "memory": "512Mi" }
+}
+----
+
+VPA는 request된 2Gi 대신 **~256Mi memory**를 추천합니다. 이는 추측이 아닌 실제 관찰된 사용량을 바탕으로 합니다.
+
+=== 적정 크기 리소스 적용
+
+[source,bash,role="execute"]
+----
+oc patch deployment memory-hog --type=json -p='[
+  {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "256Mi"},
+  {"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "512Mi"},
+  {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/cpu", "value": "50m"},
+  {"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/cpu", "value": "200m"}
+]'
+----
+
+=== 리소스 절감 검증
+
+[source,bash,role="execute"]
+----
+oc get deployment memory-hog -o jsonpath='{.spec.template.spec.containers[0].resources}' | jq .
+----
+
+**결과:** 다른 workload가 사용할 수 있는 **1.75Gi of memory**와 **450m of CPU**를 확보했습니다. 수백 개의 pods에서 이를 동일하게 적용한다면 상당한 cluster 비용을 절감할 수 있습니다.
+
+== 3부: HPA를 활용한 가변 부하 처리
+
+image::diagrams/10_hpa.png[Horizontal Pod Autoscaler Flow, align=center, link=self, window=blank]
+이제 트래픽에 따라 수평으로 scale할 필요가 있는 애플리케이션을 배포하겠습니다.
+
+=== 확장 가능한 애플리케이션 배포
+
+[source,bash,role="execute"]
+----
+oc apply -f https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/main/support/demo-app.yaml
+----
+
+준비될 때까지 대기하십시오:
+
+[source,bash,role="execute"]
+----
+oc rollout status deployment/demo-app --timeout=120s
+----
+
+=== HPA 생성
+
+CPU 사용량이 50%를 초과할 때 자동으로 scaling을 수행하도록 구성하십시오. 왜 50%일까요? 목표 수치가 낮을수록 pods가 더 신속하게 scale하지만(빠른 응답성, 높은 비용), 목표 수치가 높을수록 pods를 더 빽빽하게 배치할 수 있습니다(리소스 절약, 느린 대응). 50%는 일반적으로 널리 쓰이는 시작 단계이며, 애플리케이션의 latency 요건에 맞게 세부 조정해야 합니다.
+
+[source,bash,role="execute"]
+----
+oc autoscale deployment demo-app --min=1 --max=5 --cpu-percent=50
+----
+
+HPA를 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc get hpa demo-app
+----
+
+다음과 같이 표시되어야 합니다:
+
+----
+NAME       REFERENCE             TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+demo-app   Deployment/demo-app   cpu: <unknown>/50%   1         5         1          10s
+----
+
+`<unknown>` target은 정상적인 현상입니다. 새 pod의 CPU 사용량을 metrics server가 보고하기 시작하는 데 약 1분이 소요됩니다.
+
+TIP: Console의 **Workloads (워크로드) -> HorizontalPodAutoscalers (수평 포드 오토스케일러)** (project: `performance-demo`)에서 HPA를 확인할 수 있습니다. 실시간으로 현재 대비 목표 CPU 백분율과 현재 replica 수량을 표시합니다.
+
+=== 부하 생성
+
+두 번째 terminal을 열거나 백그라운드에서 다음 명령을 실행하십시오:
+
+[source,bash,role="execute"]
+----
+oc run load-generator --image=registry.access.redhat.com/ubi9/ubi-minimal --restart=Never -- /bin/sh -c "while true; do curl -s -o /dev/null http://demo-app:8080; done"
+----
+
+=== 자동 스케일링 확인
+
+load generator가 실행되는 동안 console의 **Workloads (워크로드) -> Pods (파드)** (project: `performance-demo`)로 이동하여 HPA가 scale up됨에 따라 새 pods가 나타나는 과정을 관찰하십시오. 이것이 autoscaler가 작동하는 모습입니다.
+
+그 다음 **Observe (관찰) -> Dashboards (대시보드)**로 이동하여 **Kubernetes / Compute Resources / Namespace (Pods)**를 선택하고 project `performance-demo`를 선택하십시오. **CPU Quota** 표에서 여러 pods에 부하가 분산되는 것을 볼 수 있습니다. 각 demo-app pod는 약 40-50%의 CPU를 사용하고, `load-generator` pod가 가장 많은 CPU를 소비합니다. 전체 사용량이 단일 pod에 처음에 request된 양을 초과하기 때문에 상단의 **CPU Utilisation (from requests)** 백분율은 100%를 훨씬 초과하게 됩니다.
+
+image::perf-hpa-pods-scaling.png[Pod list showing multiple demo-app pods after HPA scale-up, link=self, window=blank]
+CLI를 통해 관찰할 수도 있습니다:
+
+[source,bash,role="execute"]
+----
+oc get hpa demo-app -w
+----
+
+`REPLICAS` 열과 `TARGETS` 열을 관찰하십시오. 이 명령을 실행할 때 이미 HPA가 scale up되었을 수도 있습니다. 2-4개의 replicas가 있고 CPU가 50% 부근이라면 autoscaler가 이미 반응한 것입니다. `Ctrl+C`를 눌러 계속 진행하십시오.
+
+pods가 정상적으로 scale되었는지 확인하십시오:
+
+[source,bash,role="execute"]
+----
+oc get pods -l app=demo-app
+----
+
+=== 부하 중지
+
+[source,bash,role="execute"]
+----
+oc delete pod load-generator
+----
+
+부하가 줄어들고 약 5분이 지나면 HPA가 다시 scale down을 진행합니다. 이는 scale down을 위한 기본 `stabilizationWindowSeconds` 설정으로, 급격한 상태 변화(flapping)를 방지합니다. 대기할 필요는 없으며, 실제 운영 환경에서 scale down은 의도적으로 천천히 진행된다는 점을 이해해 두십시오.
+
+== 4부: 용량 산정 결정
+
+VPA로 하나의 애플리케이션의 크기를 적정화하고, HPA로 다른 애플리케이션의 오토스케일링을 수행했습니다. 이제 거시적인 관점에서 살펴보겠습니다:
+
+[source,bash,role="execute"]
+----
+oc adm top nodes
+----
+
+각 nodes의 memory 사용 비율을 살펴보십시오. **OCP Console**에서 **Observe (관찰) -> Dashboards (대시보드)**로 이동하고 **Kubernetes / Compute Resources / Namespace (Pods)**를 선택한 다음 project `performance-demo`를 선택하십시오:
+
+image::hpa-scaling-dashboard.png[Dashboard showing CPU usage and pod count during HPA scaling event, link=self, window=blank]
+그래프는 시간에 따른 HPA scaling 이벤트의 추이를 보여줍니다. **CPU Quota** 표에서 부하가 어떻게 분산되었는지 확인할 수 있습니다. 각 demo-app pod가 대략 균등한 CPU 사용량으로 트래픽의 일부를 처리하고, load-generator가 가장 많은 리소스를 소비합니다. 상단의 **CPU Utilisation (from requests)** 백분율은 총 namespace 사용량 대비 총 requests의 비율을 나타냅니다. 부하가 발생하는 동안 이 비율은 100%를 훨씬 상회합니다.
+
+load generator를 삭제한 후, HPA가 demo-app replicas를 다시 원래대로 줄이고 CPU utilisation이 떨어지는 모습을 관찰하십시오. 이것이 오토스케일링이 종단간(end-to-end)으로 작동하는 방식입니다.
+
+용량 검토(capacity review) 시 다음과 같은 질문에 답을 내릴 수 있습니다: "더 많은 nodes가 필요한가, 아니면 우리 애플리케이션들이 단순히 과도하게 구성(over-provisioned)된 것인가?" 많은 cluster 환경에서 VPA를 도입하는 것만으로도 추가 인프라 구매를 방지할 수 있을 만큼 충분한 용량을 확보할 수 있습니다.
+
+== 정리 및 요약
+
+[source,bash,role="execute"]
+----
+oc delete project performance-demo
+----
+
+=== 핵심 정리
+
+[cols="1,2"]
+|===
+|도구 |사용 시기
+
+|**VPA**
+|실제 사용량에 기반한 리소스 크기 적정화 (권장 사항 수집을 위해 먼저 `Off` 모드로 사용)
+
+|**HPA**
+|가변 부하에 대응하기 위한 pods 수평 확장 (50-70% CPU 목표 설정)
+
+|**oc adm top**
+|현재 리소스 소모량 신속 확인
+
+|**Observe (관찰) → Dashboards (대시보드)**
+|과거 트렌드 파악 및 용량 계획
+|===
+
+**작업 패턴:** 리소스를 임의로 추정하지 않기 → VPA를 사용한 측정 → 권장 사항 적용 → 가변 부하에 HPA 적용
