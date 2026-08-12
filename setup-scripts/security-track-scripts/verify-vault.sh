@@ -15,8 +15,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VAULT_NS="${VAULT_NAMESPACE:-vault}"
-NARUPAY_NS="${NARUPAY_NS:-user1-narupay}"
-SECRET_PATH="${VAULT_SECRET_PATH:-secret/user1-narupay/payment-db}"
+NARUPAY_NS="${NARUPAY_NS:-narupay}"
+SECRET_PATH="${VAULT_SECRET_PATH:-secret/narupay/payment-db}"
 FIX=0
 [[ "${1:-}" == "--fix" ]] && FIX=1
 

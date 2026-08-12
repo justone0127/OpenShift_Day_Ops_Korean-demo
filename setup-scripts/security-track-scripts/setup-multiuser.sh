@@ -172,6 +172,8 @@ prepare_cluster() {
   elif [[ -x "${VAULT_SCRIPTS}/install-vault.sh" ]]; then
     log "Vault 설치 중 (수 분 소요)..."
     "${VAULT_SCRIPTS}/install-vault.sh" || warn "Vault 설치 실패"
+    # pod 가 Ready 되기 전에 secret 을 쓰면 실패합니다.
+    wait_for_vault_ready || warn "Vault pod 가 Ready 되지 않았습니다"
     [[ -x "${VAULT_SCRIPTS}/configure-vault-lab.sh" ]] && \
       "${VAULT_SCRIPTS}/configure-vault-lab.sh" || true
   else
@@ -256,6 +258,22 @@ EOF
 vault_pod() {
   oc get pod -n "${VAULT_NS}" -l app.kubernetes.io/name=vault,component=server \
     -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true
+}
+
+# Helm 설치 직후에는 pod 가 아직 Ready 가 아니므로, secret 을 쓰기 전에 기다립니다.
+wait_for_vault_ready() {
+  local tries="${VAULT_READY_TRIES:-60}" i pod ready
+  log "Vault pod 기동 대기 중 (최대 $((tries * 5))초)..."
+  for ((i = 0; i < tries; i++)); do
+    pod="$(vault_pod)"
+    if [[ -n "${pod}" ]]; then
+      ready="$(oc get pod -n "${VAULT_NS}" "${pod}" \
+        -o jsonpath='{.status.containerStatuses[0].ready}' 2>/dev/null || true)"
+      [[ "${ready}" == "true" ]] && { log "Vault pod Ready (${pod})"; return 0; }
+    fi
+    sleep 5
+  done
+  return 1
 }
 
 seed_vault_for_user() {
@@ -389,6 +407,19 @@ deploy_one() {
   fi
 }
 
+# 모든 대상이 Ready 될 때까지 기다립니다. 출력은 마지막에 한 번만 보여 줍니다.
+wait_all_ready() {
+  local tries="${READY_TRIES:-36}" i
+  log "워크로드가 Ready 될 때까지 대기 중 (최대 $((tries * 10))초)..."
+  for ((i = 0; i < tries; i++)); do
+    FAILED_USERS=()
+    each_user check_user >/dev/null 2>&1
+    [[ ${#FAILED_USERS[@]} -eq 0 ]] && return 0
+    sleep 10
+  done
+  return 1
+}
+
 do_deploy() {
   hr
   log "환경 생성 — $(describe_target)"
@@ -398,14 +429,28 @@ do_deploy() {
   each_user deploy_one
 
   hr
-  if [[ ${#FAILED_USERS[@]} -eq 0 ]]; then
-    log "완료 — $(describe_target) 전원 배포됨"
-  else
-    warn "실패한 사용자: ${FAILED_USERS[*]}"
+  if [[ ${#FAILED_USERS[@]} -ne 0 ]]; then
+    warn "배포 중 실패: ${FAILED_USERS[*]}"
   fi
-  log "상태 점검: $0 status ${COUNT}"
+
+  # 배포 요청만으로 끝내지 않고, 실제로 Ready 될 때까지 기다린 뒤 결과를 보여 줍니다.
+  wait_all_ready
   hr
-  [[ ${#FAILED_USERS[@]} -eq 0 ]]
+  log "최종 준비 상태"
+  hr
+  FAILED_USERS=()
+  each_user check_user
+  hr
+  if [[ ${#FAILED_USERS[@]} -eq 0 ]]; then
+    log "모듈 1/2/3 준비 완료. 워크샵을 진행할 수 있습니다."
+    hr
+    return 0
+  fi
+  warn "미완료: ${FAILED_USERS[*]}"
+  warn "잠시 후 '$0 status ${COUNT}' 로 다시 확인하십시오."
+  warn "Vault 관련 문제는 ./verify-vault.sh 로 상세 점검할 수 있습니다."
+  hr
+  return 1
 }
 
 check_user() {

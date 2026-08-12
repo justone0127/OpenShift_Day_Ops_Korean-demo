@@ -421,15 +421,22 @@ diff $HOME/narupay-lab/payment-api-vulnerable.yaml $HOME/narupay-lab/payment-api
 
 == 정리
 
-.실습 절차
-. 다음 모듈로 넘어가기 전에 정책 설정을 원래대로 되돌립니다 (선택 사항):
-+
-RHACS 콘솔 → *Platform Configuration* → *Policy Management* → *Latest tag* →
-*Edit policy* → *Policy behavior* → *Actions* → *Enforcement* 를 `Inform` 으로 변경 → *Save*
-+
-NOTE: 이 트랙만 진행하는 경우 켜 둔 채로 두어도 무방합니다. 다른 모듈에서 `latest` 태그 이미지를 배포한다면 되돌려야 합니다.
-+
-. 나루페이 워크로드는 모듈 3에서도 사용하므로 **삭제하지 마십시오.**
+**되돌릴 것이 없습니다.** 정책 범위를 `narupay` 로 제한했으므로 방어선을 그대로 켜 둔 채
+다음 모듈로 넘어가면 됩니다.
+
+[NOTE]
+.왜 켜 둔 채로 진행해도 되는가
+====
+`narupay` 안에서 `latest` 태그를 쓰는 워크로드는 취약 버전(`payment-api`) 하나뿐입니다.
+강화 버전과 모듈 3에서 쓰는 애플리케이션은 태그가 고정되어 있어 차단되지 않습니다.
+
+모듈 2의 워크로드는 다른 namespace 에 있어 범위 밖입니다.
+
+즉 **세운 방어선이 남아 있으면서 남은 실습을 막지 않습니다.** 실무에서 원하는
+상태가 정확히 이것입니다.
+====
+
+나루페이 워크로드는 모듈 3에서도 사용하므로 **삭제하지 마십시오.**
 
 == 학습 내용 요약
 

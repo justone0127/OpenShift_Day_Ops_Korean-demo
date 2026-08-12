@@ -307,9 +307,16 @@ NOTE: 이 권한이 없으면 해당 명령에서 `Forbidden` 이 납니다.
 제공하는 요소이므로, 삭제하면 우리가 만들지 않은 인프라까지 파괴됩니다.
 ====
 
-NOTE: RHACS 정책의 Enforcement 설정은 스크립트가 되돌리지 않습니다.
-콘솔에서 *Policy Management* → *Latest tag* → *Edit policy* → *Policy behavior* → *Actions* →
-*Enforcement* 를 `Inform` 으로 되돌리십시오.
+[NOTE]
+.RHACS 정책은 세션 중에 되돌릴 필요가 없습니다
+====
+모듈 1 에서 정책 범위를 `narupay` 로 제한하므로, 차단을 켜 둔 채로 모듈 2·3 을
+진행할 수 있습니다. 시간을 아끼려고 되돌리기 단계를 참가자 가이드에서 제외했습니다.
+
+클러스터를 다른 용도로 재사용하실 때만 원복하십시오:
+*Policy Management* → *Latest tag* → *Edit policy* → *Policy behavior* → *Actions* →
+*Enforcement* → `Inform`. 범위 설정도 함께 지우면 됩니다.
+====
 
 == 진행 시 주의점
 
