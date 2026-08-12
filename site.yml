@@ -2,7 +2,8 @@
 site:
   title: OpenShift Ops Day Roadshow
   url: https://github.com/rhpds/openshift-days-ops-showroom
-  start_page: openshift-days-ops-track::index.adoc
+  # 보안 트랙 전용 구성. 전체 로드쇼로 되돌리려면 index.adoc 으로 변경하십시오.
+  start_page: openshift-days-ops-track::15-00-security-story.adoc
 
 content:
   sources:
@@ -33,30 +34,34 @@ output:
 
 # Module attributes for ifeval conditionals in nav.adoc
 # In production, these are injected by the showroom workload via user_data
-# For local preview, enable all modules by setting to "true"
+# For local preview, set a module to "true" to show it in the navigation.
+#
+# 현재 구성: 보안 트랙(누리페이 침해사고) 전용.
+# 15/16/17 만 켜고 나머지는 꺼 둡니다. 다시 켜려면 'true' 로 바꾸면 됩니다.
 asciidoc:
   attributes:
     toclevels: 2
     # Module flags - matches catalog parameter names (module_enable_*)
     # Getting Started
-    module_enable_install: 'true'
+    module_enable_install: 'false'
     # Core Operations
-    module_enable_appmgmt: 'true'
-    module_enable_ingress: 'true'
-    module_enable_netsec: 'true'
-    module_enable_debugging: 'true'
-    module_enable_gitops: 'true'
+    module_enable_appmgmt: 'false'
+    module_enable_ingress: 'false'
+    module_enable_netsec: 'false'
+    module_enable_debugging: 'false'
+    module_enable_gitops: 'false'
     # Identity & Access
-    module_enable_ldap: 'true'
-    module_enable_oidc: 'true'
+    module_enable_ldap: 'false'
+    module_enable_oidc: 'false'
     # Day 2 Operations
-    module_enable_observability: 'true'
-    module_enable_performance: 'true'
+    module_enable_observability: 'false'
+    module_enable_performance: 'false'
     # Advanced Topics
-    module_enable_virt: 'true'
-    module_enable_devhub: 'true'
-    module_enable_ols: 'true'
-    module_enable_acm: 'true'
+    module_enable_virt: 'false'
+    module_enable_devhub: 'false'
+    module_enable_ols: 'false'
+    module_enable_acm: 'false'
+    # Security Track — 누리페이 침해사고 (활성)
     module_enable_security: 'true'
     module_enable_ztwim: 'true'
     module_enable_vault: 'true'

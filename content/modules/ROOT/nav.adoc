@@ -13,8 +13,10 @@
 //   module_enable_acm, module_enable_security,
 //   module_enable_ztwim, module_enable_vault
 
-// Setup & Overview (always shown)
-* xref:index.adoc[Setup & Overview]
+// Setup & Overview
+// 보안 트랙 전용 구성에서는 시작 페이지가 15-00 이므로 목차에서 제외합니다.
+// 전체 로드쇼로 되돌릴 때 아래 주석을 해제하고 site.yml 의 start_page 도 함께 되돌리십시오.
+// * xref:index.adoc[Setup & Overview]
 ifeval::["{module_enable_install}" == "true"]
 * xref:01-installation.adoc[Installation & Verification]
 endif::[]
@@ -65,17 +67,19 @@ endif::[]
 ifeval::["{module_enable_acm}" == "true"]
 * xref:14-acm.adoc[ACM Multi-Cluster Management]
 endif::[]
-// Security Track — 누리페이 침해사고 시나리오 (15 → 16 → 17)
-// 인트로 페이지는 ACS 모듈과 함께 노출됩니다.
+// Security Track — 누리페이 침해사고 시나리오
+// 진행 순서: 인트로 → 모듈 1 RHACS → 모듈 2 ZTWIM → 모듈 3 Secrets Management
+// 파일명의 15/16/17 은 전체 로드쇼(01~14)와 번호가 겹치지 않도록 유지한 것이며,
+// 참가자에게 보이는 순서·번호는 아래 목차가 결정합니다.
 ifeval::["{module_enable_security}" == "true"]
 * xref:15-00-security-story.adoc[보안 트랙 시작 — 누리페이 침해사고]
-* xref:15-acs.adoc[Advanced Cluster Security]
-endif::[]
-ifeval::["{module_enable_vault}" == "true"]
-* xref:16-secrets-management.adoc[Secrets Management]
+* xref:15-acs.adoc[모듈 1 — Advanced Cluster Security]
 endif::[]
 ifeval::["{module_enable_ztwim}" == "true"]
-* xref:17-ztwim.adoc[Zero-Trust Workload Identity Manager]
+* xref:17-ztwim.adoc[모듈 2 — Zero-Trust Workload Identity Manager]
+endif::[]
+ifeval::["{module_enable_vault}" == "true"]
+* xref:16-secrets-management.adoc[모듈 3 — Secrets Management]
 endif::[]
 
 // Conclusion (always shown)

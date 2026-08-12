@@ -4,35 +4,125 @@
 == 모듈 개요
 
 **소요 시간:** 10분 +
-**형식:** 읽기 + 워밍업 퀴즈 + 환경 준비 +
+**형식:** 읽기 + 워밍업 퀴즈 +
 **대상 참석자:** Security Engineers, Platform Engineers, IT Operations
 
 include::partial$console-access.adoc[]
 
+include::partial$nrp-assets.adoc[]
+
 [NOTE]
 ====
-이 페이지는 이어지는 세 개의 모듈(*RHACS* → *Secrets Management* → *ZTWIM*)을 하나의 사건으로 묶는 도입부입니다.
+이 페이지는 이어지는 세 개의 모듈(*RHACS* → *ZTWIM* → *Secrets Management*)을 하나의 사건으로 묶는 도입부입니다.
 각 모듈은 이 사건의 **공격 단계 하나씩**을 막습니다.
 ====
 
 == 03:47 AM — 알림
 
-[source,text]
-----
-[PagerDuty] CRITICAL
-누리페이 결제 API — 아웃바운드 트래픽 급증
-정상 대비 4,200% ↑
-목적지: 185.***.***.42 (미등록 해외 IP)
-----
+++++
+<div class="nrp-alert">
+  <div class="nrp-alert-head"><span class="nrp-dot"></span>PagerDuty · CRITICAL · P1</div>
+  <div class="nrp-alert-title">누리페이 결제 API — 아웃바운드 트래픽 급증</div>
+  <dl>
+    <dt>트래픽</dt><dd><span class="nrp-spike">정상 대비 4,200% ↑</span></dd>
+    <dt>목적지</dt><dd>185.***.***.42 <span style="color:#a0a0a0">(미등록 해외 IP)</span></dd>
+    <dt>발신</dt><dd>payment-api-7d9f4b · namespace nuripay</dd>
+    <dt>지속 시간</dt><dd>41분 (탐지까지)</dd>
+  </dl>
+</div>
+++++
 
 **누리페이(NuriPay)** 는 국내 간편결제 서비스입니다. 일 거래 120만 건, 회원 380만 명.
 고객의 카드번호와 계좌 정보를 다룹니다.
 
 그리고 지금, 그 데이터가 어딘가로 빠져나가고 있습니다.
 
+++++
+<div class="nrp-timeline">
+  <div class="nrp-tl-item is-alert">
+    <div class="nrp-tl-label">탐지</div>
+    <div class="nrp-tl-time">03:47</div>
+    <div class="nrp-tl-body">아웃바운드 급증 알림. 이미 41분간 유출이 진행된 뒤였습니다.</div>
+  </div>
+  <div class="nrp-tl-item is-probe">
+    <div class="nrp-tl-label">분석</div>
+    <div class="nrp-tl-time">06:00</div>
+    <div class="nrp-tl-body">밤새 로그를 뒤진 끝에 공격 경로 3단계가 드러납니다.</div>
+  </div>
+  <div class="nrp-tl-item is-cost">
+    <div class="nrp-tl-label">집계</div>
+    <div class="nrp-tl-time">09:00</div>
+    <div class="nrp-tl-body">피해 규모가 확정됩니다. 되돌릴 수 있는 것은 없습니다.</div>
+  </div>
+</div>
+++++
+
 == 06:00 AM — 공격 경로 3단계
 
-보안팀이 밤새 로그를 뒤진 결과, 공격 경로가 드러났습니다.
+공격자는 **세 개의 문**을 지났습니다. 그리고 세 곳 모두, 문이 없었습니다.
+
+++++
+<div class="nrp-figure">
+<svg viewBox="0 0 840 200" role="img" aria-label="공격 경로 다이어그램. 공격자가 방어되지 않은 세 지점을 차례로 통과해 회원 데이터베이스에 도달합니다.">
+  <defs>
+    <marker id="nrp-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
+    </marker>
+  </defs>
+
+  <!-- 단계 라벨 -->
+  <g font-size="12" font-weight="700" fill="#a30000" text-anchor="middle">
+    <text x="200" y="22">1단계</text>
+    <text x="420" y="22">2단계</text>
+    <text x="640" y="22">3단계</text>
+  </g>
+
+  <!-- 뚫린 방어 지점: 점선 + 무방비 표시 -->
+  <g stroke="#ee0000" stroke-width="2" stroke-dasharray="5 5" opacity="0.55">
+    <line x1="200" y1="34" x2="200" y2="140"/>
+    <line x1="420" y1="34" x2="420" y2="140"/>
+    <line x1="640" y1="34" x2="640" y2="140"/>
+  </g>
+
+  <!-- 진행 화살표 -->
+  <g stroke="#ee0000" stroke-width="2.5" marker-end="url(#nrp-ar)">
+    <line x1="168" y1="87" x2="230" y2="87"/>
+    <line x1="388" y1="87" x2="450" y2="87"/>
+    <line x1="608" y1="87" x2="670" y2="87"/>
+  </g>
+
+  <!-- 노드 -->
+  <g>
+    <rect x="15" y="55" width="150" height="64" rx="6" fill="#151515"/>
+    <text x="90" y="82" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">공격자</text>
+    <text x="90" y="101" font-size="11.5" fill="#b8b8b8" text-anchor="middle">인터넷</text>
+
+    <rect x="235" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="310" y="82" font-size="14" font-weight="700" fill="#151515" text-anchor="middle">payment-api</text>
+    <text x="310" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">컨테이너 장악</text>
+
+    <rect x="455" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="530" y="82" font-size="14" font-weight="700" fill="#151515" text-anchor="middle">DB 자격 증명</text>
+    <text x="530" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">평문으로 획득</text>
+
+    <rect x="675" y="55" width="150" height="64" rx="6" fill="#faf0f0" stroke="#ee0000" stroke-width="1.5"/>
+    <text x="750" y="82" font-size="14" font-weight="700" fill="#a30000" text-anchor="middle">회원 DB</text>
+    <text x="750" y="101" font-size="11.5" fill="#a30000" text-anchor="middle">380만 건 유출</text>
+  </g>
+
+  <!-- 실패 이유 -->
+  <g font-size="11" fill="#6a6e73" text-anchor="middle">
+    <text x="200" y="160">latest 태그</text>
+    <text x="200" y="176">미탐지 RCE</text>
+    <text x="420" y="160">Base64는</text>
+    <text x="420" y="176">암호화가 아님</text>
+    <text x="640" y="160">IP 대역을</text>
+    <text x="640" y="176">신원으로 착각</text>
+  </g>
+</svg>
+<div class="nrp-figcaption">세 지점 모두 <strong>점선</strong> — 막아 서는 것이 아무것도 없었습니다.</div>
+</div>
+++++
 
 === 1단계 — "그냥 최신 버전 쓰면 되죠?"
 
@@ -104,149 +194,181 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
 
 == 09:00 AM — 피해 집계
 
-[cols="1,1",options="header"]
-|===
-| 항목 | 규모
-| 유출 레코드 | 380만 건
-| 과징금 (개인정보보호법) | 매출액의 3%
-| 서비스 중단 | 72시간
-| 대외 신뢰도 | 회복에 수 년
-|===
+++++
+<div class="nrp-stats">
+  <div class="nrp-stat">
+    <div class="nrp-stat-num">380<span class="nrp-stat-unit">만 건</span></div>
+    <div class="nrp-stat-label">유출된 고객 레코드</div>
+  </div>
+  <div class="nrp-stat">
+    <div class="nrp-stat-num">3<span class="nrp-stat-unit">%</span></div>
+    <div class="nrp-stat-label">과징금 — 매출액 기준<br>(개인정보보호법)</div>
+  </div>
+  <div class="nrp-stat">
+    <div class="nrp-stat-num">72<span class="nrp-stat-unit">시간</span></div>
+    <div class="nrp-stat-label">전면 서비스 중단</div>
+  </div>
+  <div class="nrp-stat">
+    <div class="nrp-stat-num">수 년</div>
+    <div class="nrp-stat-label">대외 신뢰도 회복 기간</div>
+  </div>
+</div>
+++++
+
+기술적으로 보면 이 사건은 **설정 세 줄**의 문제였습니다.
+`latest` 태그, 평문 환경변수, IP 기반 신뢰. 셋 다 "나중에 고치자"에 있던 항목이었습니다.
 
 == 여러분의 임무 — 3개의 방어선
 
 경영진이 묻습니다. **"다시는 이런 일이 없게 하려면, 무엇을 해야 합니까?"**
 
+공격은 한 단계씩 진행됩니다. 그리고 **어느 한 곳에서든 막히면, 그 뒤는 일어나지 않습니다.**
+
+++++
+<div class="nrp-figure">
+<svg viewBox="0 0 840 200" role="img" aria-label="방어선 다이어그램. 모듈 1, 2, 3이 각각 공격 단계를 차단하며, 첫 방어선에서 이미 공격이 멈춥니다.">
+  <defs>
+    <marker id="nrp-ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
+    </marker>
+  </defs>
+
+  <!-- 모듈 라벨 -->
+  <g font-size="12" font-weight="700" fill="#3e8635" text-anchor="middle">
+    <text x="200" y="22">모듈 1 · RHACS</text>
+    <text x="420" y="22">모듈 3 · Vault</text>
+    <text x="640" y="22">모듈 2 · ZTWIM</text>
+  </g>
+
+  <!-- 세워진 방어선 -->
+  <g fill="#3e8635">
+    <rect x="193" y="34" width="14" height="106" rx="4"/>
+    <rect x="413" y="34" width="14" height="106" rx="4"/>
+    <rect x="633" y="34" width="14" height="106" rx="4"/>
+  </g>
+
+  <!-- 1단계에서 차단 -->
+  <line x1="168" y1="87" x2="186" y2="87" stroke="#ee0000" stroke-width="2.5" marker-end="url(#nrp-ar2)"/>
+  <g transform="translate(200,158)">
+    <rect x="-30" y="-13" width="60" height="24" rx="12" fill="#ee0000"/>
+    <text x="0" y="4" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">차단</text>
+  </g>
+
+  <!-- 노드: 공격자만 선명, 나머지는 도달하지 못함 -->
+  <rect x="15" y="55" width="150" height="64" rx="6" fill="#151515"/>
+  <text x="90" y="82" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">공격자</text>
+  <text x="90" y="101" font-size="11.5" fill="#b8b8b8" text-anchor="middle">인터넷</text>
+
+  <g opacity="0.4">
+    <rect x="235" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="310" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">payment-api</text>
+    <text x="310" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">도달하지 못함</text>
+
+    <rect x="455" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="530" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">DB 자격 증명</text>
+    <text x="530" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">존재하지 않음</text>
+
+    <rect x="675" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="750" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">회원 DB</text>
+    <text x="750" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">안전</text>
+  </g>
+
+  <!-- 방어 요약 -->
+  <g font-size="11" fill="#3e8635" text-anchor="middle" font-weight="600">
+    <text x="420" y="160">정적 비밀번호 제거</text>
+    <text x="640" y="160">IP 신뢰 폐기</text>
+  </g>
+  <g font-size="11" fill="#6a6e73" text-anchor="middle">
+    <text x="420" y="176">2단계 차단</text>
+    <text x="640" y="176">3단계 차단</text>
+  </g>
+</svg>
+<div class="nrp-figcaption">방어선이 <strong>겹쳐</strong> 있을 때, 공격은 첫 문턱에서 끝납니다.</div>
+</div>
+++++
+
 이어지는 세 모듈이 각각의 답입니다.
 
-[cols="1,2,3",options="header"]
-|===
-| 모듈 | 막는 공격 단계 | 핵심 아이디어
-
-| *15 — RHACS*
-| 1단계: 취약한 이미지와 과도한 권한
-| 취약한 컨테이너가 **애초에 뜨지 못하게** 만든다. 배포 시점에 정책 위반을 차단하고, 실행 중인 컨테이너의 행위를 감시한다.
-
-| *16 — Secrets Management*
-| 2단계: 훔칠 수 있는 정적 비밀번호
-| 비밀을 Secret에 두지 않는다. 전용 저장소가 보관하고, 필요한 순간에만 짧은 수명으로 발급한다.
-
-| *17 — ZTWIM*
-| 3단계: 네트워크 위치 기반 신뢰
-| **훔칠 비밀번호 자체를 만들지 않는다.** 워크로드가 암호학적 신원(SVID)을 갖고, IP가 아니라 신원으로 신뢰한다.
-|===
-
-== 실습 환경 준비
-
-이 트랙의 실습 워크로드는 **사전 배포 스크립트로 한 번에 준비**됩니다.
-가이드를 진행하면서 긴 YAML을 복사·붙여넣기 할 필요가 없습니다.
-
-[IMPORTANT]
-====
-진행자가 이미 환경을 준비해 둔 경우 이 절을 건너뛰고 바로 아래 워밍업 퀴즈로 이동하십시오.
-확실하지 않다면 `status` 명령으로 먼저 확인할 수 있습니다.
-====
-
-.실습 절차
-. bastion에서 워크샵 리포지토리를 받고 사전 배포 스크립트를 실행합니다:
-+
-[source,bash,subs="+macros,+attributes",role=execute]
-----
-cd ~/
-git clone {workshop_repo_url} 2>/dev/null || git -C ~/{workshop_repo_dir} pull
-cd ~/{workshop_repo_dir}/setup-scripts/security-track-scripts
-./setup-security-track.sh all
-----
-+
-[NOTE]
-====
-`all` 은 15/16/17번 모듈에 필요한 모든 것을 준비하며 약 8~12분이 걸립니다.
-대부분은 Vault와 SPIRE 설치를 기다리는 시간입니다.
-
-특정 모듈만 준비하려면 `acs`, `vault`, `ztwim` 중 하나를 인자로 주십시오.
-====
-+
-. 준비 상태를 확인합니다:
-+
-[source,bash,subs="+macros,+attributes",role=execute]
-----
-cd ~/{workshop_repo_dir}/setup-scripts/security-track-scripts
-./setup-security-track.sh status
-----
-+
-`nuripay` namespace에 `payment-api`, `payment-api-secure`, `legacy-secret-app` 세 개의 deployment가
-보이면 준비가 끝난 것입니다.
+++++
+<div class="nrp-defense">
+  <div class="nrp-def">
+    <div class="nrp-def-num">모듈 1 · RHACS</div>
+    <div class="nrp-def-title">배포되지 못하게</div>
+    <div class="nrp-def-blocks">1단계 — 취약한 이미지와 과도한 권한</div>
+    <div class="nrp-def-body">취약한 컨테이너가 <strong>애초에 뜨지 못하게</strong> 만듭니다. 배포 시점에 정책 위반을 차단하고, 실행 중인 컨테이너를 계속 감시합니다.</div>
+  </div>
+  <div class="nrp-def">
+    <div class="nrp-def-num">모듈 2 · ZTWIM</div>
+    <div class="nrp-def-title">훔칠 것 자체를 없애</div>
+    <div class="nrp-def-blocks">3단계 — 네트워크 위치 기반 신뢰</div>
+    <div class="nrp-def-body">워크로드가 암호학적 신원(<strong>SVID</strong>)을 갖습니다. IP가 아니라 신원으로 신뢰하므로, 내부에 들어와도 통과하지 못합니다.</div>
+  </div>
+  <div class="nrp-def">
+    <div class="nrp-def-num">모듈 3 · Secrets</div>
+    <div class="nrp-def-title">남은 비밀은 통제 아래로</div>
+    <div class="nrp-def-blocks">2단계 — 훔칠 수 있는 정적 비밀번호</div>
+    <div class="nrp-def-body">신원으로 대체할 수 없는 비밀은 전용 저장소가 보관합니다. 수명·감사·정책이 붙고, 필요한 순간에만 <strong>짧은 수명</strong>으로 발급됩니다.</div>
+  </div>
+</div>
+++++
 
 == 🧠 워밍업 퀴즈
 
-정답은 각 모듈을 마치면 자연스럽게 알게 됩니다. 지금은 감으로 찍어 보십시오.
+보기를 고르고 *정답 확인* 을 누르면 바로 채점됩니다. 정답은 각 모듈을 마치면 자연스럽게 알게 되니,
+지금은 감으로 찍어 보셔도 좋습니다.
 
-=== Q0-1
+++++
+<div class="nrp-quiz" data-answer="B">
+  <div class="nrp-quiz-q">Q0-1. 누리페이의 CI 파이프라인에는 이미지 스캔이 있었습니다. 그런데도 뚫린 이유로 <strong>가장 적절한</strong> 것은?</div>
 
-누리페이의 CI 파이프라인에는 이미지 스캔이 있었습니다. 그런데도 뚫린 이유로 **가장 적절한** 것은?
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">스캔 도구의 탐지율이 낮아서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">배포 이후에 공개된 CVE와, 클러스터에 실제로 떠 있는 것을 아무도 지속적으로 보지 않아서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">개발자가 스캔 결과를 무시해서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">이미지가 너무 커서 스캔이 타임아웃돼서</span></label>
 
-[none]
-* (A) 스캔 도구의 탐지율이 낮아서
-* (B) 배포 이후에 공개된 CVE와, 클러스터에 실제로 떠 있는 것을 아무도 지속적으로 보지 않아서
-* (C) 개발자가 스캔 결과를 무시해서
-* (D) 이미지가 너무 커서 스캔이 타임아웃돼서
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (B)</strong></p>
+    <p>CI 스캔은 <strong>그 시점의 스냅샷</strong>입니다. 통과한 순간 스캔의 임무는 끝나지만, 컨테이너는 그 뒤로 몇 달을 계속 돌아갑니다.</p>
+    <p>CVE는 매일 새로 공개됩니다. 어제 깨끗했던 이미지가 오늘 취약해집니다. 그래서 스캔은 파이프라인의 한 단계가 아니라 <strong>클러스터에서 계속 돌아가는 상태 점검</strong>이어야 합니다. 모듈 1에서 RHACS가 바로 이 역할을 하는 것을 보게 됩니다.</p>
+  </div>
+</div>
 
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (B)**
+<div class="nrp-quiz" data-answer="B">
+  <div class="nrp-quiz-q">Q0-2. "같은 네트워크 대역 = 믿을 수 있는 서비스"라는 가정의 가장 큰 문제는?</div>
 
-CI 스캔은 **그 시점의 스냅샷**입니다. 통과한 순간 스캔의 임무는 끝나지만,
-컨테이너는 그 뒤로 몇 달을 계속 돌아갑니다.
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">IP 대역이 부족해진다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">공격자가 한 번 내부에 들어오면 그 순간부터 모든 서비스가 그를 신뢰한다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">네트워크 성능이 느려진다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">IPv6에서는 동작하지 않는다</span></label>
 
-CVE는 매일 새로 공개됩니다. 어제 깨끗했던 이미지가 오늘 취약해집니다.
-그래서 스캔은 파이프라인의 한 단계가 아니라 **클러스터에서 계속 돌아가는 상태 점검**이어야 합니다.
-15번 모듈에서 RHACS가 바로 이 역할을 하는 것을 보게 됩니다.
-====
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (B)</strong></p>
+    <p>이것을 흔히 "M&amp;M 보안"이라고 부릅니다. 껍질은 딱딱하지만 속은 말랑한 구조입니다.</p>
+    <p>경계 방어는 <strong>한 번만 뚫리면 되는</strong> 구조입니다. 침입 이후의 횡적 이동(lateral movement)을 막아 주는 것이 아무것도 없습니다. Zero Trust는 "내부"라는 개념 자체를 없애고, <strong>모든 연결이 매번 신원을 증명</strong>하게 만듭니다. 모듈 2의 주제입니다.</p>
+  </div>
+</div>
 
-=== Q0-2
+<div class="nrp-quiz" data-answer="C">
+  <div class="nrp-quiz-q">Q0-3. <code>oc get secret</code> 으로 나온 <code>data:</code> 값에 대해 <strong>맞는</strong> 설명은?</div>
 
-`oc get secret`으로 나온 `data:` 값에 대해 **맞는** 설명은?
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">AES-256으로 암호화되어 있다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">etcd에 저장될 때만 암호화되고 조회 시 복호화된다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">Base64 인코딩이며, 별도 설정이 없으면 etcd에도 평문으로 저장된다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">Kubernetes가 자동으로 키를 회전시킨다</span></label>
 
-[none]
-* (A) AES-256으로 암호화되어 있다
-* (B) etcd에 저장될 때만 암호화되고 조회 시 복호화된다
-* (C) Base64 인코딩이며, 별도 설정이 없으면 etcd에도 평문으로 저장된다
-* (D) Kubernetes가 자동으로 키를 회전시킨다
-
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (C)**
-
-Base64는 인코딩이지 암호화가 아닙니다. 키도 없고, 누구나 되돌릴 수 있습니다.
-
-etcd 저장 시 암호화(encryption at rest)는 **기본값이 아니라 별도로 켜야 하는 옵션**입니다.
-그리고 설령 켜더라도, 컨테이너 안에서 `env`를 치면 값은 그대로 보입니다.
-16번 모듈에서 직접 확인합니다.
-====
-
-=== Q0-3
-
-"같은 네트워크 대역 = 믿을 수 있는 서비스"라는 가정의 가장 큰 문제는?
-
-[none]
-* (A) IP 대역이 부족해진다
-* (B) 공격자가 한 번 내부에 들어오면 그 순간부터 모든 서비스가 그를 신뢰한다
-* (C) 네트워크 성능이 느려진다
-* (D) IPv6에서는 동작하지 않는다
-
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (B)**
-
-이것을 흔히 "M&M 보안"이라고 부릅니다. 껍질은 딱딱하지만 속은 말랑한 구조입니다.
-
-경계 방어는 **한 번만 뚫리면 되는** 구조입니다. 침입 이후의 횡적 이동(lateral movement)을
-막아 주는 것이 아무것도 없습니다. Zero Trust는 "내부"라는 개념 자체를 없애고,
-**모든 연결이 매번 신원을 증명**하게 만듭니다. 17번 모듈의 주제입니다.
-====
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (C)</strong></p>
+    <p>Base64는 인코딩이지 암호화가 아닙니다. 키도 없고, 누구나 되돌릴 수 있습니다.</p>
+    <p>etcd 저장 시 암호화(encryption at rest)는 <strong>기본값이 아니라 별도로 켜야 하는 옵션</strong>입니다. 그리고 설령 켜더라도, 컨테이너 안에서 <code>env</code> 를 치면 값은 그대로 보입니다. 모듈 3에서 직접 확인합니다.</p>
+  </div>
+</div>
+++++
 
 == 다음 단계
 

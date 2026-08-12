@@ -1,0 +1,310 @@
+/* ==========================================================================
+   보안 트랙 (누리페이 침해사고) 전용 스타일
+
+   partials/nrp-assets.adoc 이 <style> 블록 안으로 이 파일을 include 합니다.
+   UI 번들이 아니라 콘텐츠 쪽에 두는 이유:
+     - site.yml 의 ui.supplemental_files 는 배열 형식이라 디렉터리를 복사하지 않고
+     - default-site.yml(프로덕션 플레이북)에는 supplemental_files 자체가 없습니다.
+   즉 UI 쪽에 넣으면 RHDP 배포에서 로드되지 않습니다.
+
+   모든 클래스에 nrp- 접두사를 붙여 테마 스타일과 충돌하지 않게 했습니다.
+   배경/글자색을 명시해 라이트·다크 테마 모두에서 동일하게 보이도록 합니다.
+   ========================================================================== */
+
+/* --- 페이저 알림 (히어로) ------------------------------------------------ */
+
+.nrp-alert {
+    background: #151515;
+    border-left: 5px solid #ee0000;
+    border-radius: 8px;
+    color: #f0f0f0;
+    font-family: "Red Hat Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    margin: 1.5rem 0;
+    padding: 1.25rem 1.5rem;
+}
+
+.nrp-alert-head {
+    align-items: center;
+    color: #ff5c5c;
+    display: flex;
+    font-size: 0.8rem;
+    font-weight: 700;
+    gap: 0.6rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.9rem;
+    text-transform: uppercase;
+}
+
+.nrp-dot {
+    background: #ee0000;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(238, 0, 0, 0.7);
+    display: inline-block;
+    flex: none;
+    height: 10px;
+    width: 10px;
+    animation: nrp-pulse 2s infinite;
+}
+
+@keyframes nrp-pulse {
+    70%  { box-shadow: 0 0 0 10px rgba(238, 0, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(238, 0, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nrp-dot { animation: none; }
+}
+
+.nrp-alert-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.nrp-alert dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 1.25rem;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.nrp-alert dt { color: #a0a0a0; margin: 0; }
+.nrp-alert dd { color: #f0f0f0; margin: 0; }
+.nrp-spike   { color: #ff5c5c; font-weight: 700; }
+
+/* --- 타임라인 ------------------------------------------------------------ */
+
+.nrp-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 1.5rem 0;
+}
+
+.nrp-tl-item {
+    background: #ffffff;
+    border: 1px solid #d2d2d2;
+    border-top: 4px solid #d2d2d2;
+    color: #151515;
+    flex: 1 1 200px;
+    padding: 1rem 1.1rem;
+}
+
+.nrp-tl-item + .nrp-tl-item { border-left: none; }
+.nrp-tl-item:first-child { border-radius: 8px 0 0 8px; }
+.nrp-tl-item:last-child  { border-radius: 0 8px 8px 0; }
+
+.nrp-tl-item.is-alert { border-top-color: #ee0000; }
+.nrp-tl-item.is-probe { border-top-color: #f0ab00; }
+.nrp-tl-item.is-cost  { border-top-color: #a30000; }
+
+.nrp-tl-time {
+    font-family: "Red Hat Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.nrp-tl-label {
+    color: #6a6e73;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.nrp-tl-body { font-size: 0.9rem; line-height: 1.45; }
+
+/* --- 다이어그램 래퍼 ----------------------------------------------------- */
+
+.nrp-figure {
+    background: #ffffff;
+    border: 1px solid #d2d2d2;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    padding: 1.25rem;
+}
+
+.nrp-figure svg { display: block; min-width: 620px; width: 100%; height: auto; }
+.nrp-figure text { font-family: inherit; }
+
+.nrp-figcaption {
+    color: #6a6e73;
+    font-size: 0.85rem;
+    margin-top: 0.85rem;
+    text-align: center;
+}
+
+/* --- 피해 집계 스탯 ------------------------------------------------------ */
+
+.nrp-stats {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    margin: 1.5rem 0;
+}
+
+.nrp-stat {
+    background: #ffffff;
+    border: 1px solid #d2d2d2;
+    border-left: 4px solid #ee0000;
+    border-radius: 6px;
+    color: #151515;
+    padding: 1.1rem 1.2rem;
+}
+
+.nrp-stat-num {
+    color: #a30000;
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.nrp-stat-unit { font-size: 1rem; font-weight: 500; }
+
+.nrp-stat-label {
+    color: #6a6e73;
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
+}
+
+/* --- 방어선 카드 --------------------------------------------------------- */
+
+.nrp-defense {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    margin: 1.5rem 0;
+}
+
+.nrp-def {
+    background: #ffffff;
+    border: 1px solid #d2d2d2;
+    border-top: 4px solid #3e8635;
+    border-radius: 6px;
+    color: #151515;
+    display: flex;
+    flex-direction: column;
+    padding: 1.1rem 1.2rem;
+}
+
+.nrp-def-num {
+    color: #3e8635;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.nrp-def-title { font-size: 1.1rem; font-weight: 700; margin: 0.2rem 0 0.6rem; }
+
+.nrp-def-blocks {
+    background: #faf0f0;
+    border-radius: 4px;
+    color: #a30000;
+    font-size: 0.82rem;
+    margin-bottom: 0.7rem;
+    padding: 0.4rem 0.6rem;
+}
+
+.nrp-def-body { font-size: 0.9rem; line-height: 1.5; }
+
+/* --- 인터랙티브 퀴즈 ------------------------------------------------------
+   채점 로직은 examples/nrp-quiz.js 에 있습니다.
+   html.nrp-js 가 붙어 있을 때만 해설을 숨기므로, JS 실패 시에도 내용이 보입니다.
+   -------------------------------------------------------------------------- */
+
+.nrp-quiz {
+    background: #ffffff;
+    border: 1px solid #d2d2d2;
+    border-left: 4px solid #0066cc;
+    border-radius: 6px;
+    color: #151515;
+    margin: 1.5rem 0;
+    padding: 1.25rem 1.4rem;
+}
+
+.nrp-quiz-q { font-weight: 600; line-height: 1.55; margin-bottom: 1rem; }
+
+.nrp-opt {
+    align-items: flex-start;
+    background: #ffffff;
+    border: 1px solid #d2d2d2;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    gap: 0.7rem;
+    line-height: 1.5;
+    margin-bottom: 0.55rem;
+    padding: 0.7rem 0.85rem;
+    transition: background-color 0.12s, border-color 0.12s;
+}
+
+.nrp-opt:hover { background: #f5f5f5; }
+.nrp-opt input { flex: none; margin: 0.25rem 0 0; }
+.nrp-opt-key { flex: none; font-weight: 700; }
+.nrp-opt-text { flex: 1; }
+
+.nrp-opt.is-correct {
+    background: #f3faf3;
+    border-color: #3e8635;
+    box-shadow: inset 3px 0 0 #3e8635;
+}
+
+.nrp-opt.is-wrong {
+    background: #faf0f0;
+    border-color: #ee0000;
+    box-shadow: inset 3px 0 0 #ee0000;
+}
+
+.nrp-opt.is-correct .nrp-opt-key { color: #3e8635; }
+.nrp-opt.is-wrong .nrp-opt-key { color: #a30000; }
+
+.nrp-quiz-check {
+    background: #0066cc;
+    border: none;
+    border-radius: 4px;
+    color: #ffffff;
+    cursor: pointer;
+    display: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin-top: 0.6rem;
+    padding: 0.55rem 1.3rem;
+}
+
+.nrp-quiz-check:hover { background: #004080; }
+.nrp-quiz-check:focus-visible { outline: 2px solid #151515; outline-offset: 2px; }
+html.nrp-js .nrp-quiz-check { display: inline-block; }
+
+.nrp-quiz-result {
+    border-radius: 4px;
+    font-weight: 600;
+    margin-top: 0.9rem;
+    padding: 0.6rem 0.85rem;
+}
+
+.nrp-quiz-result.is-correct-msg { background: #f3faf3; color: #1e4f18; }
+.nrp-quiz-result.is-wrong-msg   { background: #faf0f0; color: #a30000; }
+.nrp-quiz-result.is-prompt-msg  { background: #f5f5f5; color: #6a6e73; }
+
+.nrp-quiz-exp {
+    background: #f5f5f5;
+    border-radius: 4px;
+    line-height: 1.6;
+    margin-top: 0.9rem;
+    padding: 1rem 1.1rem;
+}
+
+.nrp-quiz-exp > :first-child { margin-top: 0; }
+.nrp-quiz-exp > :last-child { margin-bottom: 0; }
+.nrp-quiz-exp p { margin: 0 0 0.7rem; }
+
+/* JS 가 살아 있을 때만 숨깁니다. */
+html.nrp-js .nrp-quiz-result,
+html.nrp-js .nrp-quiz-exp { display: none; }
+html.nrp-js .nrp-quiz.is-prompt .nrp-quiz-result,
+html.nrp-js .nrp-quiz.is-answered .nrp-quiz-result { display: block; }
+html.nrp-js .nrp-quiz.is-answered .nrp-quiz-exp { display: block; }

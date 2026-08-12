@@ -21,8 +21,8 @@ echo "Building Antora site from ${SHOWROOM_SITE_YML}..."
 if command -v antora >/dev/null 2>&1; then
   antora generate "${SHOWROOM_SITE_YML}" --stacktrace
 else
-  npx -y @antora/cli@3.1 @antora/site-generator@3.1
-  npx -y @antora/cli@3.1 antora generate "${SHOWROOM_SITE_YML}" --stacktrace
+  npx -y -p @antora/cli@3.1 -p @antora/site-generator@3.1 \
+    antora generate "${SHOWROOM_SITE_YML}" --stacktrace
 fi
 
 echo "Build complete: ${SHOWROOM_WWW}"
