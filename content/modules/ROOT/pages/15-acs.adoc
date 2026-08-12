@@ -41,18 +41,20 @@ NOTE: RHACS 콘솔에도 동일한 admin 자격 증명을 사용합니다.
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc get deployment -n narupay -l workshop=narupay-security-track \
-  -L posture -o wide
+oc get deployment -n narupay -l posture -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas,IMAGE:.spec.template.spec.containers[0].image,POSTURE:.metadata.labels.posture
 ----
 +
 예상 출력:
 +
 [source,text]
 ----
-NAME                 READY   UP-TO-DATE   AVAILABLE   IMAGES                                        POSTURE
-payment-api          1/1     1            1           registry.access.redhat.com/ubi9/ubi:latest    vulnerable
-payment-api-secure   1/1     1            1           registry.access.redhat.com/ubi9/ubi:9.4       hardened
+NAME                 READY   IMAGE                                        POSTURE
+payment-api          1       registry.access.redhat.com/ubi9/ubi:latest   vulnerable
+payment-api-secure   1       registry.access.redhat.com/ubi9/ubi:9.4      hardened
 ----
++
+NOTE: `narupay` 네임스페이스에는 `legacy-secret-app` 도 함께 있습니다. 모듈 3에서 쓰는
+  워크로드라 여기서는 `posture` 라벨로 결제 API 두 개만 골라냈습니다.
 
 [NOTE]
 ====
