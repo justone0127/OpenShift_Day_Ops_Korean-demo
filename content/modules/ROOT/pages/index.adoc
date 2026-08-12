@@ -6,6 +6,8 @@
 
 include::partial$console-access.adoc[]
 
+include::partial$nrp-assets.adoc[]
+
 image::ops-day-banner.png[OpenShift Ops Day, width=100%]
 
 == 시작하기
@@ -20,27 +22,48 @@ image::ops-day-banner.png[OpenShift Ops Day, width=100%]
 자원을 건드리게 되므로, 시작 전에 반드시 확인하십시오.
 ====
 
+++++
+<div class="nrp-config">
+  <div class="nrp-config-title">배정받은 계정을 입력하십시오</div>
+  <div class="nrp-config-help">
+    여기에 입력하면 <strong>이 가이드의 모든 명령이 여러분의 계정으로 바뀝니다.</strong>
+    아래 명령을 손으로 고칠 필요가 없습니다. 입력값은 브라우저에만 저장되며 전송되지 않습니다.
+  </div>
+  <div class="nrp-config-row">
+    <div class="nrp-config-field">
+      <label for="nrp-cfg-user">계정</label>
+      <input id="nrp-cfg-user" class="nrp-config-user" type="text" placeholder="user1" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="nrp-config-field">
+      <label for="nrp-cfg-pass">비밀번호</label>
+      <input id="nrp-cfg-pass" class="nrp-config-pass" type="text" placeholder="진행자가 안내한 비밀번호" autocomplete="off" spellcheck="false">
+    </div>
+    <button type="button" class="nrp-config-apply">적용</button>
+  </div>
+  <div class="nrp-config-msg"></div>
+</div>
+++++
+
+NOTE: 클러스터 주소는 입력하지 않아도 됩니다. 명령이 실행될 때 자동으로 가져옵니다.
+
 .실습 절차
-. **아래 첫 줄의 `user1` 을 배정받은 본인 계정으로 바꾼 뒤** 실행하십시오.
-  이 네 줄이 이번 실습의 출발점입니다:
+. 위에 계정을 입력하고 *적용* 을 누른 뒤, 아래 명령을 실행하십시오:
 +
 [source,bash,role="execute"]
 ----
-export LAB_USER=user1
+export LAB_USER=__USER__
 export API=$(oc whoami --show-server)
 export KUBECONFIG=/tmp/kubeconfig-$LAB_USER
-oc login -u $LAB_USER $API
+oc login -u $LAB_USER -p __PASSWORD__ $API --insecure-skip-tls-verify=true
+echo "로그인 계정: $(oc whoami)   |   클러스터: $API"
 ----
 +
-비밀번호를 물으면 배정받은 비밀번호를 입력하십시오.
+마지막 줄에 본인 계정이 표시되면 성공입니다.
 +
-[NOTE]
-====
-클러스터 주소는 `oc whoami --show-server` 로 자동으로 가져오므로 직접 입력할 필요가 없습니다.
-
-`KUBECONFIG` 를 세션 전용 파일로 지정하는 이유는, 터미널 서버를 여러 참가자가 공유하는 경우
+NOTE: `__USER__` 나 `__PASSWORD__` 가 그대로 보이면 위 입력란에 값을 넣고 *적용* 을 누르십시오.
++
+NOTE: `KUBECONFIG` 를 세션 전용 파일로 두는 이유는, 터미널 서버를 여러 참가자가 공유할 때
 기본 설정 파일에 서로의 로그인이 덮어써지는 것을 막기 위해서입니다.
-====
 +
 . 계정과 배정된 네임스페이스를 확인합니다:
 +
@@ -76,7 +99,8 @@ oc get deployment -n $LAB_USER-narupay
 .명령이 갑자기 실패하면 이 절차를 다시 실행하십시오
 ====
 터미널 연결이 끊기면 위에서 설정한 `LAB_USER` 와 `KUBECONFIG` 가 사라집니다.
-`Forbidden` 이나 `namespace not found` 오류가 나면 1번 단계의 세 줄을 다시 실행하십시오.
+`Forbidden` 이나 `namespace not found` 오류가 나면 1번 단계 명령을 다시 실행하십시오.
+입력한 계정은 브라우저에 저장되어 있으므로 다시 입력할 필요는 없습니다.
 ====
 
 == 워크숍 소개

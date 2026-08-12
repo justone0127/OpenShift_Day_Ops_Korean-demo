@@ -1,6 +1,6 @@
-// 보안 트랙 전용 스타일 + 인터랙티브 퀴즈 스크립트.
+// 보안 트랙 전용 스타일 + 인터랙티브 퀴즈 + 실습 계정 입력 위젯.
 //
-// 보안 트랙 페이지(15-00 / 15-acs / 16 / 17) 상단에서 include 하십시오:
+// 보안 트랙 페이지 상단에서 include 하십시오:
 //   include::partial$nrp-assets.adoc[]
 //
 // UI 번들(supplemental-ui)이 아니라 콘텐츠 쪽에 두는 이유는
@@ -11,5 +11,8 @@ include::example$nrp-security.css[]
 </style>
 <script>
 include::example$nrp-quiz.js[]
+</script>
+<script>
+include::example$nrp-config.js[]
 </script>
 ++++
