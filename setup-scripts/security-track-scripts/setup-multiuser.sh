@@ -5,9 +5,13 @@
 # 참가자마다 계정(user1, user2, ...)이 하나씩 주어지는 환경을 위해,
 # 사용자별로 격리된 실습 네임스페이스와 워크로드를 생성합니다.
 #
-#   ./setup-multiuser.sh deploy 30    # user1~user30 환경 생성
+#   ./setup-multiuser.sh deploy 30    # user1~user30 + admin 환경 생성
 #   ./setup-multiuser.sh status 30    # 준비 상태 점검
 #   ./setup-multiuser.sh cleanup 30   # 전부 정리
+#
+#   ./setup-multiuser.sh deploy 0                    # admin 것만 (확인용)
+#   EXTRA_USERS="" ./setup-multiuser.sh deploy 30    # 참가자 것만
+#   EXTRA_USERS="admin lab-user" ./setup-multiuser.sh deploy 30
 #
 # 사용자당 생성되는 것:
 #   userN-narupay                    payment-api, payment-api-secure, legacy-secret-app
@@ -19,6 +23,9 @@
 #
 # 계정(user1~userN)은 실습 환경이 이미 생성해 제공한다고 가정합니다.
 # 이 스크립트는 계정을 만들지 않고 권한만 부여합니다.
+#
+# EXTRA_USERS (기본값: admin) 는 번호 사용자 외에 추가로 환경을 만들 계정입니다.
+# 진행자가 참가자와 동일한 환경에서 미리 확인하는 용도입니다.
 #
 # 공유 자원(사용자별로 나누지 않는 것):
 #   - RHACS Central / 정책          정책 Enforce 는 클러스터 전역입니다
@@ -37,6 +44,11 @@ ZTWIM_SCRIPTS="${SETUP_ROOT}/ztwim-config-scripts"
 
 USER_PREFIX="${USER_PREFIX:-user}"
 USER_START="${USER_START:-1}"
+
+# 번호 사용자(user1..userN) 외에 추가로 환경을 만들 계정.
+# 진행자가 참가자와 동일한 환경에서 미리 확인할 수 있도록 기본으로 admin 을 포함합니다.
+# 여러 명이면 공백으로 구분하고, 필요 없으면 EXTRA_USERS="" 로 비우십시오.
+EXTRA_USERS="${EXTRA_USERS:-admin}"
 STACKROX_NS="${STACKROX_NS:-stackrox}"
 VAULT_NS="${VAULT_NS:-vault}"
 
@@ -51,7 +63,7 @@ hr()   { echo "-----------------------------------------------------------------
 FAILED_USERS=()
 
 usage() {
-  sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,35p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 1
 }
 
@@ -211,32 +223,58 @@ deploy_user() {
 # 액션
 # ─────────────────────────────────────────────────────────────────────
 
-each_user() {
+# 번호 사용자 + EXTRA_USERS 를 한 줄씩 출력합니다.
+all_users() {
   local i u
   for ((i = USER_START; i < USER_START + COUNT; i++)); do
-    u="${USER_PREFIX}${i}"
-    "$@" "${u}"
+    echo "${USER_PREFIX}${i}"
   done
+  for u in ${EXTRA_USERS}; do
+    [[ -n "${u}" ]] && echo "${u}"
+  done
+}
+
+# 프로세스 치환을 써서 루프가 서브셸에서 돌지 않게 합니다
+# (FAILED_USERS 누적이 유지되어야 합니다).
+each_user() {
+  local u
+  while read -r u; do
+    [[ -n "${u}" ]] || continue
+    "$@" "${u}"
+  done < <(all_users)
+}
+
+describe_target() {
+  local desc=""
+  if [[ "${COUNT}" -gt 0 ]]; then
+    desc="${USER_PREFIX}${USER_START} ~ ${USER_PREFIX}$((USER_START + COUNT - 1)) (${COUNT}명)"
+  fi
+  if [[ -n "${EXTRA_USERS// /}" ]]; then
+    [[ -n "${desc}" ]] && desc="${desc} + "
+    desc="${desc}추가 계정: ${EXTRA_USERS}"
+  fi
+  echo "${desc}"
+}
+
+deploy_one() {
+  local u="$1"
+  if ! deploy_user "${u}"; then
+    FAILED_USERS+=("${u}")
+    warn "[${u}] 배포 실패"
+  fi
 }
 
 do_deploy() {
   hr
-  log "${USER_PREFIX}${USER_START} ~ ${USER_PREFIX}$((USER_START + COUNT - 1)) (${COUNT}명) 환경 생성"
+  log "환경 생성 — $(describe_target)"
   prepare_cluster
 
   hr
-  local i u
-  for ((i = USER_START; i < USER_START + COUNT; i++)); do
-    u="${USER_PREFIX}${i}"
-    if ! deploy_user "${u}"; then
-      FAILED_USERS+=("${u}")
-      warn "[${u}] 배포 실패"
-    fi
-  done
+  each_user deploy_one
 
   hr
   if [[ ${#FAILED_USERS[@]} -eq 0 ]]; then
-    log "완료 — ${COUNT}명 전원 배포됨"
+    log "완료 — $(describe_target) 전원 배포됨"
   else
     warn "실패한 사용자: ${FAILED_USERS[*]}"
   fi
@@ -278,7 +316,7 @@ check_user() {
 
 do_status() {
   hr
-  log "사용자별 준비 상태 (${COUNT}명)"
+  log "사용자별 준비 상태 — $(describe_target)"
   hr
   each_user check_user
   hr
@@ -307,7 +345,7 @@ cleanup_user() {
 
 do_cleanup() {
   hr
-  log "${COUNT}명 환경 정리"
+  log "환경 정리 — $(describe_target)"
   hr
   each_user cleanup_user
   hr

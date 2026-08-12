@@ -165,10 +165,26 @@ NOTE: `openshift-zero-trust-workload-identity-manager` namespace 에
 
 [source,bash]
 ----
-./setup-multiuser.sh deploy 30    # user1~user30
+./setup-multiuser.sh deploy 30    # user1~user30 + admin
 ./setup-multiuser.sh status 30
 ./setup-multiuser.sh cleanup 30
 ----
+
+[TIP]
+.진행자 확인용 환경
+====
+번호 사용자 외에 **`admin` 계정 환경도 기본으로 함께 만듭니다**(`admin-narupay` 등).
+참가자와 똑같은 화면으로 미리 훑어보실 수 있습니다.
+
+[source,bash]
+----
+./setup-multiuser.sh deploy 0                    # admin 것만 (확인용)
+EXTRA_USERS="" ./setup-multiuser.sh deploy 30    # 참가자 것만
+EXTRA_USERS="admin lab-user" ./setup-multiuser.sh deploy 30
+----
+
+진행자 화면에서 `admin-narupay` 를 보려면 Showroom 인스턴스에 `LAB_USER=admin` 을 지정하십시오.
+====
 
 사용자당 만들어지는 것:
 
@@ -194,7 +210,8 @@ NOTE: `openshift-zero-trust-workload-identity-manager` namespace 에
 |===
 
 계정 자체는 만들지 않습니다. 실습 환경이 `user1`~`userN` 을 제공한다고 가정하고
-권한만 부여합니다. 접두사는 `USER_PREFIX`, 시작 번호는 `USER_START` 로 바꿀 수 있습니다.
+권한만 부여합니다. 접두사는 `USER_PREFIX`, 시작 번호는 `USER_START`,
+추가 계정은 `EXTRA_USERS` 로 바꿀 수 있습니다.
 
 [IMPORTANT]
 .가이드에 사용자 이름을 알려 줘야 합니다
