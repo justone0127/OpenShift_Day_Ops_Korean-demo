@@ -2,7 +2,7 @@
 :toc: left
 :toclevels: 2
 
-누리페이 침해사고 시나리오로 묶인 세 모듈(RHACS → ZTWIM → Secrets Management)의
+나루페이 침해사고 시나리오로 묶인 세 모듈(RHACS → ZTWIM → Secrets Management)의
 진행자용 문서입니다. 참가자에게 공개하지 마십시오 — 퀴즈 정답이 포함되어 있습니다.
 
 == 트랙 구성
@@ -78,9 +78,34 @@
 === 필수 조건
 
 * OpenShift 4.14+ 클러스터, `cluster-admin` 권한
-* **RHACS** Central + SecuredCluster 사전 설치 (모듈 1)
-* **ZTWIM 오퍼레이터** 사전 설치 (모듈 2)
 * bastion에 `oc`, `git`, `curl` (Helm은 스크립트가 자동 설치)
+
+실습 환경에 무엇이 이미 있고 무엇이 없는지 정리하면 다음과 같습니다.
+
+[cols="1,1,3",options="header"]
+|===
+| 구성 요소 | 실습 환경 | 담당자가 할 일
+
+| *RHACS* (Central + SecuredCluster)
+| 사전 설치됨
+| 워크로드 배포만 (`setup-security-track.sh acs`)
+
+| *ZTWIM 오퍼레이터*
+| 사전 설치됨
+| SPIRE 구성·실습 워크로드 배포 (`setup-security-track.sh ztwim`)
+
+| *HashiCorp Vault*
+| **포함되어 있지 않음**
+| **직접 설치·구성해야 합니다** (`setup-security-track.sh vault`)
+|===
+
+[IMPORTANT]
+====
+Vault 는 실습 환경에 포함되어 있지 않습니다. 설치 형상, 점검 스크립트, 트러블슈팅은
+별도 문서로 정리했습니다 — link:FACILITATOR-VAULT-SETUP.adoc[FACILITATOR-VAULT-SETUP.adoc]
+
+준비하지 않으면 모듈 3 의 Vault UI 실습에서 막힙니다.
+====
 
 === 실행
 
@@ -107,12 +132,13 @@ RHDP/AgnosticV 환경이라면 이 스크립트를 프로비저닝 단계에 포
 [source,bash]
 ----
 ./setup-security-track.sh status
+./verify-vault.sh          # 모듈 3 Vault 상세 점검 (실패 시 종료 코드 1)
 ----
 
 다음이 모두 준비되어 있어야 합니다:
 
-* `nuripay` namespace: `payment-api`, `payment-api-secure`, `legacy-secret-app`
-* `~/nuripay-lab/` 에 매니페스트 사본 2개 (모듈 1 차단 시연에 필요)
+* `narupay` namespace: `payment-api`, `payment-api-secure`, `legacy-secret-app`
+* `~/narupay-lab/` 에 매니페스트 사본 2개 (모듈 1 차단 시연에 필요)
 * `vault` namespace: Vault pod Running + Route
 * `postgresql-spiffe` / `postgresql-spiffe-client`: 각각 `2/2 Running`
 

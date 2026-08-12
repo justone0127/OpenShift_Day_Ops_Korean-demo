@@ -1,7 +1,9 @@
 site:
   title: OpenShift Ops Day Roadshow
   url: http://localhost:8080
-  start_page: openshift-days-ops-track::index.adoc
+  # 보안 트랙 전용 구성. 전체 로드쇼로 되돌리려면 index.adoc 으로 변경하십시오.
+  # inject-env-vars.sh 는 아래 asciidoc.attributes 만 덮어쓰고 start_page 는 건드리지 않습니다.
+  start_page: openshift-days-ops-track::15-00-security-story.adoc
 
 content:
   sources:
@@ -21,21 +23,28 @@ asciidoc:
   attributes:
     toclevels: 2
     # Module flags - inject-env-vars.sh overwrites this section at runtime
-    module_enable_install: 'true'
-    module_enable_appmgmt: 'true'
-    module_enable_ingress: 'true'
-    module_enable_netsec: 'true'
-    module_enable_waf: 'true'
-    module_enable_debugging: 'true'
-    module_enable_ldap: 'true'
-    module_enable_oidc: 'true'
-    module_enable_observability: 'true'
-    module_enable_backup: 'true'
-    module_enable_performance: 'true'
-    module_enable_virt: 'true'
-    module_enable_devhub: 'true'
-    module_enable_ols: 'true'
-    module_enable_acm: 'true'
+    #
+    # 주의: RHDP 로 배포할 때는 아래 값이 아니라 카탈로그 파라미터
+    # (MODULE_ENABLE_* 환경변수)가 최종 결정을 합니다. 보안 트랙만 노출하려면
+    # 카탈로그에서 security / ztwim / vault 를 제외한 나머지를 false 로 지정하십시오.
+    # 아래 값은 inject-env-vars.sh 가 실행되지 않는 경우의 기본값입니다.
+    module_enable_install: 'false'
+    module_enable_appmgmt: 'false'
+    module_enable_ingress: 'false'
+    module_enable_netsec: 'false'
+    module_enable_waf: 'false'
+    module_enable_debugging: 'false'
+    module_enable_gitops: 'false'
+    module_enable_ldap: 'false'
+    module_enable_oidc: 'false'
+    module_enable_observability: 'false'
+    module_enable_backup: 'false'
+    module_enable_performance: 'false'
+    module_enable_virt: 'false'
+    module_enable_devhub: 'false'
+    module_enable_ols: 'false'
+    module_enable_acm: 'false'
+    # Security Track — 나루페이 침해사고 (활성)
     module_enable_security: 'true'
     module_enable_ztwim: 'true'
     module_enable_vault: 'true'

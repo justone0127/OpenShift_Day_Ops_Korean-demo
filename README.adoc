@@ -37,26 +37,30 @@ A comprehensive modular workshop for OpenShift administrators. Modules are selec
 * *link:content/modules/ROOT/pages/12-developer-hub.adoc[12 - Developer Hub]* (25-30 min) - Software catalog, Topology plugin, software templates, platform architecture
 * *link:content/modules/ROOT/pages/13-openshift-lightspeed.adoc[13 - OpenShift Lightspeed]* (15-20 min) - AI assistant, OLSConfig creation, console integration
 * *link:content/modules/ROOT/pages/14-acm.adoc[14 - ACM Multi-Cluster Management]* (30 min) - ACM, hosted control planes, VM management, GitOps app deployment, policy-based governance
-*Security Track (누리페이 침해사고 시나리오)*
+*Security Track (나루페이 침해사고 시나리오)*
 
 세 모듈은 하나의 침해사고를 3단계 공격으로 나누어, 각 단계를 막는 방어선을 순서대로 다룹니다.
 실습 워크로드는 진행자가 사전 배포 스크립트로 준비하며, 참가자 가이드에는 설치·정리 절차가 없습니다.
 참가자는 긴 YAML을 붙여넣지 않고 관찰과 판단에만 집중합니다.
 가이드 중간중간 이해도 확인 퀴즈(접기식 해설 포함)가 배치되어 있습니다.
 
-* *link:content/modules/ROOT/pages/15-00-security-story.adoc[인트로 - 보안 트랙 시작: 누리페이 침해사고]* (10 min) - 침해사고 스토리, 공격 경로/방어선 다이어그램, 피해 집계, 워밍업 퀴즈
+* *link:content/modules/ROOT/pages/15-00-security-story.adoc[인트로 - 보안 트랙 시작: 나루페이 침해사고]* (10 min) - 침해사고 스토리, 공격 경로/방어선 다이어그램, 피해 집계, 워밍업 퀴즈
 * *link:content/modules/ROOT/pages/15-acs.adoc[모듈 1 - Advanced Cluster Security]* (15 min) - 사전 배포된 취약/강화 워크로드 비교, Violations와 CVE 확인, 정책 Enforce 전환과 배포 차단 시연
 * *link:content/modules/ROOT/pages/17-ztwim.adoc[모듈 2 - Zero-Trust Workload Identity Manager]* (10 min) - SPIFFE 워크로드 신원(SVID) 확인, 비밀번호 없는 mTLS 연결, 무권한 접속 거부 확인
 * *link:content/modules/ROOT/pages/16-secrets-management.adoc[모듈 3 - Secrets Management]* (10 min) - Kubernetes Secret의 실제 보호 수준 확인, Vault가 바꾸는 것, 전달 패턴 비교, 보안 트랙 마무리
 
 퀴즈는 라디오 버튼으로 답을 고르고 *정답 확인* 을 누르면 즉시 채점됩니다
-(`content/supplemental-ui/js/nrp-quiz.js`). JS가 로드되지 않으면 해설이 펼쳐진 채로 표시됩니다.
+(`content/modules/ROOT/examples/nrp-quiz.js`, `nrp-security.css` — `partials/nrp-assets.adoc` 가 include).
+JS가 로드되지 않으면 해설이 펼쳐진 채로 표시됩니다.
 
 NOTE: 파일명은 전체 로드쇼(01~14)와 번호가 겹치지 않도록 `15/16/17` 을 유지합니다.
 진행 순서와 표시 번호는 `nav.adoc` 이 결정하며, 참가자 화면에는 *모듈 1 → 2 → 3* 으로 보입니다
 (`15-acs` → `17-ztwim` → `16-secrets-management`).
 
-진행자용 문서: link:FACILITATOR-SECURITY-TRACK.adoc[FACILITATOR-SECURITY-TRACK.adoc] (퀴즈 정답 및 사전 준비 절차)
+진행자용 문서:
+
+* link:FACILITATOR-SECURITY-TRACK.adoc[FACILITATOR-SECURITY-TRACK.adoc] — 퀴즈 정답, 사전 준비 절차, 진행 시 주의점
+* link:FACILITATOR-VAULT-SETUP.adoc[FACILITATOR-VAULT-SETUP.adoc] — 모듈 3 Vault 설치·점검 (실습 환경에 Vault는 미포함)
 
 == Module Selection
 

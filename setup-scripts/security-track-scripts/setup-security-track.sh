@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 누리페이 보안 트랙(모듈 15/16/17) 사전 배포 스크립트
+# 나루페이 보안 트랙(모듈 15/16/17) 사전 배포 스크립트
 #
 # 워크샵 참가자가 가이드에서 YAML 을 복사·붙여넣기 하지 않아도 되도록,
 # 실습 대상 워크로드를 미리 배포해 둡니다.
@@ -24,9 +24,9 @@ VAULT_SCRIPTS="${SETUP_ROOT}/vault-config-scripts"
 ZTWIM_SCRIPTS="${SETUP_ROOT}/ztwim-config-scripts"
 
 # 참가자가 15번 모듈의 "차단 시연" 단계에서 다시 apply 할 매니페스트 사본 위치
-LAB_DIR="${LAB_DIR:-${HOME}/nuripay-lab}"
+LAB_DIR="${LAB_DIR:-${HOME}/narupay-lab}"
 
-NURIPAY_NS="nuripay"
+NARUPAY_NS="narupay"
 STACKROX_NS="${STACKROX_NS:-stackrox}"
 
 ACTION="${1:-all}"
@@ -75,7 +75,7 @@ setup_acs() {
   log "모듈 15 (RHACS) 준비 중..."
   check_acs_installed || true
 
-  log "누리페이 결제 API 를 취약 버전 / 안전 버전으로 각각 배포합니다..."
+  log "나루페이 결제 API 를 취약 버전 / 안전 버전으로 각각 배포합니다..."
   # 순서 중요: 차단 정책을 켜기 전에 취약 버전이 이미 떠 있어야
   # 참가자가 "이미 뚫려 있는 상태"를 관찰할 수 있습니다.
   oc apply -f "${MANIFEST_DIR}/payment-api-vulnerable.yaml"
@@ -89,10 +89,10 @@ setup_acs() {
   enable_admission_enforcement
 
   log "pod 기동 대기 중..."
-  oc rollout status deployment/payment-api -n "${NURIPAY_NS}" --timeout=180s || \
-    warn "payment-api rollout 확인 실패 — oc get pods -n ${NURIPAY_NS} 로 확인하십시오"
-  oc rollout status deployment/payment-api-secure -n "${NURIPAY_NS}" --timeout=180s || \
-    warn "payment-api-secure rollout 확인 실패 — oc get pods -n ${NURIPAY_NS} 로 확인하십시오"
+  oc rollout status deployment/payment-api -n "${NARUPAY_NS}" --timeout=180s || \
+    warn "payment-api rollout 확인 실패 — oc get pods -n ${NARUPAY_NS} 로 확인하십시오"
+  oc rollout status deployment/payment-api-secure -n "${NARUPAY_NS}" --timeout=180s || \
+    warn "payment-api-secure rollout 확인 실패 — oc get pods -n ${NARUPAY_NS} 로 확인하십시오"
 
   log "모듈 15 준비 완료."
   log "RHACS 가 위반 사항을 집계하는 데 30초~1분 정도 걸립니다."
@@ -112,13 +112,13 @@ seed_vault_story_secret() {
   pod="$(vault_pod)"
   [[ -n "${pod}" ]] || { warn "Vault pod 를 찾을 수 없어 시연용 secret 을 건너뜁니다"; return 0; }
 
-  log "Vault 에 누리페이 시연용 secret 을 기록합니다..."
+  log "Vault 에 나루페이 시연용 secret 을 기록합니다..."
   oc exec -n vault "${pod}" -- env \
     VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
-    vault kv put secret/nuripay/payment-db \
-      username=nuripay_app \
-      password='NuriPay2024!@#' >/dev/null
-  log "Vault 경로: secret/nuripay/payment-db"
+    vault kv put secret/narupay/payment-db \
+      username=narupay_app \
+      password='NaruPay2024!@#' >/dev/null
+  log "Vault 경로: secret/narupay/payment-db"
 }
 
 setup_vault() {
@@ -143,7 +143,7 @@ setup_vault() {
 
   seed_vault_story_secret
 
-  oc rollout status deployment/legacy-secret-app -n "${NURIPAY_NS}" --timeout=120s || \
+  oc rollout status deployment/legacy-secret-app -n "${NARUPAY_NS}" --timeout=120s || \
     warn "legacy-secret-app rollout 확인 실패"
 
   log "모듈 16 준비 완료."
@@ -183,9 +183,9 @@ status() {
   echo "▸ 모듈 15 — RHACS"
   oc get pods -n "${STACKROX_NS}" --no-headers 2>/dev/null \
     | awk '{print "    stackrox: "$1" "$3}' | head -5 || echo "    (RHACS 미설치)"
-  oc get deployment -n "${NURIPAY_NS}" -l workshop=nuripay-security-track \
+  oc get deployment -n "${NARUPAY_NS}" -l workshop=narupay-security-track \
     -o custom-columns=NAME:.metadata.name,READY:.status.readyReplicas --no-headers 2>/dev/null \
-    | sed 's/^/    /' || echo "    (누리페이 워크로드 없음)"
+    | sed 's/^/    /' || echo "    (나루페이 워크로드 없음)"
   [[ -f "${LAB_DIR}/payment-api-vulnerable.yaml" ]] \
     && echo "    참가자용 매니페스트: ${LAB_DIR} ✓" \
     || echo "    참가자용 매니페스트: 없음 ✗"
@@ -206,8 +206,8 @@ cleanup() {
   hr
   log "보안 트랙 정리 중..."
 
-  log "누리페이 워크로드 제거..."
-  oc delete namespace "${NURIPAY_NS}" --ignore-not-found --wait=false
+  log "나루페이 워크로드 제거..."
+  oc delete namespace "${NARUPAY_NS}" --ignore-not-found --wait=false
 
   if [[ -x "${ZTWIM_SCRIPTS}/configure-ztwim-postgresql-lab.sh" ]]; then
     log "ZTWIM 실습 워크로드 제거..."
@@ -234,13 +234,13 @@ print_summary() {
   echo "  참가자에게 안내할 내용:"
   echo
   echo "  ▸ 모듈 15 (RHACS)"
-  echo "      취약 버전:  deployment/payment-api        (namespace: ${NURIPAY_NS})"
-  echo "      안전 버전:  deployment/payment-api-secure (namespace: ${NURIPAY_NS})"
+  echo "      취약 버전:  deployment/payment-api        (namespace: ${NARUPAY_NS})"
+  echo "      안전 버전:  deployment/payment-api-secure (namespace: ${NARUPAY_NS})"
   echo "      차단 시연용 매니페스트: ${LAB_DIR}/payment-api-vulnerable.yaml"
   oc get route central -n "${STACKROX_NS}" -o jsonpath='      RHACS 콘솔: https://{.spec.host}{"\n"}' 2>/dev/null || true
   echo
   echo "  ▸ 모듈 16 (Secrets Management)"
-  echo "      기존 방식 앱: deployment/legacy-secret-app (namespace: ${NURIPAY_NS})"
+  echo "      기존 방식 앱: deployment/legacy-secret-app (namespace: ${NARUPAY_NS})"
   echo "      Secret:       payment-db-creds"
   oc get route vault -n vault -o jsonpath='      Vault UI: https://{.spec.host}/  (Token: root){"\n"}' 2>/dev/null || true
   echo

@@ -1,6 +1,6 @@
 # ⚠️ 의도적으로 취약하게 만든 매니페스트입니다. 절대 운영 환경에 사용하지 마십시오.
 #
-# 누리페이 침해사고 스토리의 "1단계 공격" 진입점을 재현합니다.
+# 나루페이 침해사고 스토리의 "1단계 공격" 진입점을 재현합니다.
 # RHACS가 탐지해야 할 문제:
 #   1) :latest 태그              → 무엇이 실행될지 예측 불가, 롤백 불가
 #   2) env에 평문 자격 증명       → 컨테이너 침해 시 `env` 한 줄로 즉시 유출
@@ -10,18 +10,18 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: nuripay
+  name: narupay
   labels:
-    workshop: nuripay-security-track
+    workshop: narupay-security-track
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: payment-api
-  namespace: nuripay
+  namespace: narupay
   labels:
     app: payment-api
-    workshop: nuripay-security-track
+    workshop: narupay-security-track
     posture: vulnerable
   annotations:
     workshop/description: "김코딩 씨가 급하게 배포한 결제 API (취약 버전)"
@@ -34,22 +34,22 @@ spec:
     metadata:
       labels:
         app: payment-api
-        workshop: nuripay-security-track
+        workshop: narupay-security-track
         posture: vulnerable
     spec:
       containers:
         - name: payment-api
           # ❌ 문제 1: latest 태그 — RHACS "Latest tag" 정책 위반
           image: registry.access.redhat.com/ubi9/ubi:latest
-          command: ["/bin/sh", "-c", "echo 'NuriPay payment-api (vulnerable build) started'; sleep infinity"]
+          command: ["/bin/sh", "-c", "echo 'NaruPay payment-api (vulnerable build) started'; sleep infinity"]
           env:
             # ❌ 문제 2: 자격 증명이 평문 환경변수로
             #    RHACS "Environment Variable Contains Secret" 정책 위반
             - name: DB_PASSWORD
-              value: "NuriPay2024!@#"
+              value: "NaruPay2024!@#"
             - name: AWS_SECRET_ACCESS_KEY
               value: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
             - name: DB_HOST
-              value: "payment-db.nuripay.svc.cluster.local"
+              value: "payment-db.narupay.svc.cluster.local"
           # ❌ 문제 3: resources 블록 없음 (requests/limits 미설정)
           # ❌ 문제 4: securityContext 블록 없음

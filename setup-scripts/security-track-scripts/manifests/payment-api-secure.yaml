@@ -13,10 +13,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: payment-api-secure
-  namespace: nuripay
+  namespace: narupay
   labels:
     app: payment-api-secure
-    workshop: nuripay-security-track
+    workshop: narupay-security-track
     posture: hardened
   annotations:
     workshop/description: "동일한 결제 API를 보안 기준에 맞춰 다시 만든 버전"
@@ -29,18 +29,18 @@ spec:
     metadata:
       labels:
         app: payment-api-secure
-        workshop: nuripay-security-track
+        workshop: narupay-security-track
         posture: hardened
     spec:
       containers:
         - name: payment-api
           # ✅ 1) 태그 고정 (운영에서는 digest 고정이 더 안전합니다: ubi9/ubi@sha256:...)
           image: registry.access.redhat.com/ubi9/ubi:9.4
-          command: ["/bin/sh", "-c", "echo 'NuriPay payment-api (hardened) started'; sleep infinity"]
+          command: ["/bin/sh", "-c", "echo 'NaruPay payment-api (hardened) started'; sleep infinity"]
           env:
             # ✅ 2) 비밀번호 없음. 접속 대상 정보만 남깁니다.
             - name: DB_HOST
-              value: "payment-db.nuripay.svc.cluster.local"
+              value: "payment-db.narupay.svc.cluster.local"
           # ✅ 3) 자원 제한
           resources:
             requests:
