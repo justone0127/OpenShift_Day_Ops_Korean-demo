@@ -305,7 +305,7 @@ deploy_user() {
   # "namespace not found" 로 실패하지 않도록 먼저 만들어 둡니다.
   oc create namespace "${ns_pay}" >/dev/null 2>&1 || true
   local m
-  for m in payment-api-vulnerable payment-api-secure legacy-secret-app; do
+  for m in payment-api-vulnerable payment-api-secure legacy-secret-app narupay-vault-app; do
     if ! render_narupay "${MANIFEST_DIR}/${m}.yaml" "${ns_pay}" | oc apply -f - >/dev/null; then
       warn "[$(display_user "${u}")] ${m} 배포 실패"
     fi

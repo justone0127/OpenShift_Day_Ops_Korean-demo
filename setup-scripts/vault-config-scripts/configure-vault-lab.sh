@@ -42,6 +42,17 @@ vault_cmd write auth/kubernetes/role/vault-role \
   ttl=1h \
   audience="${AUD}"
 
+# 모듈 3 의 narupay-vault-app 이 Agent Injector 로 secret 을 받기 위한 role.
+# 이 SA 로 실행되는 워크로드만 secret/narupay/* 를 읽을 수 있습니다.
+echo "[vault-lab] Creating Kubernetes auth role narupay-role..."
+vault_cmd delete auth/kubernetes/role/narupay-role 2>/dev/null || true
+vault_cmd write auth/kubernetes/role/narupay-role \
+  bound_service_account_names=narupay-vault-app \
+  bound_service_account_namespaces="${NARUPAY_NS:-narupay}" \
+  policies=read-policy \
+  ttl=1h \
+  audience="${AUD}"
+
 echo "[vault-lab] Enabling KV secrets engine at secret/ (if needed)..."
 vault_cmd secrets enable -path=secret kv-v2 2>/dev/null || true
 

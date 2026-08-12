@@ -1,0 +1,74 @@
+# 모듈 3 — Vault 로 방어선을 세운 쪽 애플리케이션
+#
+# legacy-secret-app 과 같은 일을 하지만 자격 증명을 받는 경로가 다릅니다:
+#
+#   legacy-secret-app   Kubernetes Secret → 환경변수
+#                       → etcd 에 오브젝트가 있고, base64 디코딩으로 읽힘
+#                       → 컨테이너 안에서 env 로 노출
+#
+#   narupay-vault-app   Vault → Agent Injector → 파일(tmpfs)
+#                       → Secret 오브젝트가 없음. 디코딩할 대상 자체가 없음
+#                       → 환경변수에 없음
+#                       → Vault 에서 값을 바꾸면 재시작 없이 파일이 갱신됨
+#
+# 주석의 agent-inject-status: "update" 가 마지막 항목을 담당합니다.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: narupay-vault-app
+  namespace: narupay
+  labels:
+    workshop: narupay-security-track
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: narupay-vault-app
+  namespace: narupay
+  labels:
+    app: narupay-vault-app
+    workshop: narupay-security-track
+  annotations:
+    workshop/description: "Vault Agent Injector 로 자격 증명을 파일로 받는 애플리케이션"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: narupay-vault-app
+  template:
+    metadata:
+      labels:
+        app: narupay-vault-app
+        workshop: narupay-security-track
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        # 값이 바뀌면 사이드카가 파일을 갱신합니다 — pod 재시작이 필요 없습니다.
+        vault.hashicorp.com/agent-inject-status: "update"
+        vault.hashicorp.com/role: "narupay-role"
+        vault.hashicorp.com/agent-inject-address: "http://vault.vault.svc:8200"
+        vault.hashicorp.com/agent-inject-containers: "app"
+        vault.hashicorp.com/agent-inject-secret-db: "secret/narupay/payment-db"
+        vault.hashicorp.com/agent-inject-template-db: |
+          {{- with secret "secret/narupay/payment-db" -}}
+          DB_USERNAME={{ .Data.data.username }}
+          DB_PASSWORD={{ .Data.data.password }}
+          {{- end }}
+    spec:
+      serviceAccountName: narupay-vault-app
+      containers:
+        - name: app
+          image: registry.access.redhat.com/ubi9/ubi-minimal:9.4
+          command: ["/bin/sh", "-c", "sleep infinity"]
+          # 환경변수로 자격 증명을 받지 않습니다. 이것이 이 애플리케이션의 요점입니다.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
