@@ -1,11 +1,9 @@
 .콘솔 접속 정보
 [%collapsible]
 ====
-* *사용자 이름:* 배정받은 본인 계정 (예: `user1`)
-* *비밀번호:* 진행자가 안내한 비밀번호
+* *사용자 이름:* `{openshift_cluster_admin_username}`
+* *비밀번호:* `{openshift_cluster_admin_password}`
 * *콘솔:* {openshift_cluster_console_url}[window=blank]
 
 TIP: 이 Showroom 화면 상단의 **OCP Console** 탭을 쓰시면 창을 옮기지 않고 실습할 수 있습니다.
-
-NOTE: 관리자 계정이 아니라 **본인 계정**으로 로그인하십시오. 관리자로 접속하면 다른 참가자의 자원까지 보입니다.
 ====
