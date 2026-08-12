@@ -356,6 +356,37 @@ NOTE: RHACS 정책의 Enforcement 설정은 스크립트가 되돌리지 않습�
 * **확실한 대비는 1단계의 *Violations* 입니다.** 배포 방식의 문제라 이미지가 바뀌어도
   결과가 흔들리지 않습니다.
 * **정책이 Disabled 상태일 수 있습니다.** Enforce로 바꾸기 전에 Enable부터 확인시키십시오.
+* **범위 제한을 빠뜨리면 모듈 2 가 깨집니다. 가장 중요한 주의점입니다.**
++
+--
+`Latest tag` 정책은 클러스터 전역입니다. 범위를 제한하지 않고 `Enforce on Deploy` 를 켜면
+`latest` 태그를 쓰는 다른 워크로드까지 차단됩니다.
+
+**모듈 2 의 PostgreSQL SPIFFE 워크로드가 `latest` 태그를 씁니다:**
+
+[source,text]
+----
+quay.io/ablock/spiffe-helper-postgresql:latest
+registry.redhat.io/rhel9/postgresql-16:latest
+----
+
+범위를 제한하지 않으면 이 파드들이 0개로 내려가고, 모듈 2 에서
+`No resources found` 만 보게 됩니다. Deployment 는 남아 있어서 배포 스크립트도
+"already deployed" 로 판단해 문제를 못 잡습니다.
+
+가이드는 `Actions` 보다 **먼저 `Scope` 에서 namespace 를 `narupay` 로 제한**하도록
+순서를 잡아 두었습니다. 참가자가 이 단계를 건너뛰지 않도록 확인해 주십시오.
+
+이미 발생한 경우 복구 방법:
+
+[source,bash]
+----
+# 1. 정책 범위를 narupay 로 제한하거나 Enforcement 를 Inform 으로 되돌린 뒤
+# 2. 워크로드를 다시 올립니다
+oc scale deployment postgresql-spiffe -n postgresql-spiffe --replicas=1
+oc scale deployment postgresql-spiffe-client -n postgresql-spiffe-client --replicas=1
+----
+--
 * **차단 시연이 실패하는 경우** — 대부분 admission controller 문제입니다:
 +
 [source,bash]
