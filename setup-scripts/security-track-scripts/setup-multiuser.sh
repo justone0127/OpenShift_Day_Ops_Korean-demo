@@ -32,6 +32,9 @@
 #   - SPIRE 플랫폼(SpireServer 등)   configure-ztwim-lab.sh 가 한 번만 구성
 #   - Vault 인스턴스                 경로만 사용자별로 나눕니다
 #
+# 공유 자원 중 참가자가 조회해야 하는 것(RHACS 콘솔 주소, Vault UI 주소,
+# admission controller 설정)은 최소 읽기 권한을 별도로 부여합니다.
+#
 # 실행 위치: bastion (cluster-admin 으로 oc login 된 상태)
 #
 set -euo pipefail
@@ -157,6 +160,80 @@ prepare_cluster() {
       "${VAULT_SCRIPTS}/configure-vault-lab.sh" || true
   else
     warn "install-vault.sh 를 찾을 수 없습니다. 모듈 3 의 Vault 실습이 동작하지 않습니다."
+  fi
+
+  grant_shared_read
+}
+
+# 참가자는 자기 네임스페이스 세 개만 admin 권한을 갖습니다. 그런데 가이드에는
+# 공유 자원을 조회하는 명령이 세 개 있습니다:
+#
+#   oc get route central -n stackrox            (모듈 1 — RHACS 콘솔 주소)
+#   oc get securedcluster -n stackrox           (모듈 1 — admission controller 확인)
+#   oc get route vault -n vault                 (모듈 3 — Vault UI 주소)
+#
+# 이 세 개만 읽을 수 있는 최소 권한을 부여합니다.
+# system:authenticated 그룹에 묶어, 사용자 수와 무관하게 한 번만 만들면 됩니다.
+grant_shared_read() {
+  if oc get ns "${VAULT_NS}" >/dev/null 2>&1; then
+    oc apply -f - >/dev/null <<EOF || warn "vault 읽기 권한 부여 실패"
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: narupay-lab-reader
+  namespace: ${VAULT_NS}
+rules:
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: narupay-lab-reader
+  namespace: ${VAULT_NS}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: narupay-lab-reader
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: system:authenticated
+EOF
+    log "vault 네임스페이스 route 읽기 권한 부여됨"
+  fi
+
+  if oc get ns "${STACKROX_NS}" >/dev/null 2>&1; then
+    oc apply -f - >/dev/null <<EOF || warn "stackrox 읽기 권한 부여 실패"
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: narupay-lab-reader
+  namespace: ${STACKROX_NS}
+rules:
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list"]
+  - apiGroups: ["platform.stackrox.io"]
+    resources: ["securedclusters"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: narupay-lab-reader
+  namespace: ${STACKROX_NS}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: narupay-lab-reader
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: system:authenticated
+EOF
+    log "stackrox 네임스페이스 route/securedcluster 읽기 권한 부여됨"
   fi
 }
 

@@ -209,6 +209,32 @@ EXTRA_USERS="admin lab-user" ./setup-multiuser.sh deploy 30
 | `secret/userN-narupay/payment-db`
 |===
 
+참가자에게 보이는 프로젝트는 **자기 것 세 개뿐**입니다. 다른 참가자의 네임스페이스나
+`stackrox` / `vault` / SPIRE 네임스페이스는 목록에 나오지 않습니다.
+
+다만 가이드에 공유 자원을 조회하는 명령이 세 개 있어, 그것만 읽을 수 있는
+최소 권한을 `system:authenticated` 그룹에 부여합니다(사용자 수와 무관하게 1회):
+
+[cols="2,2,2",options="header"]
+|===
+| 명령 | 필요한 권한 | 용도
+
+| `oc get route central -n stackrox`
+| `stackrox` 의 routes get/list
+| 모듈 1 — RHACS 콘솔 주소
+
+| `oc get securedcluster -n stackrox`
+| `stackrox` 의 securedclusters get/list
+| 모듈 1 — admission controller 확인
+
+| `oc get route vault -n vault`
+| `vault` 의 routes get/list
+| 모듈 3 — Vault UI 주소
+|===
+
+NOTE: 이 권한이 없으면 해당 명령에서 `Forbidden` 이 납니다.
+`setup-multiuser.sh deploy` 가 자동으로 부여하므로 따로 하실 일은 없습니다.
+
 계정 자체는 만들지 않습니다. 실습 환경이 `user1`~`userN` 을 제공한다고 가정하고
 권한만 부여합니다. 접두사는 `USER_PREFIX`, 시작 번호는 `USER_START`,
 추가 계정은 `EXTRA_USERS` 로 바꿀 수 있습니다.
