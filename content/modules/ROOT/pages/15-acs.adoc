@@ -215,7 +215,7 @@ NOTE: 정책이 *Disabled* 상태라면 먼저 활성화(Enable)하십시오.
 [IMPORTANT]
 ====
 `Deploy` 단계 enforcement는 RHACS의 **admission controller**가 담당합니다.
-사전 배포 스크립트가 `listenOnCreates` / `listenOnUpdates` 를 이미 켜 두었습니다.
+이 클러스터에는 `listenOnCreates` / `listenOnUpdates` 가 이미 켜져 있습니다.
 
 직접 확인하려면:
 
