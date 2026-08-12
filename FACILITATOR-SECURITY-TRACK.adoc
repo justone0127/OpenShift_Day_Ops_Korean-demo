@@ -248,12 +248,24 @@ Showroom 인스턴스마다 `LAB_USER` 환경변수를 해당 참가자 계정�
 
 [source,bash]
 ----
-LAB_USER=user7 ./inject-env-vars.sh
+LAB_USER=user7 LAB_USER_PASSWORD=<user7 비밀번호> ./inject-env-vars.sh
 ----
+
+`LAB_USER_PASSWORD` 는 가이드의 로그인 명령과 자격 증명 표에 그대로 표시됩니다.
+지정하지 않으면 `ADMIN_PASSWORD` 값이 들어갑니다.
 
 지정하지 않으면 `user1` 로 기본값이 들어가, 모든 참가자가 user1 의 네임스페이스를
 보게 됩니다. 필요하면 `NARUPAY_NS` / `SPIFFE_SERVER_NS` / `SPIFFE_CLIENT_NS` 로
 개별 지정할 수도 있습니다.
+
+[WARNING]
+.antora.yml 에도 반영되어야 합니다
+====
+명령어 블록은 `subs="+attributes"` 를 쓰는데, Antora 는 이 경우 **플레이북이 아니라
+`content/antora.yml` 의 값만** 읽습니다. `inject-env-vars.sh` 가 양쪽 모두에 쓰도록
+되어 있으니, 스크립트를 거치지 않고 플레이북만 수정하면 모든 참가자가
+`user1` 을 보게 됩니다.
+====
 ====
 
 [NOTE]

@@ -84,6 +84,7 @@ ATTRS="${ATTRS}    toclevels: 2"$'\n'
 # setup-multiuser.sh 가 만드는 네임스페이스 이름과 반드시 일치해야 합니다.
 LAB_USER_VALUE="${LAB_USER:-${USER_NAME:-user1}}"
 ATTRS="${ATTRS}    lab_user: '${LAB_USER_VALUE}'"$'\n'
+ATTRS="${ATTRS}    lab_user_password: '${LAB_USER_PASSWORD:-${ADMIN_PASSWORD:-}}'"$'\n'
 ATTRS="${ATTRS}    narupay_ns: '${NARUPAY_NS:-${LAB_USER_VALUE}-narupay}'"$'\n'
 ATTRS="${ATTRS}    spiffe_server_ns: '${SPIFFE_SERVER_NS:-${LAB_USER_VALUE}-postgresql-spiffe}'"$'\n'
 ATTRS="${ATTRS}    spiffe_client_ns: '${SPIFFE_CLIENT_NS:-${LAB_USER_VALUE}-postgresql-spiffe-client}'"$'\n'
@@ -147,6 +148,20 @@ ANTORA_YML="${REPO_DIR}/content/antora.yml"
 if [ -f "$ANTORA_YML" ] && ! grep -q 'ols_azure_url' "$ANTORA_YML"; then
   echo "Injecting ols_azure_url into antora.yml..."
   echo "    ols_azure_url: '${OLS_AZURE_URL:-}'" >> "$ANTORA_YML"
+fi
+
+# 다중 사용자 속성은 반드시 antora.yml 에도 반영해야 합니다.
+# 보안 트랙의 명령어 블록이 subs="+attributes" 를 쓰기 때문에, 여기에 없으면
+# 모든 참가자가 antora.yml 의 기본값(user1)을 보게 됩니다.
+if [ -f "$ANTORA_YML" ]; then
+  echo "Injecting multi-user attributes into antora.yml (lab_user=${LAB_USER_VALUE})..."
+  sed -i -E "s|^( +lab_user:).*|\1 '${LAB_USER_VALUE}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +lab_user_password:).*|\1 '${LAB_USER_PASSWORD:-${ADMIN_PASSWORD:-}}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +narupay_ns:).*|\1 '${NARUPAY_NS:-${LAB_USER_VALUE}-narupay}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +spiffe_server_ns:).*|\1 '${SPIFFE_SERVER_NS:-${LAB_USER_VALUE}-postgresql-spiffe}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +spiffe_client_ns:).*|\1 '${SPIFFE_CLIENT_NS:-${LAB_USER_VALUE}-postgresql-spiffe-client}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +api_url:).*|\1 '${API_URL:-}'|" "$ANTORA_YML"
+  grep -E "^ +(lab_user|lab_user_password|narupay_ns|spiffe_server_ns|spiffe_client_ns|api_url):" "$ANTORA_YML"
 fi
 
 echo "=== Antora injection complete ==="

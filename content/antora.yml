@@ -18,6 +18,8 @@ asciidoc:
     # 프로덕션에서는 inject-env-vars.sh 가 LAB_USER 로부터 아래 값을 다시 씁니다.
     # 단일 사용자로 쓰려면 세 네임스페이스를 접두사 없는 이름으로 바꾸십시오.
     lab_user: 'user1'
+    lab_user_password: '(진행자에게 받은 비밀번호)'
+    api_url: 'https://api.example.com:6443'
     narupay_ns: 'user1-narupay'
     spiffe_server_ns: 'user1-postgresql-spiffe'
     spiffe_client_ns: 'user1-postgresql-spiffe-client'

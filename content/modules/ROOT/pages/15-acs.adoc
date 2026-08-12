@@ -69,9 +69,11 @@ Showroom 인터페이스의 임베디드 *RHACS* 탭을 사용하시길 권장�
 
 [cols="1,1"]
 |===
-| *Username:* | {openshift_cluster_admin_username}
-| *Password:* | {openshift_cluster_admin_password}
+| *사용자 이름:* | {lab_user}
+| *비밀번호:* | {lab_user_password}
 |===
+
+NOTE: RHACS 콘솔 자격 증명이 OpenShift 계정과 다르게 안내된 경우, 진행자가 알려 준 값을 사용하십시오.
 
 TIP: 인증 오류가 발생하면 *Try Again*을 클릭하거나 탭을 새로고침한 후 다시 시도하십시오.
 

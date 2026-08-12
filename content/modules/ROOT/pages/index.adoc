@@ -10,27 +10,58 @@ image::ops-day-banner.png[OpenShift Ops Day, width=100%]
 
 == 시작하기
 
-귀하는 실제 작동 중인 OpenShift 클러스터에 대한 cluster admin 권한을 가지고 있습니다. 모든 것이 정상적으로 작동하는지 확인하기 위해 아래 명령어를 클릭하십시오:
+여러분에게는 전용 계정 **`{lab_user}`** 와 전용 실습 네임스페이스가 배정되어 있습니다.
+실습은 반드시 이 계정으로 진행해야 합니다.
 
-[source,bash,role="execute"]
+[IMPORTANT]
+.먼저 로그인 계정을 확인하십시오
+====
+터미널이 **관리자 계정으로 열려 있을 수 있습니다.** 그대로 진행하면 여러분의 것이 아닌
+자원을 건드리게 되므로, 시작 전에 반드시 확인하십시오.
+====
+
+.실습 절차
+. 현재 로그인 계정을 확인합니다:
++
+[source,bash,subs="+macros,+attributes",role="execute"]
 ----
 oc whoami
 ----
-
-어드민 사용자가 표시되어야 합니다.
-
-[source,bash,role="execute"]
++
+`{lab_user}` 가 표시되면 다음 단계로 넘어가십시오.
+**`admin` 등 다른 계정이 표시되면** 아래 명령으로 다시 로그인합니다:
++
+[source,bash,subs="+macros,+attributes",role="execute"]
 ----
-oc get nodes
+oc login -u {lab_user} -p {lab_user_password} {api_url}
 ----
-
-3개의 노드가 모두 `Ready` 상태여야 합니다.
-
++
+. 계정과 배정된 네임스페이스를 확인합니다:
++
+[source,bash,subs="+macros,+attributes",role="execute"]
+----
+oc whoami
+oc get projects
+----
++
+`{lab_user}` 와 함께 다음 세 개의 프로젝트가 보이면 준비가 된 것입니다:
++
+[source,text,subs="+attributes"]
+----
+{lab_user}-narupay
+{lab_user}-postgresql-spiffe
+{lab_user}-postgresql-spiffe-client
+----
++
+NOTE: 다른 참가자의 네임스페이스나 클러스터 관리용 네임스페이스는 보이지 않는 것이 정상입니다.
++
+. 클러스터가 정상 동작하는지 확인합니다:
++
 [source,bash,role="execute"]
 ----
 oc get clusterversion
 ----
-
++
 클러스터 버전과 업데이트 채널 정보가 표시됩니다. 이제 준비가 완료되었습니다.
 
 == 워크숍 소개
@@ -135,13 +166,15 @@ NOTE: URL을 새 탭에서 열려면 `ctrl + 클릭` 하십시오.
 
 TIP: 인증 오류가 발생하는 경우 **Try Again (다시 시도)**을 클릭하거나 상단 탭을 새로고침하십시오.
 
-어드민 로그인 자격 증명:
+여러분의 로그인 자격 증명입니다. 콘솔에서도 **본인 계정으로** 로그인하십시오:
 
 [cols="1,1"]
 |===
-| *사용자 이름:* | {openshift_cluster_admin_username}
-| *비밀번호:* | {openshift_cluster_admin_password}
+| *사용자 이름:* | {lab_user}
+| *비밀번호:* | {lab_user_password}
 |===
+
+NOTE: 관리자 계정으로 로그인하면 다른 참가자의 자원까지 보이게 됩니다. 본인 계정을 사용하십시오.
 
 === 2단계: 대시보드 개요
 

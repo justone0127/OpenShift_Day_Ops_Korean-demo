@@ -1,9 +1,11 @@
-.Console Access
+.콘솔 접속 정보
 [%collapsible]
 ====
-* *Username:* `{openshift_cluster_admin_username}`
-* *Password:* `{openshift_cluster_admin_password}`
-* *Console:* {openshift_cluster_console_url}[window=blank]
+* *사용자 이름:* `{lab_user}`
+* *비밀번호:* `{lab_user_password}`
+* *콘솔:* {openshift_cluster_console_url}[window=blank]
 
-TIP: We recommend using the **OCP Console** tab within this Showroom interface as it is easier to follow along.
+TIP: 이 Showroom 화면 상단의 **OCP Console** 탭을 쓰시면 창을 옮기지 않고 실습할 수 있습니다.
+
+NOTE: 관리자 계정이 아니라 **본인 계정**으로 로그인하십시오. 관리자로 접속하면 다른 참가자의 자원까지 보입니다.
 ====
