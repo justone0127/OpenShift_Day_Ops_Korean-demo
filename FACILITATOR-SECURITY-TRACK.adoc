@@ -154,6 +154,10 @@ RHDP/AgnosticV 환경이라면 이 스크립트를 프로비저닝 단계에 포
 * `vault` namespace: Vault pod Running + Route
 * `postgresql-spiffe` / `postgresql-spiffe-client`: 각각 `2/2 Running`
 
+NOTE: `openshift-zero-trust-workload-identity-manager` namespace 에
+`spire-spiffe-oidc-discovery-provider` 파드가 **없는 것이 정상**입니다.
+이 실습에서 쓰지 않아 배포하지 않습니다 (아래 _진행 시 주의점 → 모듈 2_ 참고).
+
 === 부분 실행
 
 [source,bash]
@@ -197,6 +201,32 @@ oc get securedcluster -n stackrox -o jsonpath='{.items[0].spec.admissionControl}
 === 모듈 2 — ZTWIM
 
 * SPIRE 구성이 가장 무겁습니다. **반드시 사전에 배포**해 두십시오.
+* **OIDC Discovery Provider 는 일부러 배포하지 않습니다.**
++
+--
+`SpireOIDCDiscoveryProvider` 는 JWT-SVID 를 OIDC 페더레이션(예: AWS IAM)에 연결하기 위한
+컴포넌트로, 이 실습(X509-SVID + PostgreSQL mTLS)에서는 사용하지 않습니다.
+
+배포하면 자신의 등록 엔트리가 에이전트에 전파되기 전까지 다음 로그를 반복하고
+그동안 파드가 Ready 가 되지 않습니다:
+
+[source,text]
+----
+level=error msg="No identity issued" method=FetchJWTBundles registered=false
+level=warning msg="Failed to fetch JWKS from the Workload API" error="... no identity issued"
+----
+
+쓰지도 않는 컴포넌트 때문에 "파드 하나가 안 뜬다"는 질문을 받게 되므로 제외했습니다.
+`oc get pods -n openshift-zero-trust-workload-identity-manager` 에
+`spire-spiffe-oidc-discovery-provider` 가 **보이지 않는 것이 정상**입니다.
+
+JWT-SVID/OIDC 확장 시나리오를 진행하려면 켤 수 있습니다:
+
+[source,bash]
+----
+ZTWIM_ENABLE_OIDC_PROVIDER=true ./configure-ztwim-lab.sh
+----
+--
 * `attacker` pod 실습에서 이미지 pull에 시간이 걸릴 수 있습니다(`registry.redhat.io` 인증 필요).
   실패하면 `oc get pod attacker -n postgresql-spiffe-client -o yaml | grep -A5 status` 로 확인하십시오.
 * 이 모듈의 감정적 정점은 **`attacker` pod가 거부되는 순간**입니다.
