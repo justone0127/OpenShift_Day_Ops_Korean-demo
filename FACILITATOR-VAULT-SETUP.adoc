@@ -27,11 +27,9 @@
 |===
 | 단계 | 명령
 
-| 1. 트랙 전체 준비 (Vault 포함)
-| `./setup-security-track.sh all`
+| 1. 전체 환경 준비 (Vault 포함)
+| `./setup-multiuser.sh deploy 30`
 
-| 1'. Vault 만 준비
-| `./setup-security-track.sh vault`
 
 | 2. 점검
 | `./verify-vault.sh`
@@ -42,11 +40,8 @@
 
 [NOTE]
 ====
-`all` 은 Vault 설치·구성·시드를 **포함**합니다. 따로 `vault` 를 실행할 필요가 없습니다.
-
-`all` 은 가이드 진행 순서(RHACS → ZTWIM → Secrets Management)대로 준비하고,
-마지막에 모듈별 결과를 `[✓]` / `[✗]` 로 요약합니다.
-하나라도 실패하면 **종료 코드 1** 을 반환하므로 프로비저닝 파이프라인에서 게이트로 쓸 수 있습니다.
+`deploy` 는 클러스터 공통 준비(RHACS admission, SPIRE 플랫폼, Vault 설치)를 한 번 수행한 뒤,
+사용자별 워크로드와 Vault 경로를 만듭니다. Vault 설치가 여기에 포함되므로 따로 실행할 필요가 없습니다.
 ====
 
 실행 위치는 bastion 의 `setup-scripts/security-track-scripts/` 이며,
@@ -56,15 +51,15 @@
 
 == 무엇이 설치되는가
 
-`setup-security-track.sh vault` 는 다음 순서로 동작합니다.
+`setup-multiuser.sh deploy` 의 Vault 관련 동작은 다음과 같습니다.
 
 [cols="1,2,3",options="header"]
 |===
 | 순서 | 수행 주체 | 내용
 
 | 1
-| `setup-security-track.sh`
-| `manifests/legacy-secret-app.yaml` 배포 — Kubernetes `Secret` 을 환경변수로 주입하는
+| `setup-multiuser.sh`
+| 사용자별 `legacy-secret-app` 배포 — Kubernetes `Secret` 을 환경변수로 주입하는
   비교 대상 애플리케이션 (`narupay` namespace)
 
 | 2
@@ -77,8 +72,8 @@
 | `read-policy` 생성, Kubernetes auth method 활성화 및 `vault-role` 구성
 
 | 4
-| `setup-security-track.sh`
-| 실습용 secret 시드 — `secret/narupay/payment-db` 에 `username` / `password` 기록
+| `setup-multiuser.sh`
+| 사용자별 secret 시드 — `secret/narupay/payment-db` 에 `username` / `password` 기록
 |===
 
 === 설치 형상
@@ -131,19 +126,18 @@ Vault 가 **dev mode** 로 뜹니다. 학습 전용 설정이며 두 가지를 �
 cd ~/
 git clone -b ocp-days-ops-1.0.0 https://github.com/justone0127/OpenShift_Day_Ops_Korean-demo.git
 cd OpenShift_Day_Ops_Korean-demo/setup-scripts/security-track-scripts
-./setup-security-track.sh vault
+./setup-multiuser.sh deploy 30
 ----
 
-보안 트랙 전체(모듈 1/2/3)를 한 번에 준비하려면 `all` 을 쓰십시오.
-**Vault 설치도 여기에 포함됩니다.** RHACS 와 ZTWIM 오퍼레이터는 이미 설치되어 있으므로
-해당 단계는 워크로드 배포와 구성만 수행합니다.
+`deploy` 하나로 전체가 준비됩니다. **Vault 설치도 여기에 포함됩니다.**
+RHACS 와 ZTWIM 오퍼레이터는 이미 설치되어 있으므로 워크로드 배포와 구성만 수행합니다.
 
 [source,bash]
 ----
-./setup-security-track.sh all
+./setup-multiuser.sh deploy 30
 ----
 
-Vault 단계는 다음을 순서대로 검증하며, 하나라도 실패하면 그 자리에서 `[✗]` 로 기록합니다:
+Vault 준비는 다음을 순서대로 수행합니다:
 
 . `install-vault.sh` 존재 및 실행 성공
 . Vault pod 가 **Ready** 될 때까지 대기 (최대 5분)
@@ -199,7 +193,7 @@ Vault 단계는 다음을 순서대로 검증하며, 하나라도 실패하면 �
 
 현재 `--fix` 가 처리하는 것은 **secret 재시드**입니다.
 dev mode 특성상 가장 자주 발생하는 문제이기 때문입니다.
-설치 자체가 안 되어 있으면 `setup-security-track.sh vault` 를 다시 실행해야 합니다.
+설치 자체가 안 되어 있으면 `setup-multiuser.sh deploy` 를 다시 실행해야 합니다.
 
 == 트러블슈팅
 
@@ -267,19 +261,18 @@ helm version --short
 == 정리
 
 보안 트랙 전체를 정리할 때 Vault 도 함께 제거됩니다.
-`cleanup` 은 SPIRE 플랫폼까지 지우고 namespace 삭제가 끝날 때까지 기다리므로,
-곧바로 `all` 로 재구성할 수 있습니다.
+`cleanup-all` 은 사용자 환경에 더해 SPIRE 플랫폼과 Vault 까지 제거합니다.
 
 [source,bash]
 ----
-./setup-security-track.sh cleanup
+./setup-multiuser.sh cleanup-all 30
 ----
 
-SPIRE 플랫폼은 그대로 두고 워크로드만 다시 배포하려면:
+사용자 환경만 정리하고 공유 플랫폼(SPIRE·Vault)은 유지하려면:
 
 [source,bash]
 ----
-./setup-security-track.sh cleanup-lab
+./setup-multiuser.sh cleanup 30
 ----
 
 Vault 만 제거하려면:

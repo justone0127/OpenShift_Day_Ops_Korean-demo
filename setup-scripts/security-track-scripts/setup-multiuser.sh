@@ -7,7 +7,8 @@
 #
 #   ./setup-multiuser.sh deploy 30    # user1~user30 + admin 환경 생성
 #   ./setup-multiuser.sh status 30    # 준비 상태 점검
-#   ./setup-multiuser.sh cleanup 30   # 전부 정리
+#   ./setup-multiuser.sh cleanup 30      # 사용자 환경만 정리
+#   ./setup-multiuser.sh cleanup-all 30  # 사용자 환경 + SPIRE/Vault 까지 정리
 #
 #   ./setup-multiuser.sh deploy 0                    # admin 것만 (확인용)
 #   EXTRA_USERS="" ./setup-multiuser.sh deploy 30    # 참가자 것만
@@ -420,6 +421,45 @@ cleanup_user() {
     vault kv metadata delete "secret/${u}-narupay/payment-db" >/dev/null 2>&1 || true
 }
 
+# SPIRE 플랫폼과 Vault 를 제거합니다. ZTWIM 오퍼레이터와 그 namespace 는 보존합니다 —
+# 실습 환경이 사전 설치해 제공하는 요소라 우리가 지울 대상이 아닙니다.
+#
+# SPIRE datastore PVC 를 함께 지우는 이유: 등록 엔트리와 CA 가 sqlite 에 남아 있으면
+# "새로 구성"해도 이전 상태가 그대로 살아납니다.
+ztwim_namespace() {
+  local ns cand
+  ns="$(oc get spireserver --all-namespaces \
+        -o jsonpath='{.items[0].metadata.namespace}' 2>/dev/null || true)"
+  if [[ -n "${ns}" ]]; then echo "${ns}"; return 0; fi
+  for cand in openshift-zero-trust-workload-identity-manager \
+              zero-trust-workload-identity-manager; do
+    if oc get ns "${cand}" >/dev/null 2>&1; then echo "${cand}"; return 0; fi
+  done
+  echo "openshift-zero-trust-workload-identity-manager"
+}
+
+cleanup_platform() {
+  local ns pvc
+  ns="$(ztwim_namespace)"
+
+  log "SPIRE 커스텀 리소스 제거 (namespace: ${ns})..."
+  oc delete spireoidcdiscoveryprovider,spireserver,spireagent,spiffecsidriver,zerotrustworkloadidentitymanager \
+    cluster -n "${ns}" --ignore-not-found --timeout=180s 2>/dev/null || true
+
+  log "SPIRE 서버 datastore PVC 제거..."
+  for pvc in $(oc get pvc -n "${ns}" -o name 2>/dev/null | grep -i spire || true); do
+    oc delete "${pvc}" -n "${ns}" --ignore-not-found --timeout=120s 2>/dev/null || true
+  done
+  oc delete configmap spire-bundle -n "${ns}" --ignore-not-found >/dev/null 2>&1 || true
+
+  if [[ -x "${VAULT_SCRIPTS}/cleanup-vault-lab.sh" ]]; then
+    log "Vault 제거..."
+    "${VAULT_SCRIPTS}/cleanup-vault-lab.sh" || warn "Vault 제거 실패"
+  fi
+
+  log "ZTWIM 오퍼레이터와 namespace ${ns} 는 그대로 둡니다 (실습 환경 제공 요소)."
+}
+
 do_cleanup() {
   hr
   log "환경 정리 — $(describe_target)"
@@ -431,13 +471,29 @@ do_cleanup() {
   hr
 }
 
+# 사용자 환경 + 공유 플랫폼(SPIRE, Vault)까지 전부 정리합니다.
+# 클러스터를 처음부터 다시 구성할 때 씁니다.
+do_cleanup_all() {
+  hr
+  log "전체 정리 — $(describe_target) + 공유 플랫폼"
+  hr
+  each_user cleanup_user
+  cleanup_platform
+  hr
+  log "정리 완료. 이제 $0 deploy <인원수> 로 새로 구성할 수 있습니다."
+  log "RHACS 정책의 Enforcement 설정은 콘솔에서 수동으로 되돌려야 합니다"
+  log "  (Policy Management → Latest tag → Response method → Inform only)"
+  hr
+}
+
 main() {
   [[ -n "${ACTION}" ]] || usage
   require_oc
   case "${ACTION}" in
     deploy)  do_deploy ;;
     status)  do_status ;;
-    cleanup) do_cleanup ;;
+    cleanup)     do_cleanup ;;
+    cleanup-all) do_cleanup_all ;;
     -h|--help|help) usage ;;
     *) err "알 수 없는 액션: ${ACTION}" ;;
   esac

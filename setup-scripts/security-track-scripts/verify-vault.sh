@@ -3,8 +3,8 @@
 # 모듈 3 (Secrets Management) Vault 사전 구성 확인 스크립트
 #
 # 실습 환경에는 RHACS 와 ZTWIM 오퍼레이터가 사전 설치되어 있지만
-# Vault 는 포함되어 있지 않습니다. setup-security-track.sh vault 로 설치한 뒤
-# 이 스크립트로 모듈 3 진행에 필요한 것이 모두 준비됐는지 점검하십시오.
+# Vault 는 포함되어 있지 않습니다. setup-multiuser.sh deploy 가 설치하며,
+# 이 스크립트로 모듈 3 진행에 필요한 것이 모두 준비됐는지 점검합니다.
 #
 #   ./verify-vault.sh          # 점검만
 #   ./verify-vault.sh --fix    # 문제가 있으면 재구성 시도
@@ -15,8 +15,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VAULT_NS="${VAULT_NAMESPACE:-vault}"
-NARUPAY_NS="${NARUPAY_NS:-narupay}"
-SECRET_PATH="${VAULT_SECRET_PATH:-secret/narupay/payment-db}"
+NARUPAY_NS="${NARUPAY_NS:-user1-narupay}"
+SECRET_PATH="${VAULT_SECRET_PATH:-secret/user1-narupay/payment-db}"
 FIX=0
 [[ "${1:-}" == "--fix" ]] && FIX=1
 
@@ -62,7 +62,7 @@ if oc get ns "${VAULT_NS}" >/dev/null 2>&1; then
   ok "namespace ${VAULT_NS} 존재"
 else
   bad "namespace ${VAULT_NS} 가 없습니다 — Vault 가 설치되지 않았습니다"
-  info "해결: ./setup-security-track.sh vault"
+  info "해결: ./setup-multiuser.sh deploy"
 fi
 
 POD="$(vault_pod)"
@@ -76,7 +76,7 @@ if [[ -n "${POD}" ]]; then
   fi
 else
   bad "Vault server pod 를 찾을 수 없습니다"
-  info "해결: ./setup-security-track.sh vault"
+  info "해결: ./setup-multiuser.sh deploy"
 fi
 
 # ── 2. Route (참가자가 UI 로 접속) ───────────────────────────────────
@@ -130,7 +130,7 @@ if [[ -n "${POD}" ]]; then
         bad "재시드 실패"
       fi
     else
-      info "해결: ./verify-vault.sh --fix  또는  ./setup-security-track.sh vault"
+      info "해결: ./verify-vault.sh --fix  또는  ./setup-multiuser.sh deploy"
     fi
   fi
 fi
@@ -158,7 +158,7 @@ if oc get deployment legacy-secret-app -n "${NARUPAY_NS}" >/dev/null 2>&1; then
   fi
 else
   bad "deployment/legacy-secret-app 이 없습니다 (${NARUPAY_NS})"
-  info "해결: ./setup-security-track.sh vault"
+  info "해결: ./setup-multiuser.sh deploy"
 fi
 
 if oc get secret payment-db-creds -n "${NARUPAY_NS}" >/dev/null 2>&1; then
