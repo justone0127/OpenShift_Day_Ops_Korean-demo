@@ -205,7 +205,7 @@ EXTRA_USERS="" ./setup-multiuser.sh deploy 30    # 참가자 것만
 EXTRA_USERS="admin lab-user" ./setup-multiuser.sh deploy 30
 ----
 
-진행자 화면에서 `admin-narupay` 를 보려면 Showroom 인스턴스에 `LAB_USER=admin` 을 지정하십시오.
+이 구성에서는 네임스페이스에 접두사가 붙으므로, 가이드의 네임스페이스 표기도 함께 조정해야 합니다.
 ====
 
 사용자당 만들어지는 것:
