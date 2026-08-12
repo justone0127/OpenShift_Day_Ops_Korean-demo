@@ -12,14 +12,11 @@
 # 실제 동작은 setup-multiuser.sh 의 단일 사용자 모드입니다.
 # 로직을 한 곳에 두어 두 경로가 어긋나지 않게 했습니다.
 #
-# 만들어지는 네임스페이스는 가이드와 동일하게 접두사가 붙습니다:
-#   user1-narupay / user1-postgresql-spiffe / user1-postgresql-spiffe-client
+# 접두사 없는 네임스페이스를 만듭니다:
+#   narupay / postgresql-spiffe / postgresql-spiffe-client
 #
-# 계정 이름을 바꾸려면 LAB_USER 를 지정하십시오:
-#   LAB_USER=admin ./setup-security-track.sh all
-#
-# 참가자는 가이드 첫 단계에서 같은 이름을 지정합니다:
-#   export LAB_USER=user1
+# 참가자는 가이드 첫 단계에서 LAB_USER 를 비워 두면 됩니다:
+#   export LAB_USER=
 #
 set -euo pipefail
 
@@ -31,9 +28,8 @@ MULTIUSER="${SCRIPT_DIR}/setup-multiuser.sh"
   exit 1
 }
 
-# 번호 사용자를 만들지 않고, LAB_USER(기본 user1) 하나만 배포합니다.
-export USER_PREFIX="${USER_PREFIX:-user}"
-export EXTRA_USERS="${LAB_USER:-user1}"
+# 번호 사용자를 만들지 않고, 접두사 없는 단일 환경만 배포합니다.
+export EXTRA_USERS="__none__"
 
 ACTION="${1:-all}"
 

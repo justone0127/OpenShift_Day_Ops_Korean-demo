@@ -66,6 +66,23 @@ hr()   { echo "-----------------------------------------------------------------
 
 FAILED_USERS=()
 
+# 단일 사용자(접두사 없음) 모드를 나타내는 사용자 이름입니다.
+# setup-security-track.sh 가 이 값을 넘겨 narupay / postgresql-spiffe 처럼
+# 접두사 없는 네임스페이스를 만듭니다.
+NONE_USER='__none__'
+
+# 사용자 이름 → 네임스페이스 접두사 ("user1-" 또는 "")
+ns_prefix() {
+  [[ "$1" == "${NONE_USER}" ]] && { echo ""; return 0; }
+  echo "$1-"
+}
+
+# 로그에 표시할 이름
+display_user() {
+  [[ "$1" == "${NONE_USER}" ]] && { echo "단일 사용자"; return 0; }
+  echo "$1"
+}
+
 usage() {
   sed -n '2,35p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 1
@@ -99,22 +116,20 @@ render_narupay() {
 
 # ZTWIM 매니페스트: Namespace 이름, namespace 필드, namespaceSelector,
 # ClusterSPIFFEID 이름, 서비스 FQDN 을 치환
+# pfx 가 빈 문자열이면 모든 치환이 원본과 같아져 매니페스트가 그대로 적용됩니다.
 render_ztwim() {
-  local file="$1" prefix="$2" base="$3"    # base: postgresql-spiffe | postgresql-spiffe-client
-  local ns="${prefix}-${base}"
-  awk -v ns="${ns}" -v base="${base}" -v prefix="${prefix}" '
+  local file="$1" pfx="$2" base="$3"    # base: postgresql-spiffe | postgresql-spiffe-client
+  local ns="${pfx}${base}"
+  awk -v ns="${ns}" -v base="${base}" -v pfx="${pfx}" '
     /^kind:/ { kind = $2 }
     # Namespace 오브젝트의 이름
     kind == "Namespace" && $0 == "  name: " base { print "  name: " ns; next }
     # ClusterSPIFFEID 는 클러스터 범위라 사용자별로 고유해야 함
-    kind == "ClusterSPIFFEID" && $0 ~ /^  name: / { print "  name: " prefix "-" base; next }
+    kind == "ClusterSPIFFEID" && $0 ~ /^  name: / { print "  name: " ns; next }
     {
-      # namespace 필드
       gsub("^  namespace: " base "$", "  namespace: " ns)
-      # namespaceSelector 의 metadata.name 라벨
       gsub("kubernetes.io/metadata.name: " base "$", "kubernetes.io/metadata.name: " ns)
-      # 서비스 FQDN (postgresql-spiffe.postgresql-spiffe.svc)
-      gsub("postgresql-spiffe\\.postgresql-spiffe\\.svc", "postgresql-spiffe." prefix "-postgresql-spiffe.svc")
+      gsub("postgresql-spiffe\\.postgresql-spiffe\\.svc", "postgresql-spiffe." pfx "postgresql-spiffe.svc")
       print
     }
   ' "${file}"
@@ -244,12 +259,13 @@ vault_pod() {
 }
 
 seed_vault_for_user() {
-  local u="$1" pod
+  local u="$1" pod pfx
+  pfx="$(ns_prefix "${u}")"
   pod="$(vault_pod)"
   [[ -n "${pod}" ]] || return 1
   oc exec -n "${VAULT_NS}" "${pod}" -- env \
     VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
-    vault kv put "secret/${u}-narupay/payment-db" \
+    vault kv put "secret/${pfx}narupay/payment-db" \
       username=narupay_app password='NaruPay2024!@#' >/dev/null 2>&1
 }
 
@@ -258,12 +274,13 @@ seed_vault_for_user() {
 # ─────────────────────────────────────────────────────────────────────
 
 deploy_user() {
-  local u="$1"
-  local ns_pay="${u}-narupay"
-  local ns_srv="${u}-postgresql-spiffe"
-  local ns_cli="${u}-postgresql-spiffe-client"
+  local u="$1" pfx
+  pfx="$(ns_prefix "${u}")"
+  local ns_pay="${pfx}narupay"
+  local ns_srv="${pfx}postgresql-spiffe"
+  local ns_cli="${pfx}postgresql-spiffe-client"
 
-  log "[${u}] 배포 중..."
+  log "[$(display_user "${u}")] 배포 중..."
 
   # 모듈 1 / 3 — 나루페이 워크로드
   render_narupay "${MANIFEST_DIR}/payment-api-vulnerable.yaml" "${ns_pay}" | oc apply -f - >/dev/null
@@ -279,19 +296,22 @@ deploy_user() {
 
   # 모듈 2 — ZTWIM 실습 워크로드
   if [[ -f "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe.yaml" ]]; then
-    render_ztwim "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe.yaml" "${u}" postgresql-spiffe \
+    render_ztwim "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe.yaml" "${pfx}" postgresql-spiffe \
       | oc apply -f - >/dev/null
-    render_ztwim "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe-client.yaml" "${u}" postgresql-spiffe-client \
+    render_ztwim "${ZTWIM_SCRIPTS}/demo-postgresql-spiffe-client.yaml" "${pfx}" postgresql-spiffe-client \
       | oc apply -f - >/dev/null
   fi
 
-  # 권한 — 계정은 환경이 이미 만들어 두었다고 가정하고 RoleBinding 만 부여
-  local ns
-  for ns in "${ns_pay}" "${ns_srv}" "${ns_cli}"; do
-    oc get ns "${ns}" >/dev/null 2>&1 || continue
-    oc adm policy add-role-to-user admin "${u}" -n "${ns}" >/dev/null 2>&1 || \
-      warn "[${u}] ${ns} RoleBinding 실패"
-  done
+  # 권한 — 계정은 환경이 이미 만들어 두었다고 가정하고 RoleBinding 만 부여.
+  # 단일 사용자 모드에서는 이미 cluster-admin 이므로 건너뜁니다.
+  if [[ "${u}" != "${NONE_USER}" ]]; then
+    local ns
+    for ns in "${ns_pay}" "${ns_srv}" "${ns_cli}"; do
+      oc get ns "${ns}" >/dev/null 2>&1 || continue
+      oc adm policy add-role-to-user admin "${u}" -n "${ns}" >/dev/null 2>&1 || \
+        warn "[${u}] ${ns} RoleBinding 실패"
+    done
+  fi
 
   # 모듈 3 — Vault 경로 시드
   seed_vault_for_user "${u}" || warn "[${u}] Vault 시드 실패"
@@ -362,19 +382,20 @@ do_deploy() {
 }
 
 check_user() {
-  local u="$1"
-  local ns_pay="${u}-narupay"
+  local u="$1" pfx
+  pfx="$(ns_prefix "${u}")"
+  local ns_pay="${pfx}narupay"
   local pay sec leg srv cli vault_ok mark
 
   pay="$(oc get deploy payment-api -n "${ns_pay}" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || echo 0)"
   sec="$(oc get deploy payment-api-secure -n "${ns_pay}" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || echo 0)"
   leg="$(oc get deploy legacy-secret-app -n "${ns_pay}" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || echo 0)"
-  srv="$(oc get deploy postgresql-spiffe -n "${u}-postgresql-spiffe" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || echo 0)"
-  cli="$(oc get deploy postgresql-spiffe-client -n "${u}-postgresql-spiffe-client" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || echo 0)"
+  srv="$(oc get deploy postgresql-spiffe -n "${pfx}postgresql-spiffe" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || echo 0)"
+  cli="$(oc get deploy postgresql-spiffe-client -n "${pfx}postgresql-spiffe-client" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || echo 0)"
 
   if oc exec -n "${VAULT_NS}" "$(vault_pod)" -- env \
        VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
-       vault kv get "secret/${u}-narupay/payment-db" >/dev/null 2>&1; then
+       vault kv get "secret/${pfx}narupay/payment-db" >/dev/null 2>&1; then
     vault_ok="✓"
   else
     vault_ok="✗"
@@ -388,8 +409,8 @@ check_user() {
     FAILED_USERS+=("${u}")
   fi
 
-  printf "  [%s] %-10s narupay(%s/%s/%s)  spiffe(%s/%s)  vault(%s)\n" \
-    "${mark}" "${u}" "${pay:-0}" "${sec:-0}" "${leg:-0}" "${srv:-0}" "${cli:-0}" "${vault_ok}"
+  printf "  [%s] %-14s narupay(%s/%s/%s)  spiffe(%s/%s)  vault(%s)\n" \
+    "${mark}" "$(display_user "${u}")" "${pay:-0}" "${sec:-0}" "${leg:-0}" "${srv:-0}" "${cli:-0}" "${vault_ok}"
 }
 
 do_status() {
@@ -407,18 +428,19 @@ do_status() {
 }
 
 cleanup_user() {
-  local u="$1"
-  log "[${u}] 정리 중..."
-  oc delete ns "${u}-narupay" "${u}-postgresql-spiffe" "${u}-postgresql-spiffe-client" \
+  local u="$1" pfx
+  pfx="$(ns_prefix "${u}")"
+  log "[$(display_user "${u}")] 정리 중..."
+  oc delete ns "${pfx}narupay" "${pfx}postgresql-spiffe" "${pfx}postgresql-spiffe-client" \
     --ignore-not-found --wait=false >/dev/null 2>&1 || true
   # ClusterSPIFFEID 는 클러스터 범위라 네임스페이스와 함께 지워지지 않습니다
-  oc delete clusterspiffeid "${u}-postgresql-spiffe" "${u}-postgresql-spiffe-client" \
+  oc delete clusterspiffeid "${pfx}postgresql-spiffe" "${pfx}postgresql-spiffe-client" \
     --ignore-not-found >/dev/null 2>&1 || true
   local pod
   pod="$(vault_pod)"
   [[ -n "${pod}" ]] && oc exec -n "${VAULT_NS}" "${pod}" -- env \
     VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
-    vault kv metadata delete "secret/${u}-narupay/payment-db" >/dev/null 2>&1 || true
+    vault kv metadata delete "secret/${pfx}narupay/payment-db" >/dev/null 2>&1 || true
 }
 
 # SPIRE 플랫폼과 Vault 를 제거합니다. ZTWIM 오퍼레이터와 그 namespace 는 보존합니다 —

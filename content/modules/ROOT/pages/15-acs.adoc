@@ -41,7 +41,7 @@ NOTE: RHACS 콘솔에는 진행자가 안내한 자격 증명으로 로그인하
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc get deployment -n $LAB_USER-narupay -l workshop=narupay-security-track \
+oc get deployment -n ${NS}narupay -l workshop=narupay-security-track \
   -L posture -o wide
 ----
 +
@@ -255,7 +255,7 @@ oc get securedcluster -n stackrox -o jsonpath='{.items[0].spec.admissionControl}
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc extract configmap/narupay-lab-manifests -n $LAB_USER-narupay --to=$HOME/narupay-lab --confirm
+oc extract configmap/narupay-lab-manifests -n ${NS}narupay --to=$HOME/narupay-lab --confirm
 ls $HOME/narupay-lab
 ----
 +
@@ -263,7 +263,7 @@ ls $HOME/narupay-lab
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc delete deployment payment-api -n $LAB_USER-narupay
+oc delete deployment payment-api -n ${NS}narupay
 sleep 5
 oc apply -f $HOME/narupay-lab/payment-api-vulnerable.yaml
 ----
@@ -295,7 +295,7 @@ Policy: Latest tag
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
 oc apply -f $HOME/narupay-lab/payment-api-secure.yaml
-oc get deployment payment-api-secure -n $LAB_USER-narupay
+oc get deployment payment-api-secure -n ${NS}narupay
 ----
 
 === 두 매니페스트는 무엇이 달랐나

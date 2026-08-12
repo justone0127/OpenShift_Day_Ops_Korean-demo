@@ -120,8 +120,8 @@ spiffe://<trust-domain>/ns/<namespace>/sa/<serviceaccount>
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc get pods -n $LAB_USER-postgresql-spiffe
-oc get pods -n $LAB_USER-postgresql-spiffe-client
+oc get pods -n ${NS}postgresql-spiffe
+oc get pods -n ${NS}postgresql-spiffe-client
 ----
 +
 [NOTE]
@@ -133,7 +133,7 @@ pod가 보이지 않으면 진행자에게 알려 주십시오.
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc rsh -n $LAB_USER-postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
+oc rsh -n ${NS}postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
   sh -c 'openssl x509 -in /opt/postgresql-certs/svid.pem -noout -subject -dates -ext subjectAltName'
 ----
 +
@@ -184,8 +184,8 @@ X509v3 Subject Alternative Name:
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc rsh -n $LAB_USER-postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
-  psql "host=postgresql-spiffe.$LAB_USER-postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb sslmode=verify-full sslcert=/opt/postgresql-certs/svid.pem sslkey=/opt/postgresql-certs/svid.key sslrootcert=/opt/postgresql-certs/svid_bundle.pem" \
+oc rsh -n ${NS}postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
+  psql "host=postgresql-spiffe.${NS}postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb sslmode=verify-full sslcert=/opt/postgresql-certs/svid.pem sslkey=/opt/postgresql-certs/svid.key sslrootcert=/opt/postgresql-certs/svid_bundle.pem" \
   -c "SELECT current_user, ssl_is_used();"
 ----
 +
@@ -210,10 +210,10 @@ DB는 "이 연결이 누구인가"를 **인증서로** 판단했고, 비밀번�
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
 oc run attacker --image=registry.redhat.io/rhel9/postgresql-16:latest \
-  -n $LAB_USER-postgresql-spiffe-client --command -- sleep infinity
-oc wait --for=condition=Ready pod/attacker -n $LAB_USER-postgresql-spiffe-client --timeout=90s
-oc exec -n $LAB_USER-postgresql-spiffe-client attacker -- \
-  psql "host=postgresql-spiffe.$LAB_USER-postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb" 2>&1 | head -3
+  -n ${NS}postgresql-spiffe-client --command -- sleep infinity
+oc wait --for=condition=Ready pod/attacker -n ${NS}postgresql-spiffe-client --timeout=90s
+oc exec -n ${NS}postgresql-spiffe-client attacker -- \
+  psql "host=postgresql-spiffe.${NS}postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb" 2>&1 | head -3
 ----
 +
 예상 출력:
@@ -240,7 +240,7 @@ DNS로 서버 이름을 해석할 수 있고, 5432 포트에 도달합니다.
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
-oc delete pod attacker -n $LAB_USER-postgresql-spiffe-client
+oc delete pod attacker -n ${NS}postgresql-spiffe-client
 ----
 
 ++++
