@@ -57,7 +57,7 @@
 
 [IMPORTANT]
 ====
-참가자 가이드에는 `setup-multiuser.sh` 를 실행하는 절차가 **없습니다.**
+참가자 가이드에는 배포 스크립트를 실행하는 절차가 **없습니다.**
 워크로드가 없으면 참가자에게는 "진행자에게 알려 주십시오"라고만 안내됩니다.
 따라서 아래 사전 준비는 반드시 진행자가 완료해 두셔야 합니다.
 ====
@@ -88,15 +88,15 @@
 
 | *RHACS* (Central + SecuredCluster)
 | 사전 설치됨
-| 워크로드 배포만 (`setup-multiuser.sh deploy`)
+| 워크로드 배포만 (배포 스크립트가 수행)
 
 | *ZTWIM 오퍼레이터*
 | 사전 설치됨
-| SPIRE 구성·실습 워크로드 배포 (`setup-multiuser.sh deploy`)
+| SPIRE 구성·실습 워크로드 배포 (배포 스크립트가 수행)
 
 | *HashiCorp Vault*
 | **포함되어 있지 않음**
-| **직접 설치·구성해야 합니다** (`setup-multiuser.sh deploy` 에 포함)
+| **직접 설치·구성해야 합니다** (배포 스크립트에 포함)
 |===
 
 [IMPORTANT]
@@ -109,15 +109,14 @@ Vault 는 실습 환경에 포함되어 있지 않습니다. 설치 형상, 점�
 
 === 실행
 
-배포 스크립트는 **`setup-multiuser.sh` 하나**입니다. 클러스터를 여러 참가자가 공유하든,
-참가자마다 클러스터를 하나씩 받든 동일하게 사용합니다.
+참가자가 받는 **각 클러스터에서 한 번씩** 실행합니다.
 
 [source,bash]
 ----
 cd ~/
 git clone -b ocp-days-ops-1.0.0 https://github.com/justone0127/OpenShift_Day_Ops_Korean-demo.git
 cd OpenShift_Day_Ops_Korean-demo/setup-scripts/security-track-scripts
-./setup-multiuser.sh deploy 30
+./setup-security-track.sh all
 ----
 
 [cols="2,3",options="header"]
@@ -144,15 +143,15 @@ cd OpenShift_Day_Ops_Korean-demo/setup-scripts/security-track-scripts
 이 경우에만 네임스페이스에 `user1-` 같은 접두사가 붙습니다.
 ====
 
-`deploy` 는 클러스터 공통 준비를 한 번 수행한 뒤 사용자별 리소스를 만듭니다:
+수행 순서입니다:
 
 . RHACS admission controller 활성화 (모듈 1 차단 시연에 필요)
 . SPIRE 플랫폼 구성 — 이미 있으면 건너뜁니다
 . Vault 설치·구성 — 이미 있으면 건너뜁니다
-. 공유 자원 읽기 권한 부여 (`stackrox` / `vault` 의 route 조회)
-. 사용자별 네임스페이스·워크로드·RoleBinding·Vault 경로
+. `narupay` / `postgresql-spiffe` / `postgresql-spiffe-client` 네임스페이스와 워크로드 배포
+. Vault 에 `secret/narupay/payment-db` 시드
 
-30명 기준 약 10~15분 소요됩니다. 대부분 Vault Helm 설치와 SPIRE 구성 대기 시간입니다.
+약 8~12분 소요됩니다. 대부분 Vault Helm 설치와 SPIRE 구성 대기 시간입니다.
 
 [IMPORTANT]
 ====
@@ -166,20 +165,16 @@ RHDP/AgnosticV 환경이라면 이 스크립트를 프로비저닝 단계에 포
 
 [source,bash]
 ----
-./setup-multiuser.sh status 30
+./setup-security-track.sh status
 ./verify-vault.sh              # Vault 상세 점검 (실패 시 종료 코드 1)
 ----
 
-`status` 는 사용자별로 한 줄씩 출력합니다:
-
 [source,text]
 ----
-  [✓] user1      narupay(1/1/1)  spiffe(1/1)  vault(✓)
-  [✓] user2      narupay(1/1/1)  spiffe(1/1)  vault(✓)
-  [✗] user3      narupay(1/1/0)  spiffe(1/0)  vault(✓)
+  [✓] 단일 사용자    narupay(1/1/1)  spiffe(1/1)  vault(✓)
 ----
 
-전원 `✓` 가 나올 때까지 몇 번 다시 실행해 보십시오. SPIRE SVID 발급에 1~2분 걸릴 수 있습니다.
+`✓` 가 나올 때까지 몇 번 다시 실행해 보십시오. SPIRE SVID 발급에 1~2분 걸릴 수 있습니다.
 
 NOTE: `openshift-zero-trust-workload-identity-manager` namespace 에
 `spire-spiffe-oidc-discovery-provider` 파드가 **없는 것이 정상**입니다.
@@ -267,41 +262,11 @@ NOTE: 이 권한이 없으면 해당 명령에서 `Forbidden` 이 납니다.
 추가 계정은 `EXTRA_USERS` 로 바꿀 수 있습니다.
 
 [IMPORTANT]
-.참가자는 가이드 첫 단계에서 본인 계정을 직접 입력합니다
+.이 경우에만 가이드를 손봐야 합니다
 ====
-가이드는 네임스페이스를 **빌드 시점이 아니라 실행 시점에** 결정합니다.
-`설정 및 개요` 첫 단계에서 참가자가 다음을 실행합니다:
-
-[source,bash]
-----
-export LAB_USER=user1                      # 배정받은 계정으로 변경
-export API=$(oc whoami --show-server)
-export KUBECONFIG=/tmp/kubeconfig-$LAB_USER
-oc login -u $LAB_USER $API
-----
-
-이후 모든 명령이 `$LAB_USER-narupay` 처럼 해석됩니다.
-
-이 방식을 택한 이유는 세 가지입니다:
-
-* Showroom 파드가 재시작하며 리포를 새로 clone 하면 주입한 값이 사라집니다.
-  실행 시점 결정이면 영향을 받지 않습니다
-* 클러스터 API 주소를 `oc whoami --show-server` 로 얻으므로,
-  이벤트 당일 주소가 바뀌어도 가이드를 고칠 필요가 없습니다
-* 터미널 서버를 공유하는 경우 `KUBECONFIG` 분리로 서로의 로그인이 덮어써지지 않습니다
-
-**진행자가 안내해야 할 것은 계정 이름과 비밀번호뿐입니다.**
-가이드에는 `user1` 이 예시로 적혀 있으니, 참가자에게 본인 계정으로 바꾸라고 알려 주십시오.
-====
-
-[WARNING]
-.터미널이 끊기면 다시 설정해야 합니다
-====
-`export` 는 셸 세션에 종속됩니다. 연결이 끊기면 `LAB_USER` 와 `KUBECONFIG` 가 사라져
-`Forbidden` 이나 `namespace not found` 가 납니다.
-
-가이드에도 경고를 넣어 두었지만, 세션 중 이런 오류가 나오면
-**첫 단계 네 줄을 다시 실행하라**고 안내하시면 됩니다.
+기본 가이드는 `narupay` 처럼 접두사 없는 네임스페이스를 전제로 쓰여 있습니다.
+클러스터를 공유하는 구성으로 진행하시려면 참가자에게 본인 접두사를 안내하거나,
+가이드의 네임스페이스 표기를 해당 방식에 맞게 조정해야 합니다.
 ====
 
 [NOTE]
