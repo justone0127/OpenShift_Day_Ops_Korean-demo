@@ -115,21 +115,21 @@ deploy_lab() {
     return 0
   fi
 
-  if ! server_deployed; then
-    log "Deploying PostgreSQL server with SPIFFE integration..."
-    prepare_namespace "${SERVER_NS}" postgresql-spiffe
-    oc apply -f "${SCRIPT_DIR}/demo-postgresql-spiffe.yaml"
-  else
-    log "PostgreSQL server already deployed — skipping apply"
-  fi
+  # oc apply 는 멱등이므로 이미 배포되어 있어도 그대로 다시 적용합니다.
+  # 건너뛰면 자기 복구가 안 됩니다 — 예를 들어 RHACS enforcement 로 replicas 가
+  # 0 으로 내려간 경우, Deployment 는 존재하므로 건너뛰고 파드는 영원히 뜨지 않습니다.
+  log "Deploying PostgreSQL server with SPIFFE integration..."
+  prepare_namespace "${SERVER_NS}" postgresql-spiffe
+  oc apply -f "${SCRIPT_DIR}/demo-postgresql-spiffe.yaml"
 
-  if ! client_deployed; then
-    log "Deploying PostgreSQL client with SPIFFE integration..."
-    prepare_namespace "${CLIENT_NS}" postgresql-spiffe-client
-    oc apply -f "${SCRIPT_DIR}/demo-postgresql-spiffe-client.yaml"
-  else
-    log "PostgreSQL client already deployed — skipping apply"
-  fi
+  log "Deploying PostgreSQL client with SPIFFE integration..."
+  prepare_namespace "${CLIENT_NS}" postgresql-spiffe-client
+  oc apply -f "${SCRIPT_DIR}/demo-postgresql-spiffe-client.yaml"
+
+  # 매니페스트에 replicas 가 명시되어 있어 apply 만으로 0 → 1 로 복구되지만,
+  # 혹시 다른 이유로 0 이면 명시적으로 올립니다.
+  oc scale deployment postgresql-spiffe -n "${SERVER_NS}" --replicas=1 >/dev/null 2>&1 || true
+  oc scale deployment postgresql-spiffe-client -n "${CLIENT_NS}" --replicas=1 >/dev/null 2>&1 || true
 
   log "Waiting for pods to become Ready..."
   oc wait --for=condition=Ready pod -l app=postgresql-spiffe -n "${SERVER_NS}" --timeout=300s
