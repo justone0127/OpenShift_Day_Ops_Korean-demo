@@ -226,9 +226,30 @@ oc exec -n postgresql-spiffe-client attacker -- \
 +
 [source,text,subs="+attributes"]
 ----
-psql: error: connection to server at "postgresql-spiffe.postgresql-spiffe.svc" failed:
-FATAL:  connection requires a valid client certificate
+psql: error: connection to server at "postgresql-spiffe.postgresql-spiffe.svc" (172.x.x.x),
+port 5432 failed: FATAL:  connection requires a valid client certificate
+connection to server at "postgresql-spiffe.postgresql-spiffe.svc" (172.x.x.x),
+port 5432 failed: FATAL:  pg_hba.conf rejects connection for host "10.x.x.x",
+user "postgresql_spiffe", database "testdb", no encryption
 ----
++
+오류가 **두 줄**인 데는 이유가 있습니다. `psql` 은 먼저 TLS로 붙어 보고,
+실패하면 암호화 없이 한 번 더 시도합니다.
+
+[cols="1,2",options="header"]
+|===
+| 시도 | 거부 사유
+
+| TLS 연결
+| `connection requires a valid client certificate` +
+  — 유효한 클라이언트 인증서가 없습니다
+
+| 평문 연결
+| `pg_hba.conf rejects connection ... no encryption` +
+  — 암호화되지 않은 연결은 아예 받지 않습니다
+|===
+
+**두 경로 모두 막혔습니다.** 우회로가 없습니다.
 
 [IMPORTANT]
 ====
