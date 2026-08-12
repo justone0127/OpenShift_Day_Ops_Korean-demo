@@ -1,4 +1,4 @@
-// 보안 트랙 전용 스타일 + 인터랙티브 퀴즈 + 실습 계정 입력 위젯.
+// 보안 트랙 전용 스타일 + 인터랙티브 퀴즈.
 //
 // 보안 트랙 페이지 상단에서 include 하십시오:
 //   include::partial$nrp-assets.adoc[]
@@ -11,8 +11,5 @@ include::example$nrp-security.css[]
 </style>
 <script>
 include::example$nrp-quiz.js[]
-</script>
-<script>
-include::example$nrp-config.js[]
 </script>
 ++++
