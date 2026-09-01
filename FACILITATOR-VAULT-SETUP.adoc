@@ -60,7 +60,7 @@
 | 1
 | `setup-multiuser.sh`
 | 사용자별 `legacy-secret-app` 배포 — Kubernetes `Secret` 을 환경변수로 주입하는
-  비교 대상 애플리케이션 (`narupay` namespace)
+  비교 대상 애플리케이션 (`redpay` namespace)
 
 | 2
 | `vault-config-scripts/install-vault.sh`
@@ -73,7 +73,7 @@
 
 | 4
 | `setup-multiuser.sh`
-| 사용자별 secret 시드 — `secret/narupay/payment-db` 에 `username` / `password` 기록
+| 사용자별 secret 시드 — `secret/redpay/payment-db` 에 `username` / `password` 기록
 |===
 
 === 설치 형상
@@ -141,7 +141,7 @@ Vault 준비는 다음을 순서대로 수행합니다:
 
 . `install-vault.sh` 존재 및 실행 성공
 . Vault pod 가 **Ready** 될 때까지 대기 (최대 5분)
-. `secret/narupay/payment-db` 를 기록한 뒤 **다시 읽어서** 확인
+. `secret/redpay/payment-db` 를 기록한 뒤 **다시 읽어서** 확인
 
 마지막 3번이 중요합니다. dev mode 특성상 "기록 성공"과 "실제로 읽힘"이 다를 수 있어,
 읽기까지 확인해야 모듈 3 이 실제로 진행 가능한 상태입니다.
@@ -172,7 +172,7 @@ Vault 준비는 다음을 순서대로 수행합니다:
 | dev mode 자동 unseal 이 정상인지 (`sealed: false`)
 
 | 4. 실습용 secret
-| `secret/narupay/payment-db` 에 `username` / `password` 가 있는지
+| `secret/redpay/payment-db` 에 `username` / `password` 가 있는지
 
 | 5. Kubernetes auth
 | `kubernetes` auth method 활성화 여부
@@ -291,7 +291,7 @@ Vault 만 제거하려면:
 | 순서 | 내용
 
 | 1
-| `oc get secret payment-db-creds -n narupay ... \| base64 -d` — Secret 이 그냥 풀린다는 확인
+| `oc get secret payment-db-creds -n redpay ... \| base64 -d` — Secret 이 그냥 풀린다는 확인
 
 | 2
 | `oc exec ... env \| grep DB_` — **이 모듈의 하이라이트.**

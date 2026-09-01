@@ -37,14 +37,14 @@ A comprehensive modular workshop for OpenShift administrators. Modules are selec
 * *link:content/modules/ROOT/pages/12-developer-hub.adoc[12 - Developer Hub]* (25-30 min) - Software catalog, Topology plugin, software templates, platform architecture
 * *link:content/modules/ROOT/pages/13-openshift-lightspeed.adoc[13 - OpenShift Lightspeed]* (15-20 min) - AI assistant, OLSConfig creation, console integration
 * *link:content/modules/ROOT/pages/14-acm.adoc[14 - ACM Multi-Cluster Management]* (30 min) - ACM, hosted control planes, VM management, GitOps app deployment, policy-based governance
-*Security Track (나루페이 침해사고 시나리오)*
+*Security Track (레드페이 침해사고 시나리오)*
 
 세 모듈은 하나의 침해사고를 3단계 공격으로 나누어, 각 단계를 막는 방어선을 순서대로 다룹니다.
 실습 워크로드는 진행자가 사전 배포 스크립트로 준비하며, 참가자 가이드에는 설치·정리 절차가 없습니다.
 참가자는 긴 YAML을 붙여넣지 않고 관찰과 판단에만 집중합니다.
 가이드 중간중간 이해도 확인 퀴즈(접기식 해설 포함)가 배치되어 있습니다.
 
-* *link:content/modules/ROOT/pages/15-00-security-story.adoc[인트로 - 보안 트랙 시작: 나루페이 침해사고]* (10 min) - 침해사고 스토리, 공격 경로/방어선 다이어그램, 피해 집계, 워밍업 퀴즈
+* *link:content/modules/ROOT/pages/15-00-security-story.adoc[인트로 - 보안 트랙 시작: 레드페이 침해사고]* (10 min) - 침해사고 스토리, 공격 경로/방어선 다이어그램, 피해 집계, 워밍업 퀴즈
 * *link:content/modules/ROOT/pages/15-acs.adoc[모듈 1 - Advanced Cluster Security]* (15 min) - 사전 배포된 취약/강화 워크로드 비교, Violations와 CVE 확인, 정책 Enforce 전환과 배포 차단 시연
 * *link:content/modules/ROOT/pages/17-ztwim.adoc[모듈 2 - Zero-Trust Workload Identity Manager]* (10 min) - SPIFFE 워크로드 신원(SVID) 확인, 비밀번호 없는 mTLS 연결, 무권한 접속 거부 확인
 * *link:content/modules/ROOT/pages/16-secrets-management.adoc[모듈 3 - Secrets Management]* (10 min) - Kubernetes Secret의 실제 보호 수준 확인, Vault가 바꾸는 것, 전달 패턴 비교, 보안 트랙 마무리

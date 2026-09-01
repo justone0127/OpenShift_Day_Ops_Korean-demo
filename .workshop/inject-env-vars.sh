@@ -85,7 +85,7 @@ ATTRS="${ATTRS}    toclevels: 2"$'\n'
 LAB_USER_VALUE="${LAB_USER:-${USER_NAME:-user1}}"
 ATTRS="${ATTRS}    lab_user: '${LAB_USER_VALUE}'"$'\n'
 ATTRS="${ATTRS}    lab_user_password: '${LAB_USER_PASSWORD:-${ADMIN_PASSWORD:-}}'"$'\n'
-ATTRS="${ATTRS}    narupay_ns: '${NARUPAY_NS:-${LAB_USER_VALUE}-narupay}'"$'\n'
+ATTRS="${ATTRS}    redpay_ns: '${REDPAY_NS:-${LAB_USER_VALUE}-redpay}'"$'\n'
 ATTRS="${ATTRS}    spiffe_server_ns: '${SPIFFE_SERVER_NS:-${LAB_USER_VALUE}-postgresql-spiffe}'"$'\n'
 ATTRS="${ATTRS}    spiffe_client_ns: '${SPIFFE_CLIENT_NS:-${LAB_USER_VALUE}-postgresql-spiffe-client}'"$'\n'
 
@@ -157,11 +157,11 @@ if [ -f "$ANTORA_YML" ]; then
   echo "Injecting multi-user attributes into antora.yml (lab_user=${LAB_USER_VALUE})..."
   sed -i -E "s|^( +lab_user:).*|\1 '${LAB_USER_VALUE}'|" "$ANTORA_YML"
   sed -i -E "s|^( +lab_user_password:).*|\1 '${LAB_USER_PASSWORD:-${ADMIN_PASSWORD:-}}'|" "$ANTORA_YML"
-  sed -i -E "s|^( +narupay_ns:).*|\1 '${NARUPAY_NS:-${LAB_USER_VALUE}-narupay}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +redpay_ns:).*|\1 '${REDPAY_NS:-${LAB_USER_VALUE}-redpay}'|" "$ANTORA_YML"
   sed -i -E "s|^( +spiffe_server_ns:).*|\1 '${SPIFFE_SERVER_NS:-${LAB_USER_VALUE}-postgresql-spiffe}'|" "$ANTORA_YML"
   sed -i -E "s|^( +spiffe_client_ns:).*|\1 '${SPIFFE_CLIENT_NS:-${LAB_USER_VALUE}-postgresql-spiffe-client}'|" "$ANTORA_YML"
   sed -i -E "s|^( +api_url:).*|\1 '${API_URL:-}'|" "$ANTORA_YML"
-  grep -E "^ +(lab_user|lab_user_password|narupay_ns|spiffe_server_ns|spiffe_client_ns|api_url):" "$ANTORA_YML"
+  grep -E "^ +(lab_user|lab_user_password|redpay_ns|spiffe_server_ns|spiffe_client_ns|api_url):" "$ANTORA_YML"
 fi
 
 echo "=== Antora injection complete ==="

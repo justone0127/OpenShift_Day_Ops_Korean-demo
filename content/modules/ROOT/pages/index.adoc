@@ -25,9 +25,9 @@ oc whoami
 +
 . 실습 워크로드가 준비되어 있는지 확인합니다:
 +
-[source,bash,role="execute"]
+[source,bash,subs="+attributes",role="execute"]
 ----
-oc get deployment -n narupay
+oc get deployment -n {redpay_ns}
 ----
 +
 다음 세 개가 보이면 준비가 완료되었습니다:
@@ -39,7 +39,7 @@ payment-api-secure   # 강화 버전  — 모듈 1
 legacy-secret-app    # Secret 주입 방식 — 모듈 3
 ----
 +
-NOTE: 세 개가 모두 보이지 않거나 `narupay` 네임스페이스 자체가 없다면
+NOTE: 세 개가 모두 보이지 않거나 `{redpay_ns}` 네임스페이스 자체가 없다면
   진행자에게 알려 주십시오. 실습 환경 준비는 진행자가 담당합니다.
 
 == 워크숍 소개

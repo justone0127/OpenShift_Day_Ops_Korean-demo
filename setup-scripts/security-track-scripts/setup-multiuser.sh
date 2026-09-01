@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 나루페이 보안 트랙 — 다중 사용자 배포 스크립트
+# 레드페이 보안 트랙 — 다중 사용자 배포 스크립트
 #
 # 참가자마다 계정(user1, user2, ...)이 하나씩 주어지는 환경을 위해,
 # 사용자별로 격리된 실습 네임스페이스와 워크로드를 생성합니다.
@@ -15,12 +15,12 @@
 #   EXTRA_USERS="admin lab-user" ./setup-multiuser.sh deploy 30
 #
 # 사용자당 생성되는 것:
-#   userN-narupay                    payment-api, payment-api-secure, legacy-secret-app
+#   userN-redpay                    payment-api, payment-api-secure, legacy-secret-app
 #   userN-postgresql-spiffe          PostgreSQL 서버 + ClusterSPIFFEID
 #   userN-postgresql-spiffe-client   클라이언트 + ClusterSPIFFEID
 #   RoleBinding                      userN 에게 위 세 네임스페이스 admin 권한
 #   ConfigMap                        모듈 1 차단 시연용 매니페스트 사본
-#   Vault                            secret/userN-narupay/payment-db
+#   Vault                            secret/userN-redpay/payment-db
 #
 # 계정(user1~userN)은 실습 환경이 이미 생성해 제공한다고 가정합니다.
 # 이 스크립트는 계정을 만들지 않고 권한만 부여합니다.
@@ -67,7 +67,7 @@ hr()   { echo "-----------------------------------------------------------------
 FAILED_USERS=()
 
 # 단일 사용자(접두사 없음) 모드를 나타내는 사용자 이름입니다.
-# setup-security-track.sh 가 이 값을 넘겨 narupay / postgresql-spiffe 처럼
+# setup-security-track.sh 가 이 값을 넘겨 redpay / postgresql-spiffe 처럼
 # 접두사 없는 네임스페이스를 만듭니다.
 NONE_USER='__none__'
 
@@ -103,13 +103,13 @@ require_oc() {
 # 예외는 ClusterSPIFFEID 로, 클러스터 범위 리소스라 이름이 겹치면 안 됩니다.
 # ─────────────────────────────────────────────────────────────────────
 
-# narupay 매니페스트: Namespace 이름과 namespace 필드만 치환
-render_narupay() {
+# redpay 매니페스트: Namespace 이름과 namespace 필드만 치환
+render_redpay() {
   local file="$1" ns="$2"
   awk -v ns="${ns}" '
     /^kind:/ { kind = $2 }
-    kind == "Namespace" && /^  name: narupay$/ { print "  name: " ns; next }
-    /^  namespace: narupay$/                   { print "  namespace: " ns; next }
+    kind == "Namespace" && /^  name: redpay$/ { print "  name: " ns; next }
+    /^  namespace: redpay$/                   { print "  namespace: " ns; next }
     { print }
   ' "${file}"
 }
@@ -198,7 +198,7 @@ grant_shared_read() {
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: narupay-lab-reader
+  name: redpay-lab-reader
   namespace: ${VAULT_NS}
 rules:
   - apiGroups: ["route.openshift.io"]
@@ -208,12 +208,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: narupay-lab-reader
+  name: redpay-lab-reader
   namespace: ${VAULT_NS}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: narupay-lab-reader
+  name: redpay-lab-reader
 subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
@@ -227,7 +227,7 @@ EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: narupay-lab-reader
+  name: redpay-lab-reader
   namespace: ${STACKROX_NS}
 rules:
   - apiGroups: ["route.openshift.io"]
@@ -240,12 +240,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: narupay-lab-reader
+  name: redpay-lab-reader
   namespace: ${STACKROX_NS}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: narupay-lab-reader
+  name: redpay-lab-reader
 subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
@@ -283,8 +283,8 @@ seed_vault_for_user() {
   [[ -n "${pod}" ]] || return 1
   oc exec -n "${VAULT_NS}" "${pod}" -- env \
     VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
-    vault kv put "secret/${pfx}narupay/payment-db" \
-      username=narupay_app password='NaruPay2024!@#' >/dev/null 2>&1
+    vault kv put "secret/${pfx}redpay/payment-db" \
+      username=redpay_app password='RedPay2024!@#' >/dev/null 2>&1
 }
 
 # ─────────────────────────────────────────────────────────────────────
@@ -294,28 +294,28 @@ seed_vault_for_user() {
 deploy_user() {
   local u="$1" pfx
   pfx="$(ns_prefix "${u}")"
-  local ns_pay="${pfx}narupay"
+  local ns_pay="${pfx}redpay"
   local ns_srv="${pfx}postgresql-spiffe"
   local ns_cli="${pfx}postgresql-spiffe-client"
 
   log "[$(display_user "${u}")] 배포 중..."
 
-  # 모듈 1 / 3 — 나루페이 워크로드
+  # 모듈 1 / 3 — 레드페이 워크로드
   # 매니페스트에 Namespace 가 함께 들어 있지만, 뒤따르는 리소스가
   # "namespace not found" 로 실패하지 않도록 먼저 만들어 둡니다.
   oc create namespace "${ns_pay}" >/dev/null 2>&1 || true
   local m
-  for m in payment-api-vulnerable payment-api-secure legacy-secret-app narupay-vault-app; do
-    if ! render_narupay "${MANIFEST_DIR}/${m}.yaml" "${ns_pay}" | oc apply -f - >/dev/null; then
+  for m in payment-api-vulnerable payment-api-secure legacy-secret-app redpay-vault-app; do
+    if ! render_redpay "${MANIFEST_DIR}/${m}.yaml" "${ns_pay}" | oc apply -f - >/dev/null; then
       warn "[$(display_user "${u}")] ${m} 배포 실패"
     fi
   done
 
   # 모듈 1 의 차단 시연에서 참가자가 다시 apply 할 매니페스트.
   # 사용자마다 터미널이 다르므로 파일 대신 ConfigMap 으로 제공합니다.
-  oc create configmap narupay-lab-manifests -n "${ns_pay}" \
-    --from-file=payment-api-vulnerable.yaml=<(render_narupay "${MANIFEST_DIR}/payment-api-vulnerable.yaml" "${ns_pay}") \
-    --from-file=payment-api-secure.yaml=<(render_narupay "${MANIFEST_DIR}/payment-api-secure.yaml" "${ns_pay}") \
+  oc create configmap redpay-lab-manifests -n "${ns_pay}" \
+    --from-file=payment-api-vulnerable.yaml=<(render_redpay "${MANIFEST_DIR}/payment-api-vulnerable.yaml" "${ns_pay}") \
+    --from-file=payment-api-secure.yaml=<(render_redpay "${MANIFEST_DIR}/payment-api-secure.yaml" "${ns_pay}") \
     --dry-run=client -o yaml | oc apply -f - >/dev/null
 
   # 모듈 2 — ZTWIM 실습 워크로드
@@ -456,7 +456,7 @@ do_deploy() {
 check_user() {
   local u="$1" pfx
   pfx="$(ns_prefix "${u}")"
-  local ns_pay="${pfx}narupay"
+  local ns_pay="${pfx}redpay"
   local pay sec leg srv cli vault_ok mark
 
   pay="$(oc get deploy payment-api -n "${ns_pay}" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || echo 0)"
@@ -467,7 +467,7 @@ check_user() {
 
   if oc exec -n "${VAULT_NS}" "$(vault_pod)" -- env \
        VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
-       vault kv get "secret/${pfx}narupay/payment-db" >/dev/null 2>&1; then
+       vault kv get "secret/${pfx}redpay/payment-db" >/dev/null 2>&1; then
     vault_ok="✓"
   else
     vault_ok="✗"
@@ -481,7 +481,7 @@ check_user() {
     FAILED_USERS+=("${u}")
   fi
 
-  printf "  [%s] %-14s narupay(%s/%s/%s)  spiffe(%s/%s)  vault(%s)\n" \
+  printf "  [%s] %-14s redpay(%s/%s/%s)  spiffe(%s/%s)  vault(%s)\n" \
     "${mark}" "$(display_user "${u}")" "${pay:-0}" "${sec:-0}" "${leg:-0}" "${srv:-0}" "${cli:-0}" "${vault_ok}"
 }
 
@@ -503,7 +503,7 @@ cleanup_user() {
   local u="$1" pfx
   pfx="$(ns_prefix "${u}")"
   log "[$(display_user "${u}")] 정리 중..."
-  oc delete ns "${pfx}narupay" "${pfx}postgresql-spiffe" "${pfx}postgresql-spiffe-client" \
+  oc delete ns "${pfx}redpay" "${pfx}postgresql-spiffe" "${pfx}postgresql-spiffe-client" \
     --ignore-not-found --wait=false >/dev/null 2>&1 || true
   # ClusterSPIFFEID 는 클러스터 범위라 네임스페이스와 함께 지워지지 않습니다
   oc delete clusterspiffeid "${pfx}postgresql-spiffe" "${pfx}postgresql-spiffe-client" \
@@ -512,7 +512,7 @@ cleanup_user() {
   pod="$(vault_pod)"
   [[ -n "${pod}" ]] && oc exec -n "${VAULT_NS}" "${pod}" -- env \
     VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
-    vault kv metadata delete "secret/${pfx}narupay/payment-db" >/dev/null 2>&1 || true
+    vault kv metadata delete "secret/${pfx}redpay/payment-db" >/dev/null 2>&1 || true
 }
 
 # SPIRE 플랫폼과 Vault 를 제거합니다. ZTWIM 오퍼레이터와 그 namespace 는 보존합니다 —

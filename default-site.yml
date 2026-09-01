@@ -42,7 +42,7 @@ asciidoc:
     module_enable_devhub: 'false'
     module_enable_ols: 'false'
     module_enable_acm: 'false'
-    # Security Track — 나루페이 침해사고 (활성)
+    # Security Track — 레드페이 침해사고 (활성)
     module_enable_security: 'true'
     module_enable_ztwim: 'true'
     module_enable_vault: 'true'

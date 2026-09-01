@@ -15,8 +15,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VAULT_NS="${VAULT_NAMESPACE:-vault}"
-NARUPAY_NS="${NARUPAY_NS:-narupay}"
-SECRET_PATH="${VAULT_SECRET_PATH:-secret/narupay/payment-db}"
+REDPAY_NS="${REDPAY_NS:-redpay}"
+SECRET_PATH="${VAULT_SECRET_PATH:-secret/redpay/payment-db}"
 FIX=0
 [[ "${1:-}" == "--fix" ]] && FIX=1
 
@@ -124,7 +124,7 @@ if [[ -n "${POD}" ]]; then
     if [[ "${FIX}" -eq 1 ]]; then
       info "--fix: secret 을 다시 기록합니다..."
       if vault_exec "${POD}" vault kv put "${SECRET_PATH}" \
-           username=narupay_app password='NaruPay2024!@#' >/dev/null; then
+           username=redpay_app password='RedPay2024!@#' >/dev/null; then
         ok "재시드 완료"
       else
         bad "재시드 실패"
@@ -149,19 +149,19 @@ fi
 
 # ── 6. 비교 대상 애플리케이션 ────────────────────────────────────────
 head_ "6. legacy-secret-app (Secret 주입 방식 비교 대상)"
-if oc get deployment legacy-secret-app -n "${NARUPAY_NS}" >/dev/null 2>&1; then
-  AVAIL="$(oc get deployment legacy-secret-app -n "${NARUPAY_NS}" -o jsonpath='{.status.availableReplicas}' 2>/dev/null)"
+if oc get deployment legacy-secret-app -n "${REDPAY_NS}" >/dev/null 2>&1; then
+  AVAIL="$(oc get deployment legacy-secret-app -n "${REDPAY_NS}" -o jsonpath='{.status.availableReplicas}' 2>/dev/null)"
   if [[ "${AVAIL:-0}" -ge 1 ]]; then
-    ok "legacy-secret-app 실행 중 (${NARUPAY_NS})"
+    ok "legacy-secret-app 실행 중 (${REDPAY_NS})"
   else
     bad "legacy-secret-app 이 준비되지 않았습니다 (available=${AVAIL:-0})"
   fi
 else
-  bad "deployment/legacy-secret-app 이 없습니다 (${NARUPAY_NS})"
+  bad "deployment/legacy-secret-app 이 없습니다 (${REDPAY_NS})"
   info "해결: ./setup-multiuser.sh deploy"
 fi
 
-if oc get secret payment-db-creds -n "${NARUPAY_NS}" >/dev/null 2>&1; then
+if oc get secret payment-db-creds -n "${REDPAY_NS}" >/dev/null 2>&1; then
   ok "secret/payment-db-creds 존재 (첫 번째 실습에서 사용)"
 else
   bad "secret/payment-db-creds 가 없습니다"

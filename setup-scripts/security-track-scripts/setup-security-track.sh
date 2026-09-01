@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 나루페이 보안 트랙 — 단일 사용자 환경 배포
+# 레드페이 보안 트랙 — 단일 사용자 환경 배포
 #
 # 참가자가 한 명이거나, 참가자마다 클러스터를 하나씩 받는 구성에서 씁니다.
 #
@@ -13,7 +13,7 @@
 # 로직을 한 곳에 두어 두 경로가 어긋나지 않게 했습니다.
 #
 # 접두사 없는 네임스페이스를 만듭니다:
-#   narupay / postgresql-spiffe / postgresql-spiffe-client
+#   redpay / postgresql-spiffe / postgresql-spiffe-client
 #
 # 참가자는 가이드 첫 단계에서 LAB_USER 를 비워 두면 됩니다:
 #   export LAB_USER=

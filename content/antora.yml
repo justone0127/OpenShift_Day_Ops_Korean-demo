@@ -20,7 +20,7 @@ asciidoc:
     lab_user: 'user1'
     lab_user_password: '(진행자에게 받은 비밀번호)'
     api_url: 'https://api.example.com:6443'
-    narupay_ns: 'user1-narupay'
+    redpay_ns: 'user1-redpay'
     spiffe_server_ns: 'user1-postgresql-spiffe'
     spiffe_client_ns: 'user1-postgresql-spiffe-client'
     ssh_user: lab-user

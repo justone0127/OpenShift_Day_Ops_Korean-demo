@@ -65,12 +65,12 @@ endif::[]
 ifeval::["{module_enable_acm}" == "true"]
 * xref:14-acm.adoc[ACM Multi-Cluster Management]
 endif::[]
-// Security Track — 나루페이 침해사고 시나리오
+// Security Track — 레드페이 침해사고 시나리오
 // 진행 순서: 인트로 → 모듈 1 RHACS → 모듈 2 ZTWIM → 모듈 3 Secrets Management
 // 파일명의 15/16/17 은 전체 로드쇼(01~14)와 번호가 겹치지 않도록 유지한 것이며,
 // 참가자에게 보이는 순서·번호는 아래 목차가 결정합니다.
 ifeval::["{module_enable_security}" == "true"]
-* xref:15-00-security-story.adoc[보안 트랙 시작 — 나루페이 침해사고]
+* xref:15-00-security-story.adoc[보안 트랙 시작 — 레드페이 침해사고]
 * xref:15-acs.adoc[모듈 1 — Advanced Cluster Security]
 endif::[]
 ifeval::["{module_enable_ztwim}" == "true"]

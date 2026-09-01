@@ -35,7 +35,7 @@ output:
 # In production, these are injected by the showroom workload via user_data
 # For local preview, set a module to "true" to show it in the navigation.
 #
-# 현재 구성: 보안 트랙(나루페이 침해사고) 전용.
+# 현재 구성: 보안 트랙(레드페이 침해사고) 전용.
 # 15/16/17 만 켜고 나머지는 꺼 둡니다. 다시 켜려면 'true' 로 바꾸면 됩니다.
 asciidoc:
   attributes:
@@ -60,7 +60,7 @@ asciidoc:
     module_enable_devhub: 'false'
     module_enable_ols: 'false'
     module_enable_acm: 'false'
-    # Security Track — 나루페이 침해사고 (활성)
+    # Security Track — 레드페이 침해사고 (활성)
     module_enable_security: 'true'
     module_enable_ztwim: 'true'
     module_enable_vault: 'true'

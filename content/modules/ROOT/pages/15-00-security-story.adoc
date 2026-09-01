@@ -1,4 +1,4 @@
-= 보안 트랙 시작 — 나루페이 침해사고
+= 보안 트랙 시작 — 레드페이 침해사고
 :page-toclevels: 1
 
 == 모듈 개요
@@ -14,7 +14,7 @@ include::partial$nrp-assets.adoc[]
 [IMPORTANT]
 .여러분의 역할
 ====
-여러분은 국내 간편결제 서비스 **나루페이(NaruPay)** 의 **플랫폼 운영 담당자**입니다.
+여러분은 국내 간편결제 서비스 **레드페이(RedPay)** 의 **플랫폼 운영 담당자**입니다.
 
 결제 API가 도는 OpenShift 클러스터를 여러분이 책임지고 있습니다. 배포도, 접근 권한도,
 새벽에 울리는 알림을 받는 것도 여러분입니다.
@@ -33,20 +33,21 @@ include::partial$nrp-assets.adoc[]
 
 새벽 세 시 사십칠 분. 여러분의 휴대폰이 울립니다.
 
+[subs="attributes"]
 ++++
 <div class="nrp-alert">
   <div class="nrp-alert-head"><span class="nrp-dot"></span>PagerDuty · CRITICAL · P1</div>
-  <div class="nrp-alert-title">나루페이 결제 API — 아웃바운드 트래픽 급증</div>
+  <div class="nrp-alert-title">레드페이 결제 API — 아웃바운드 트래픽 급증</div>
   <dl>
     <dt>트래픽</dt><dd><span class="nrp-spike">정상 대비 4,200% ↑</span></dd>
     <dt>목적지</dt><dd>185.***.***.42 <span style="color:#a0a0a0">(미등록 해외 IP)</span></dd>
-    <dt>발신</dt><dd>payment-api-7d9f4b · namespace narupay</dd>
+    <dt>발신</dt><dd>payment-api-7d9f4b · namespace {redpay_ns}</dd>
     <dt>지속 시간</dt><dd>41분 (탐지까지)</dd>
   </dl>
 </div>
 ++++
 
-여러분이 운영하는 나루페이는 일 거래 120만 건, 회원 380만 명의 서비스입니다.
+여러분이 운영하는 레드페이는 일 거래 120만 건, 회원 380만 명의 서비스입니다.
 고객의 카드번호와 계좌 정보를 다룹니다.
 
 그리고 지금, 그 데이터가 어딘가로 빠져나가고 있습니다.
@@ -152,7 +153,7 @@ include::partial$nrp-assets.adoc[]
 image: payment-api:latest   # ← 태그가 latest
 env:
   - name: DB_PASSWORD       # ← 자격 증명이 평문 환경변수로
-    value: "NaruPay2024!@#"
+    value: "RedPay2024!@#"
 # resources 없음           ← 노드 자원을 전부 소진시킬 수 있음
 # securityContext 없음     ← 불필요한 권한 유지
 ----
@@ -174,13 +175,13 @@ env:
 [source,bash]
 ----
 $ env | grep -i pass
-DB_PASSWORD=NaruPay2024!@#
+DB_PASSWORD=RedPay2024!@#
 
 $ oc get secret payment-db-creds -o jsonpath='{.data.password}'
 TnVyaVBheTIwMjQhQCM=
 
 $ echo "TnVyaVBheTIwMjQhQCM=" | base64 -d
-NaruPay2024!@#
+RedPay2024!@#
 ----
 
 **Kubernetes Secret의 `data` 값은 암호화가 아니라 Base64 인코딩입니다.**
@@ -341,7 +342,7 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
 
 ++++
 <div class="nrp-quiz" data-answer="B">
-  <div class="nrp-quiz-q">Q0-1. 나루페이의 CI 파이프라인에는 이미지 스캔이 있었습니다. 그런데도 뚫린 이유로 <strong>가장 적절한</strong> 것은?</div>
+  <div class="nrp-quiz-q">Q0-1. 레드페이의 CI 파이프라인에는 이미지 스캔이 있었습니다. 그런데도 뚫린 이유로 <strong>가장 적절한</strong> 것은?</div>
 
   <label class="nrp-opt"><input type="radio" name="nrp-q01" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">스캔 도구의 탐지율이 낮아서</span></label>
   <label class="nrp-opt"><input type="radio" name="nrp-q01" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">배포 이후에 공개된 CVE와, 클러스터에 실제로 떠 있는 것을 아무도 지속적으로 보지 않아서</span></label>
