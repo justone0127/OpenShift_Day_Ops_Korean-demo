@@ -25,7 +25,7 @@ include::partial$nrp-assets.adoc[]
 
 [NOTE]
 ====
-이 페이지는 이어지는 세 개의 모듈(*RHACS* → *ZTWIM* → *Secrets Management*)을 하나의 사건으로 묶는 도입부입니다.
+이 페이지는 이어지는 세 개의 모듈(*배포 차단선* → *신원 증명선* → *비밀 통제선*)을 하나의 사건으로 묶는 도입부입니다.
 각 모듈은 이 사건의 **공격 단계 하나씩**을 막습니다.
 ====
 
@@ -258,9 +258,9 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
 
   <!-- 모듈 라벨 -->
   <g font-size="12" font-weight="700" fill="#3e8635" text-anchor="middle">
-    <text x="200" y="22">모듈 1 · RHACS</text>
-    <text x="420" y="22">모듈 3 · Vault</text>
-    <text x="640" y="22">모듈 2 · ZTWIM</text>
+    <text x="200" y="22">모듈 1 · 배포 차단선</text>
+    <text x="420" y="22">모듈 3 · 비밀 통제선</text>
+    <text x="640" y="22">모듈 2 · 신원 증명선</text>
   </g>
 
   <!-- 세워진 방어선 -->
@@ -315,19 +315,19 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
 ++++
 <div class="nrp-defense">
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 1 · RHACS</div>
+    <div class="nrp-def-num">모듈 1 · 배포 차단선</div>
     <div class="nrp-def-title">배포되지 못하게</div>
     <div class="nrp-def-blocks">1단계 — 취약한 이미지와 과도한 권한</div>
     <div class="nrp-def-body">취약한 컨테이너가 <strong>애초에 뜨지 못하게</strong> 만듭니다. 배포 시점에 정책 위반을 차단하고, 실행 중인 컨테이너를 계속 감시합니다.</div>
   </div>
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 2 · ZTWIM</div>
+    <div class="nrp-def-num">모듈 2 · 신원 증명선</div>
     <div class="nrp-def-title">훔칠 것 자체를 없애</div>
     <div class="nrp-def-blocks">3단계 — 네트워크 위치 기반 신뢰</div>
     <div class="nrp-def-body">워크로드가 암호학적 신원(<strong>SVID</strong>)을 갖습니다. IP가 아니라 신원으로 신뢰하므로, 내부에 들어와도 통과하지 못합니다.</div>
   </div>
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 3 · Secrets</div>
+    <div class="nrp-def-num">모듈 3 · 비밀 통제선</div>
     <div class="nrp-def-title">남은 비밀은 통제 아래로</div>
     <div class="nrp-def-blocks">2단계 — 훔칠 수 있는 정적 비밀번호</div>
     <div class="nrp-def-body">신원으로 대체할 수 없는 비밀은 전용 저장소가 보관합니다. 수명·감사·정책이 붙고, 필요한 순간에만 <strong>짧은 수명</strong>으로 발급됩니다.</div>
@@ -395,4 +395,4 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
 
 == 다음 단계
 
-준비가 되셨으면 첫 번째 방어선인 xref:15-acs.adoc[RHACS 모듈]로 이동하십시오.
+준비가 되셨으면 첫 번째 방어선인 xref:15-acs.adoc[모듈 1 · 배포 차단선]으로 이동하십시오.
