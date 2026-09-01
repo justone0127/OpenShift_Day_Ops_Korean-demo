@@ -15,8 +15,8 @@
 # 접두사 없는 네임스페이스를 만듭니다:
 #   redpay / postgresql-spiffe / postgresql-spiffe-client
 #
-# 참가자는 가이드 첫 단계에서 LAB_USER 를 비워 두면 됩니다:
-#   export LAB_USER=
+# 워크샵 매뉴얼(content/antora.yml 의 redpay_ns 등)도 같은 이름을 기본값으로
+# 쓰므로 참가자가 따로 설정할 것은 없습니다.
 #
 set -euo pipefail
 
@@ -39,7 +39,7 @@ case "${ACTION}" in
   cleanup)     exec "${MULTIUSER}" cleanup 0 ;;
   cleanup-all) exec "${MULTIUSER}" cleanup-all 0 ;;
   -h|--help|help)
-    sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     exit 1
     ;;
   *)

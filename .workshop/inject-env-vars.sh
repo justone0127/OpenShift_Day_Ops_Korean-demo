@@ -79,15 +79,22 @@ ATTRS="${ATTRS}    module_enable_vault: '${MODULE_ENABLE_VAULT:-true}'"$'\n'
 # TOC depth - only show main sections
 ATTRS="${ATTRS}    toclevels: 2"$'\n'
 
-# 보안 트랙 다중 사용자 배포 — 참가자마다 네임스페이스가 분리됩니다.
-# LAB_USER 는 이 Showroom 인스턴스를 쓰는 참가자 계정(user1, user2, ...)입니다.
-# setup-multiuser.sh 가 만드는 네임스페이스 이름과 반드시 일치해야 합니다.
+# 보안 트랙 네임스페이스.
+#
+# 기본 구성은 참가자마다 클러스터를 하나씩 받는 방식이므로, 접두사 없는
+# 이름을 씁니다. setup-security-track.sh 가 만드는 이름과 같습니다.
+#
+# 여러 참가자가 클러스터 하나를 공유하는 구성(setup-multiuser.sh deploy N)
+# 에서만 아래 세 변수를 Showroom 인스턴스별로 넘기십시오:
+#   REDPAY_NS=user1-redpay
+#   SPIFFE_SERVER_NS=user1-postgresql-spiffe
+#   SPIFFE_CLIENT_NS=user1-postgresql-spiffe-client
 LAB_USER_VALUE="${LAB_USER:-${USER_NAME:-user1}}"
 ATTRS="${ATTRS}    lab_user: '${LAB_USER_VALUE}'"$'\n'
 ATTRS="${ATTRS}    lab_user_password: '${LAB_USER_PASSWORD:-${ADMIN_PASSWORD:-}}'"$'\n'
-ATTRS="${ATTRS}    redpay_ns: '${REDPAY_NS:-${LAB_USER_VALUE}-redpay}'"$'\n'
-ATTRS="${ATTRS}    spiffe_server_ns: '${SPIFFE_SERVER_NS:-${LAB_USER_VALUE}-postgresql-spiffe}'"$'\n'
-ATTRS="${ATTRS}    spiffe_client_ns: '${SPIFFE_CLIENT_NS:-${LAB_USER_VALUE}-postgresql-spiffe-client}'"$'\n'
+ATTRS="${ATTRS}    redpay_ns: '${REDPAY_NS:-redpay}'"$'\n'
+ATTRS="${ATTRS}    spiffe_server_ns: '${SPIFFE_SERVER_NS:-postgresql-spiffe}'"$'\n'
+ATTRS="${ATTRS}    spiffe_client_ns: '${SPIFFE_CLIENT_NS:-postgresql-spiffe-client}'"$'\n'
 
 # Standard workshop variables
 ATTRS="${ATTRS}    api_url: '${API_URL:-}'"$'\n'
@@ -150,16 +157,16 @@ if [ -f "$ANTORA_YML" ] && ! grep -q 'ols_azure_url' "$ANTORA_YML"; then
   echo "    ols_azure_url: '${OLS_AZURE_URL:-}'" >> "$ANTORA_YML"
 fi
 
-# 다중 사용자 속성은 반드시 antora.yml 에도 반영해야 합니다.
+# 네임스페이스 속성은 반드시 antora.yml 에도 반영해야 합니다.
 # 보안 트랙의 명령어 블록이 subs="+attributes" 를 쓰기 때문에, 여기에 없으면
-# 모든 참가자가 antora.yml 의 기본값(user1)을 보게 됩니다.
+# 참가자가 antora.yml 의 기본값을 그대로 보게 됩니다.
 if [ -f "$ANTORA_YML" ]; then
-  echo "Injecting multi-user attributes into antora.yml (lab_user=${LAB_USER_VALUE})..."
+  echo "Injecting workshop attributes into antora.yml (redpay_ns=${REDPAY_NS:-redpay})..."
   sed -i -E "s|^( +lab_user:).*|\1 '${LAB_USER_VALUE}'|" "$ANTORA_YML"
   sed -i -E "s|^( +lab_user_password:).*|\1 '${LAB_USER_PASSWORD:-${ADMIN_PASSWORD:-}}'|" "$ANTORA_YML"
-  sed -i -E "s|^( +redpay_ns:).*|\1 '${REDPAY_NS:-${LAB_USER_VALUE}-redpay}'|" "$ANTORA_YML"
-  sed -i -E "s|^( +spiffe_server_ns:).*|\1 '${SPIFFE_SERVER_NS:-${LAB_USER_VALUE}-postgresql-spiffe}'|" "$ANTORA_YML"
-  sed -i -E "s|^( +spiffe_client_ns:).*|\1 '${SPIFFE_CLIENT_NS:-${LAB_USER_VALUE}-postgresql-spiffe-client}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +redpay_ns:).*|\1 '${REDPAY_NS:-redpay}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +spiffe_server_ns:).*|\1 '${SPIFFE_SERVER_NS:-postgresql-spiffe}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +spiffe_client_ns:).*|\1 '${SPIFFE_CLIENT_NS:-postgresql-spiffe-client}'|" "$ANTORA_YML"
   sed -i -E "s|^( +api_url:).*|\1 '${API_URL:-}'|" "$ANTORA_YML"
   grep -E "^ +(lab_user|lab_user_password|redpay_ns|spiffe_server_ns|spiffe_client_ns|api_url):" "$ANTORA_YML"
 fi

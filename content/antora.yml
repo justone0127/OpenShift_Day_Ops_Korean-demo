@@ -14,15 +14,20 @@ asciidoc:
     # 이 리포지토리를 포크했다면 아래 두 값을 포크 주소로 바꾸십시오.
     workshop_repo_url: 'https://github.com/justone0127/OpenShift_Day_Ops_Korean-demo.git'
     workshop_repo_dir: 'OpenShift_Day_Ops_Korean-demo'
-    # 다중 사용자 배포 — 참가자마다 계정과 네임스페이스가 하나씩 주어집니다.
-    # 프로덕션에서는 inject-env-vars.sh 가 LAB_USER 로부터 아래 값을 다시 씁니다.
-    # 단일 사용자로 쓰려면 세 네임스페이스를 접두사 없는 이름으로 바꾸십시오.
+    # 보안 트랙 네임스페이스.
+    #
+    # 기본 구성은 참가자마다 클러스터를 하나씩 받는 방식입니다.
+    # setup-security-track.sh 가 만드는 접두사 없는 이름과 일치합니다.
+    #
+    # 여러 참가자가 클러스터 하나를 공유한다면(setup-multiuser.sh deploy N)
+    # inject-env-vars.sh 에 REDPAY_NS / SPIFFE_SERVER_NS / SPIFFE_CLIENT_NS 를
+    # 인스턴스별로 넘겨 'user1-redpay' 처럼 접두사가 붙은 이름을 쓰십시오.
     lab_user: 'user1'
     lab_user_password: '(진행자에게 받은 비밀번호)'
     api_url: 'https://api.example.com:6443'
-    redpay_ns: 'user1-redpay'
-    spiffe_server_ns: 'user1-postgresql-spiffe'
-    spiffe_client_ns: 'user1-postgresql-spiffe-client'
+    redpay_ns: 'redpay'
+    spiffe_server_ns: 'postgresql-spiffe'
+    spiffe_client_ns: 'postgresql-spiffe-client'
     ssh_user: lab-user
     ssh_password: ''
     ssh_command: ''
