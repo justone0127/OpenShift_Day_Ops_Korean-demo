@@ -249,7 +249,7 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
 
 ++++
 <div class="nrp-figure">
-<svg viewBox="0 0 840 200" role="img" aria-label="방어선 다이어그램. 모듈 1, 2, 3이 각각 공격 단계를 차단하며, 첫 방어선에서 이미 공격이 멈춥니다.">
+<svg viewBox="0 0 840 200" role="img" aria-label="방어선 다이어그램. 모듈 1(RHACS), 2(ZTWIM), 3(Vault)이 각각 공격 단계를 차단하며, 첫 방어선에서 이미 공격이 멈춥니다.">
   <defs>
     <marker id="nrp-ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
@@ -258,9 +258,9 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
 
   <!-- 모듈 라벨 -->
   <g font-size="12" font-weight="700" fill="#3e8635" text-anchor="middle">
-    <text x="200" y="22">모듈 1 · 수상한 컨테이너</text>
-    <text x="420" y="22">모듈 3 · 뚫려버린 열쇠</text>
-    <text x="640" y="22">모듈 2 · 믿을 수 없는 내부자</text>
+    <text x="200" y="22">모듈 1 · RHACS · 수상한 컨테이너</text>
+    <text x="420" y="22">모듈 3 · Vault · 뚫려버린 열쇠</text>
+    <text x="640" y="22">모듈 2 · ZTWIM · 믿을 수 없는 내부자</text>
   </g>
 
   <!-- 세워진 방어선 -->
