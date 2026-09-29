@@ -71,7 +71,7 @@ include::partial$nrp-assets.adoc[]
     </g>
   </g>
 </svg>
-<div class="nrp-figcaption">같은 경로, 이번에는 <strong>첫 문턱에서 끝납니다.</strong></div>
+<div class="nrp-figcaption">같은 공격 경로도, 이제는 <strong>사전에 방지</strong>할 수 있습니다.</div>
 </div>
 ++++
 
