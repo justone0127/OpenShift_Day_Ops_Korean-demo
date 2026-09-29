@@ -306,7 +306,7 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
     <text x="640" y="176">3단계 차단</text>
   </g>
 </svg>
-<div class="nrp-figcaption">보안 통제가 <strong>겹겹이</strong> 적용되어 있을 때, 공격은 첫 문턱에서 끝납니다.</div>
+<div class="nrp-figcaption">보안 통제를 <strong>단계마다</strong> 적용해 두면, 공격은 첫 문턱에서 끝납니다.</div>
 </div>
 ++++
 
