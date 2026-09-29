@@ -249,7 +249,7 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
 
 ++++
 <div class="nrp-figure">
-<svg viewBox="0 0 840 200" role="img" aria-label="보안 통제 적용 다이어그램. 모듈 1(RHACS), 2(ZTWIM), 3(Vault)이 각각 공격 단계를 차단하며, 첫 보안 통제에서 이미 공격이 멈춥니다.">
+<svg viewBox="0 0 840 200" role="img" aria-label="보안 통제 적용 다이어그램. 모듈 1(RHACS), 2(ZTWIM), 3(Vault)이 각각 공격 단계를 차단하며, 공격을 첫 단계에서 막을 수 있습니다.">
   <defs>
     <marker id="nrp-ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
@@ -306,7 +306,7 @@ DB 비밀번호를 얻은 공격자는 이제 **정상 사용자**입니다.
     <text x="640" y="176">3단계 차단</text>
   </g>
 </svg>
-<div class="nrp-figcaption">보안 통제를 <strong>단계마다</strong> 적용해 두면, 공격은 첫 문턱에서 끝납니다.</div>
+<div class="nrp-figcaption">보안 통제를 <strong>단계마다</strong> 적용해 두면, 공격을 첫 단계에서 막을 수 있습니다.</div>
 </div>
 ++++
 
