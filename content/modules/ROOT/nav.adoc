@@ -71,13 +71,13 @@ endif::[]
 // 참가자에게 보이는 순서·번호는 아래 목차가 결정합니다.
 ifeval::["{module_enable_security}" == "true"]
 * xref:15-00-security-story.adoc[보안 트랙 시작 — 레드페이 침해사고]
-* xref:15-acs.adoc[모듈 1 · 수상한 컨테이너 막기]
+* xref:15-acs.adoc[모듈 1 — Advanced Cluster Security]
 endif::[]
 ifeval::["{module_enable_ztwim}" == "true"]
-* xref:17-ztwim.adoc[모듈 2 · 믿을 수 없는 내부자 거부]
+* xref:17-ztwim.adoc[모듈 2 — Zero-Trust Workload Identity Manager]
 endif::[]
 ifeval::["{module_enable_vault}" == "true"]
-* xref:16-secrets-management.adoc[모듈 3 · 뚫려버린 열쇠 폐기]
+* xref:16-secrets-management.adoc[모듈 3 — Secrets Management]
 endif::[]
 
 // Conclusion (always shown)
