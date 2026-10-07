@@ -12,4 +12,7 @@ include::example$nrp-security.css[]
 <script>
 include::example$nrp-quiz.js[]
 </script>
+<script>
+include::example$nrp-copy.js[]
+</script>
 ++++

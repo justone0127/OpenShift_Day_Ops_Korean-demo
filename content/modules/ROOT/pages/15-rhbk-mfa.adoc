@@ -175,54 +175,19 @@ TIP: 목록 없이 이전 세션으로 바로 로그인된다면, OCP Console �
 +
 image::rhbk-mfa-register-link.png[REDPAY 로그인 화면 — 아래쪽 New user? Register 링크를 빨간 상자로 표시, link=self, window=blank, width=60%]
 +
-. 사용자 정보를 입력합니다. **모든 항목을 채워야 합니다.** 아래 예시 값을 그대로 복사해 붙여 넣으십시오.
+. 사용자 정보를 입력합니다. **모든 항목을 채워야 합니다.**
+  각 값 오른쪽의 **복사** 버튼을 누른 뒤, Register 화면의 같은 항목에 붙여 넣으십시오.
 +
-[cols="1,2",options="header"]
-|===
-| 항목 | 입력 값
-
-| *Username*
-a|
-[source,text]
-----
-redpay-ops
-----
-
-| *Password*
-a|
-[source,text]
-----
-RedPay2026!
-----
-
-| *Confirm password*
-a|
-[source,text]
-----
-RedPay2026!
-----
-
-| *Email*
-a|
-[source,text]
-----
-redpay-ops@example.com
-----
-
-| *First name*
-a|
-[source,text]
-----
-RedPay
-----
-
-| *Last name*
-a|
-[source,text]
-----
-Operator
-----
-|===
+++++
+<div class="nrp-copy-list">
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Username</span><code class="nrp-copy-value">redpay-ops</code><button type="button" class="nrp-copy-btn" data-copy="redpay-ops" aria-label="Username 값 복사">복사</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Password</span><code class="nrp-copy-value">RedPay2026!</code><button type="button" class="nrp-copy-btn" data-copy="RedPay2026!" aria-label="Password 값 복사">복사</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Confirm password</span><code class="nrp-copy-value">RedPay2026!</code><button type="button" class="nrp-copy-btn" data-copy="RedPay2026!" aria-label="Confirm password 값 복사">복사</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Email</span><code class="nrp-copy-value">redpay-ops@example.com</code><button type="button" class="nrp-copy-btn" data-copy="redpay-ops@example.com" aria-label="Email 값 복사">복사</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">First name</span><code class="nrp-copy-value">RedPay</code><button type="button" class="nrp-copy-btn" data-copy="RedPay" aria-label="First name 값 복사">복사</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Last name</span><code class="nrp-copy-value">Operator</code><button type="button" class="nrp-copy-btn" data-copy="Operator" aria-label="Last name 값 복사">복사</button></div>
+</div>
+++++
 +
 . 아래 화면처럼 모든 항목을 입력한 뒤 *Register* 를 클릭합니다.
 +
