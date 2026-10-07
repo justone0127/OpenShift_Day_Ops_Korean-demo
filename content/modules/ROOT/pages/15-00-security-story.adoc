@@ -333,7 +333,7 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
 <div class="nrp-defense">
   <div class="nrp-def">
     <div class="nrp-def-num">모듈 1 · Red Hat build of Keycloak</div>
-    <div class="nrp-def-title">강력한 보안으로 비밀번호 보호</div>
+    <div class="nrp-def-title">다중 인증으로 계정 보호</div>
     <div class="nrp-def-blocks">1단계 — 비밀번호 하나로 뚫린 운영자 계정</div>
     <div class="nrp-def-body">이미 있던 OTP 기능을 <strong>모든 사용자에게 강제</strong>합니다. 비밀번호가 유출돼도, 사용자의 스마트폰에서 30초마다 바뀌는 토큰이 없으면 로그인할 수 없습니다.</div>
   </div>
