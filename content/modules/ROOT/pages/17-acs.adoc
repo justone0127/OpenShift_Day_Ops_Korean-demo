@@ -422,7 +422,7 @@ diff $HOME/redpay-lab/payment-api-vulnerable.yaml $HOME/redpay-lab/payment-api-s
 | # | 취약 버전 | 강화 버전
 
 | 1 | `image: ubi:latest` | `image: ubi:9.4` — 태그 고정 (운영에서는 digest 고정이 더 안전)
-| 2 | `DB_PASSWORD` 평문 환경변수 | 자격 증명 제거 — 접속 대상 정보만 (서비스 간 인증은 모듈 2의 워크로드 신원으로 대체)
+| 2 | `DB_PASSWORD` 평문 환경변수 | 환경변수에서 자격 증명 제거 — 접속 대상 정보만 남김 (RHACS *Environment Variable Contains Secret* 위반 해소)
 | 3 | `resources` 블록 없음 | `requests` / `limits` 명시
 | 4 | `securityContext` 블록 없음 | `allowPrivilegeEscalation: false`, `readOnlyRootFilesystem: true`, `capabilities.drop: [ALL]`
 |===
