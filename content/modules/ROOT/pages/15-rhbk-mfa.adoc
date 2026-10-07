@@ -235,7 +235,7 @@ image::rhbk-mfa-register-form.png[Register 화면 — 예시 값(redpay-ops, red
 
 화면에는 **QR 코드**와 함께 *One-time code*, *Device Name* 입력 칸이 있습니다.
 
-image::rhbk-mfa-otp-setup.png[Mobile Authenticator Setup 화면 — 빨간 상자의 QR 코드를 OTP 앱으로 스캔 (예시 이미지의 QR 코드는 가림), link=self, window=blank, width=50%]
+image::rhbk-mfa-otp-setup.png[Mobile Authenticator Setup 화면 — QR 코드를 스캔한 뒤 One-time code 와 Device Name 을 입력하고 Submit (예시 이미지의 QR 코드는 가림), link=self, window=blank, width=50%]
 
 NOTE: 위 그림의 QR 코드는 예시라 일부러 가려 두었습니다. 여러분 화면에 표시되는 QR 코드를 스캔하십시오.
 QR 코드에는 이 계정의 OTP 비밀 키가 들어 있으므로, 실제 환경에서는 다른 사람에게 보여 주거나 캡처해 공유하지 마십시오.
@@ -306,6 +306,10 @@ TIP: 카메라로 스캔이 잘 되지 않으면 화면의 *Unable to scan?* 을
 ====
 +
 . OpenShift 콘솔로 돌아오고, 오른쪽 위에 방금 등록한 사용자 이름이 표시됩니다.
++
+image::rhbk-mfa-login-success.png[OTP 입력 후 OpenShift 콘솔에 로그인된 화면 — 오른쪽 위에 RedPay Operator 사용자 이름이 표시됨, link=self, window=blank, width=100%]
++
+비밀번호와 OTP 6자리를 모두 통과해 **`rhbk`(Keycloak) 계정으로 OpenShift에 로그인**한 것입니다.
 
 [NOTE]
 ====
