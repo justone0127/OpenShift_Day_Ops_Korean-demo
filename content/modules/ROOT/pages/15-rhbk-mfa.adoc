@@ -237,9 +237,9 @@ QR 코드에는 이 계정의 OTP 비밀 키가 들어 있으므로, 실제 환�
 +
 . 카메라로 컴퓨터 화면의 **QR 코드**를 스캔합니다.
 +
-앱에 `RedPay` 항목과 함께 **6자리 숫자**가 나타납니다. 이 숫자는 30초마다 바뀝니다.
+앱에 `RedPay: <사용자 이름>` 항목과 함께 **6자리 숫자**가 나타납니다. 이 숫자는 30초마다 바뀝니다.
 +
-// image::rhbk-mfa-phone-02-code.png[OTP 앱에 RedPay 계정과 6자리 숫자가 표시된 화면, width=280]
+image::rhbk-mfa-phone-02-code.png[Google Authenticator 앱에 RedPay: red 항목과 6자리 숫자가 표시된 화면, link=self, window=blank, width=60%]
 +
 TIP: 카메라로 스캔이 잘 되지 않으면 화면의 *Unable to scan?* 을 클릭하십시오. 앱에서 *설정 키 입력* (Google) 또는 *코드를 수동으로 입력* 을 골라 표시된 키 문자열을 입력하면 됩니다.
 
