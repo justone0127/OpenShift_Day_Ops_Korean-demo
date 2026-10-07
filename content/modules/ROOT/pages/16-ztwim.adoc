@@ -1,4 +1,4 @@
-= Zero-Trust Workload Identity Manager (ZTWIM)
+= Zero Trust Workload Identity Manager (ZTWIM)
 :page-toclevels: 1
 
 == 모듈 개요
@@ -9,23 +9,25 @@
 
 include::partial$console-access.adoc[]
 
+include::partial$nrp-assets.adoc[]
+
 [IMPORTANT]
 .레드페이 침해사고 — 2단계 공격
 ====
-운영자 계정으로 로그인에 성공한 공격자는 그 순간부터 **"내부"** 에 있었습니다.
-레드페이의 내부 서비스들은 "10.128.0.0/14 대역에서 왔으면 우리 편"이라는 규칙으로 서로를 믿었고,
+운영자 계정으로 로그인한 공격자는 그 순간부터 **"내부"** 에 있었습니다.
+여러분의 내부 서비스들은 "10.128.0.0/14 대역에서 왔으면 우리 편"이라는 규칙으로 서로를 믿었고,
 결제 서비스 → 정산 서비스 → 회원 DB까지 아무도 공격자를 막지 않았습니다.
 
-15번 모듈에서 MFA로 계정 탈취를 막았습니다. 하지만 공격자가 들어오는 길은 하나가 아닙니다.
-다음 모듈에서 보게 될 취약한 컨테이너도 그런 길입니다. **그래서 내부에서 들어온 요청도 믿으면 안 됩니다.**
+모듈 1에서 MFA로 계정 탈취는 막았습니다. 하지만 공격자가 들어오는 길은 하나가 아닙니다.
+모듈 3에서 다룰 취약한 컨테이너도 그런 길입니다. **그래서 내부에서 들어온 요청도 믿으면 안 됩니다.**
 
-이 모듈에서 막을 공격입니다.
+이 모듈에서 여러분이 적용할 두 번째 보안 통제입니다.
 ====
 
 [NOTE]
 ====
 이 모듈은 **어떤 상황에 필요한 기술인지**를 이해하는 데 초점을 둡니다.
-SPIRE 플랫폼과 실습 워크로드는 사전 배포 스크립트가 이미 준비했습니다.
+SPIRE 플랫폼과 실습 워크로드는 여러분의 클러스터에 이미 구성되어 있습니다.
 ====
 
 == 학습 목표
@@ -113,7 +115,7 @@ spiffe://<trust-domain>/ns/<namespace>/sa/<serviceaccount>
 
 == 확인 실습 — 무엇이 발급되었나
 
-`postgresql-spiffe` (서버)와 `postgresql-spiffe-client` (클라이언트)가 각각 배포되어 있습니다.
+`postgresql-spiffe`(서버)와 `postgresql-spiffe-client`(클라이언트)가 각각 배포되어 있습니다.
 두 워크로드 모두 `spiffe-helper` 사이드카가 인증서를 `/opt/postgresql-certs/` 에 자동으로 유지합니다.
 
 .실습 절차
@@ -128,7 +130,6 @@ oc get pods -n postgresql-spiffe-client
 [NOTE]
 ====
 pod가 보이지 않으면 진행자에게 알려 주십시오.
-진행자는 bastion에서 `./setup-security-track.sh ztwim` 로 이 모듈의 환경을 다시 준비할 수 있습니다.
 ====
 +
 . 클라이언트에게 발급된 인증서를 열어 봅니다:
@@ -141,7 +142,7 @@ oc rsh -n postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgr
 +
 출력에서 세 가지를 확인하십시오:
 +
-[source,text]
+[source,text,subs="+attributes,+macros"]
 ----
 subject=C = US, O = SPIRE, CN = postgresql_spiffe          <1>
 notBefore=...  notAfter=...                                 <2>
@@ -156,34 +157,26 @@ X509v3 Subject Alternative Name:
 이 인증서는 "레드페이의 결제 클라이언트"라는 **검증 가능한 주장**이며,
 그 주장의 근거는 네트워크가 아니라 Kubernetes의 실제 신원입니다.
 
-=== 🧠 퀴즈 1
+++++
+<div class="nrp-quiz" data-answer="B">
+  <div class="nrp-quiz-q">🧠 퀴즈 1. SPIFFE 인증서의 기본 수명이 <strong>1시간</strong>으로 짧게 설정되는 이유로 <strong>가장 적절한</strong> 것은?</div>
 
-SPIFFE 인증서의 기본 수명이 **1시간**으로 짧게 설정되는 이유로 **가장 적절한** 것은?
+  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">인증서 파일 크기를 줄여 네트워크 대역폭을 절약하기 위해</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">탈취되더라도 악용 가능한 시간 창(window)을 좁히고, 폐기(revocation) 인프라 없이도 자동으로 무효화되도록 하기 위해</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">TLS 표준이 1시간을 초과하는 인증서를 금지하기 때문</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">짧은 인증서가 암호학적으로 더 강력하기 때문</span></label>
 
-[none]
-* (A) 인증서 파일 크기를 줄여 네트워크 대역폭을 절약하기 위해
-* (B) 탈취되더라도 악용 가능한 시간 창(window)을 좁히고, 폐기(revocation) 인프라 없이도 자동으로 무효화되도록 하기 위해
-* (C) TLS 표준이 1시간을 초과하는 인증서를 금지하기 때문
-* (D) 짧은 인증서가 암호학적으로 더 강력하기 때문
-
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (B)**
-
-두 가지 효과가 있습니다.
-
-**첫째, 피해 범위를 시간으로 제한합니다.** 레드페이의 서비스 간 비밀번호는 몇 년째 바뀌지 않았기 때문에
-공격자는 서두를 이유가 없었습니다. 1시간짜리 인증서라면 그 여유가 사라집니다.
-
-**둘째, 폐기 문제를 우회합니다.** X.509에서 인증서를 중간에 무효화하는 것(CRL, OCSP)은
-운영이 까다롭고 실제로 잘 동작하지 않는 것으로 악명 높습니다.
-수명을 짧게 하면 **"폐기"가 그냥 "기다리기"가 됩니다.**
-
-이것이 가능한 이유는 갱신이 자동이기 때문입니다. `spiffe-helper` 사이드카가 만료 전에
-새 인증서를 받아 파일을 교체하고, 애플리케이션은 재시작하지 않습니다.
-수동으로 관리해야 한다면 1시간 수명은 운영이 불가능합니다.
-====
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (B)</strong></p>
+    <p>두 가지 효과가 있습니다.</p>
+    <p><strong>첫째, 피해 범위를 시간으로 제한합니다.</strong> 레드페이의 서비스 간 비밀번호는 몇 년째 바뀐 적이 없어서, 공격자는 서두를 이유가 없었습니다. 1시간짜리 인증서라면 그 여유가 사라집니다.</p>
+    <p><strong>둘째, 폐기 문제를 우회합니다.</strong> X.509에서 인증서를 중간에 무효화하는 것(CRL, OCSP)은 운영이 까다롭고 실제로 잘 동작하지 않는 것으로 악명 높습니다. 수명을 짧게 하면 <strong>"폐기"가 그냥 "기다리기"가 됩니다.</strong></p>
+    <p>이것이 가능한 이유는 갱신이 자동이기 때문입니다. <code>spiffe-helper</code> 사이드카가 만료 전에 새 인증서를 받아 파일을 교체하고, 애플리케이션은 재시작하지 않습니다. 수동으로 관리해야 한다면 1시간 수명은 운영이 불가능합니다.</p>
+  </div>
+</div>
+++++
 
 == 확인 실습 — 비밀번호 없는 연결, 그리고 거부
 
@@ -196,20 +189,26 @@ SPIFFE 인증서의 기본 수명이 **1시간**으로 짧게 설정되는 이�
 ----
 oc rsh -n postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgresql-spiffe-client \
   psql "host=postgresql-spiffe.postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb sslmode=verify-full sslcert=/opt/postgresql-certs/svid.pem sslkey=/opt/postgresql-certs/svid.key sslrootcert=/opt/postgresql-certs/svid_bundle.pem" \
-  -c "SELECT current_user, ssl_is_used();"
+  -c "SELECT current_user, ssl, client_dn FROM pg_stat_ssl WHERE pid = pg_backend_pid();"
 ----
 +
 예상 출력:
 +
 [source,text]
 ----
-   current_user    | ssl_is_used
--------------------+-------------
- postgresql_spiffe | t
+   current_user    | ssl |              client_dn
+-------------------+-----+--------------------------------------
+ postgresql_spiffe | t   | /C=US/O=SPIRE/CN=postgresql_spiffe
 (1 row)
 ----
 +
-`current_user` 가 인증서의 CN에서 왔습니다.
+세 값이 한 줄에 모여 있는 것이 이 실습의 핵심입니다:
++
+* `current_user` — DB가 인식한 사용자. **인증서의 CN에서 왔습니다.**
+* `ssl` = `t` — 이 연결이 TLS로 암호화되었습니다.
+* `client_dn` — 클라이언트가 제시한 **인증서의 주체**입니다.
+  앞 단계에서 `openssl` 로 확인한 값과 같습니다.
++
 DB는 "이 연결이 누구인가"를 **인증서로** 판단했고, 비밀번호는 애초에 관여하지 않았습니다.
 +
 `sslmode=verify-full` 은 가장 엄격한 모드입니다 — 서버 인증서 검증, 호스트명 일치 확인,
@@ -228,11 +227,32 @@ oc exec -n postgresql-spiffe-client attacker -- \
 +
 예상 출력:
 +
-[source,text]
+[source,text,subs="+attributes"]
 ----
-psql: error: connection to server at "postgresql-spiffe.postgresql-spiffe.svc" failed:
-FATAL:  connection requires a valid client certificate
+psql: error: connection to server at "postgresql-spiffe.postgresql-spiffe.svc" (172.x.x.x),
+port 5432 failed: FATAL:  connection requires a valid client certificate
+connection to server at "postgresql-spiffe.postgresql-spiffe.svc" (172.x.x.x),
+port 5432 failed: FATAL:  pg_hba.conf rejects connection for host "10.x.x.x",
+user "postgresql_spiffe", database "testdb", no encryption
 ----
++
+오류가 **두 줄**인 데는 이유가 있습니다. `psql` 은 먼저 TLS로 붙어 보고,
+실패하면 암호화 없이 한 번 더 시도합니다.
+
+[cols="1,2",options="header"]
+|===
+| 시도 | 거부 사유
+
+| TLS 연결
+| `connection requires a valid client certificate` +
+  — 유효한 클라이언트 인증서가 없습니다
+
+| 평문 연결
+| `pg_hba.conf rejects connection ... no encryption` +
+  — 암호화되지 않은 연결은 아예 받지 않습니다
+|===
+
+**두 경로 모두 막혔습니다.** 우회로가 없습니다.
 
 [IMPORTANT]
 ====
@@ -253,37 +273,26 @@ DNS로 서버 이름을 해석할 수 있고, 5432 포트에 도달합니다.
 oc delete pod attacker -n postgresql-spiffe-client
 ----
 
-=== 🧠 퀴즈 2
+++++
+<div class="nrp-quiz" data-answer="B">
+  <div class="nrp-quiz-q">🧠 퀴즈 2. 위 실습에서 <code>attacker</code> pod는 서버에 네트워크로 완전히 도달할 수 있었는데도 거부되었습니다. 동일한 보호를 <code>NetworkPolicy</code> 만으로 달성하려 할 때의 <strong>근본적인</strong> 한계는?</div>
 
-위 실습에서 `attacker` pod는 서버에 네트워크로 완전히 도달할 수 있었는데도 거부되었습니다.
-동일한 보호를 `NetworkPolicy` 만으로 달성하려 할 때의 **근본적인** 한계는?
+  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">NetworkPolicy는 PostgreSQL의 5432 포트를 제어할 수 없다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">NetworkPolicy는 label과 namespace 기준으로 트래픽을 허용/차단하는데, label은 워크로드가 스스로 붙이는 것이므로 위조 가능한 주장이다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">NetworkPolicy는 OVN-Kubernetes에서만 동작한다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">NetworkPolicy는 성능 저하가 커서 프로덕션에 부적합하다</span></label>
 
-[none]
-* (A) NetworkPolicy는 PostgreSQL의 5432 포트를 제어할 수 없다
-* (B) NetworkPolicy는 label과 namespace 기준으로 트래픽을 허용/차단하는데, label은 워크로드가 스스로 붙이는 것이므로 위조 가능한 주장이다
-* (C) NetworkPolicy는 OVN-Kubernetes에서만 동작한다
-* (D) NetworkPolicy는 성능 저하가 커서 프로덕션에 부적합하다
-
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (B)**
-
-`NetworkPolicy` 는 훌륭한 도구이고 반드시 써야 합니다. 다만 그것이 검증하는 것은
-**"이 트래픽이 어디서 왔는가"** 입니다.
-
-문제는 그 "어디"의 근거입니다. `podSelector` 는 pod의 label을 봅니다.
-그런데 label은 매니페스트에 적는 **자기 신고**입니다.
-해당 namespace에 pod를 만들 권한이 있는 사람은 원하는 label을 붙일 수 있습니다.
-
-SPIFFE는 다릅니다. SVID는 워크로드가 발급하는 것이 아니라 **SPIRE가 검증 후 발급**합니다.
-SPIRE 에이전트는 노드에서 요청 프로세스를 직접 확인해 그것이 정말 그 ServiceAccount로
-실행 중인지 판별합니다. 위조하려면 노드 자체를 장악해야 합니다.
-
-**둘은 대체 관계가 아니라 계층 관계입니다.**
-NetworkPolicy는 공격 표면을 줄이고(도달 자체를 차단), SPIFFE는 도달한 연결의 신원을 검증합니다.
-레드페이에는 두 번째 계층이 아예 없었습니다.
-====
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (B)</strong></p>
+    <p><code>NetworkPolicy</code> 는 훌륭한 도구이고 반드시 써야 합니다. 다만 그것이 검증하는 것은 <strong>"이 트래픽이 어디서 왔는가"</strong> 입니다.</p>
+    <p>문제는 그 "어디"의 근거입니다. <code>podSelector</code> 는 pod의 label을 봅니다. 그런데 label은 매니페스트에 적는 <strong>자기 신고</strong>입니다. 해당 namespace에 pod를 만들 권한이 있는 사람은 원하는 label을 붙일 수 있습니다.</p>
+    <p>SPIFFE는 다릅니다. SVID는 워크로드가 발급하는 것이 아니라 <strong>SPIRE가 검증 후 발급</strong>합니다. SPIRE 에이전트는 노드에서 요청 프로세스를 직접 확인해 그것이 정말 그 ServiceAccount로 실행 중인지 판별합니다. 위조하려면 노드 자체를 장악해야 합니다.</p>
+    <p><strong>둘은 대체 관계가 아니라 계층 관계입니다.</strong> NetworkPolicy는 공격 표면을 줄이고(도달 자체를 차단), SPIFFE는 도달한 연결의 신원을 검증합니다. 레드페이에는 두 번째 계층이 아예 없었습니다.</p>
+  </div>
+</div>
+++++
 
 == 실무에서는 어떤 상황에 필요한가
 
@@ -335,13 +344,7 @@ Red Hat OpenShift Service Mesh(Istio)도 mTLS를 제공하며, 내부적으로 S
 
 2단계 공격도 막았습니다. 이제 내부에 들어온 요청이라도 **신원을 증명하지 못하면** 거부됩니다.
 
-남은 질문은 하나입니다. 공격자는 애초에 어떻게 클러스터 **안의** 컨테이너에서 명령을 실행할 수 있었을까요?
-답은 6개월 전 `latest` 태그로 배포된 결제 API 이미지 안에 있었습니다.
+남은 문은 하나입니다. 공격자가 데이터를 밖으로 빼낸 통로 — 6개월 전 `latest` 태그로 배포된 결제 API 이미지입니다.
+그 안에는 원격 코드 실행(RCE) 취약 라이브러리가 들어 있었고, 레드페이의 RHACS는 그것을 **탐지만** 하고 있었습니다.
 
-[NOTE]
-====
-ZTWIM 실습 워크로드(`postgresql-spiffe`, `postgresql-spiffe-client`)는 보안 트랙 전체 정리 시 함께 삭제됩니다.
-지금은 그대로 두고 다음 모듈로 이동하십시오.
-====
-
-xref:17-acs.adoc[다음 모듈]에서 3단계 공격을 다룹니다.
+xref:17-acs.adoc[마지막 모듈]에서 3단계 공격을 다룹니다.

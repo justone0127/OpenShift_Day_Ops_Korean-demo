@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 레드페이 보안 트랙 — 모듈 15 (Red Hat build of Keycloak / MFA) 사전 환경 구성
+# 레드페이 보안 트랙 — 모듈 1 (Red Hat build of Keycloak / MFA) 사전 환경 구성
 #
 # 진행자(환경 제공자)용 스크립트입니다. 참가자는 이 스크립트를 실행하지 않습니다.
 # 참가자는 실습에서 다음만 수행합니다:

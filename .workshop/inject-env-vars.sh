@@ -45,7 +45,6 @@ echo "  MODULE_ENABLE_OLS=${MODULE_ENABLE_OLS:-true}"
 echo "  MODULE_ENABLE_ACM=${MODULE_ENABLE_ACM:-true}"
 echo "  MODULE_ENABLE_SECURITY=${MODULE_ENABLE_SECURITY:-true}"
 echo "  MODULE_ENABLE_ZTWIM=${MODULE_ENABLE_ZTWIM:-true}"
-echo "  MODULE_ENABLE_VAULT=${MODULE_ENABLE_VAULT:-true}"
 
 # Create attributes section for Antora
 # ifeval checks: ifeval::["{module_enable_virt}" == "true"]
@@ -77,6 +76,23 @@ ATTRS="${ATTRS}    module_enable_ztwim: '${MODULE_ENABLE_ZTWIM:-true}'"$'\n'
 
 # TOC depth - only show main sections
 ATTRS="${ATTRS}    toclevels: 2"$'\n'
+
+# 보안 트랙 네임스페이스.
+#
+# 기본 구성은 참가자마다 클러스터를 하나씩 받는 방식이므로, 접두사 없는
+# 이름을 씁니다. setup-security-track.sh 가 만드는 이름과 같습니다.
+#
+# 여러 참가자가 클러스터 하나를 공유하는 구성(setup-multiuser.sh deploy N)
+# 에서만 아래 세 변수를 Showroom 인스턴스별로 넘기십시오:
+#   REDPAY_NS=user1-redpay
+#   SPIFFE_SERVER_NS=user1-postgresql-spiffe
+#   SPIFFE_CLIENT_NS=user1-postgresql-spiffe-client
+LAB_USER_VALUE="${LAB_USER:-${USER_NAME:-user1}}"
+ATTRS="${ATTRS}    lab_user: '${LAB_USER_VALUE}'"$'\n'
+ATTRS="${ATTRS}    lab_user_password: '${LAB_USER_PASSWORD:-${ADMIN_PASSWORD:-}}'"$'\n'
+ATTRS="${ATTRS}    redpay_ns: '${REDPAY_NS:-redpay}'"$'\n'
+ATTRS="${ATTRS}    spiffe_server_ns: '${SPIFFE_SERVER_NS:-postgresql-spiffe}'"$'\n'
+ATTRS="${ATTRS}    spiffe_client_ns: '${SPIFFE_CLIENT_NS:-postgresql-spiffe-client}'"$'\n'
 
 # Standard workshop variables
 ATTRS="${ATTRS}    api_url: '${API_URL:-}'"$'\n'
@@ -137,6 +153,20 @@ ANTORA_YML="${REPO_DIR}/content/antora.yml"
 if [ -f "$ANTORA_YML" ] && ! grep -q 'ols_azure_url' "$ANTORA_YML"; then
   echo "Injecting ols_azure_url into antora.yml..."
   echo "    ols_azure_url: '${OLS_AZURE_URL:-}'" >> "$ANTORA_YML"
+fi
+
+# 네임스페이스 속성은 반드시 antora.yml 에도 반영해야 합니다.
+# 보안 트랙의 명령어 블록이 subs="+attributes" 를 쓰기 때문에, 여기에 없으면
+# 참가자가 antora.yml 의 기본값을 그대로 보게 됩니다.
+if [ -f "$ANTORA_YML" ]; then
+  echo "Injecting workshop attributes into antora.yml (redpay_ns=${REDPAY_NS:-redpay})..."
+  sed -i -E "s|^( +lab_user:).*|\1 '${LAB_USER_VALUE}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +lab_user_password:).*|\1 '${LAB_USER_PASSWORD:-${ADMIN_PASSWORD:-}}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +redpay_ns:).*|\1 '${REDPAY_NS:-redpay}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +spiffe_server_ns:).*|\1 '${SPIFFE_SERVER_NS:-postgresql-spiffe}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +spiffe_client_ns:).*|\1 '${SPIFFE_CLIENT_NS:-postgresql-spiffe-client}'|" "$ANTORA_YML"
+  sed -i -E "s|^( +api_url:).*|\1 '${API_URL:-}'|" "$ANTORA_YML"
+  grep -E "^ +(lab_user|lab_user_password|redpay_ns|spiffe_server_ns|spiffe_client_ns|api_url):" "$ANTORA_YML"
 fi
 
 echo "=== Antora injection complete ==="

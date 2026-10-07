@@ -9,41 +9,146 @@
 
 include::partial$console-access.adoc[]
 
-참가자들은 다중 인증(MFA)으로 사용자 계정을 보호하는 것을 시작으로,
-상호 TLS(mTLS)를 통해 워크로드 간의 통신을 신원 기반으로 검증하는 아키텍처를 실습합니다.
-나아가 런타임 정책(Policy as Code)을 활용해 취약한 이미지를 차단하고 규정 준수를 자동화하는 방법까지 다룹니다.
-귀사의 운영 효율과 보안 수준을 극대화할 해답을 경험을 통해 찾아보세요.
+include::partial$nrp-assets.adoc[]
+
+[IMPORTANT]
+.여러분의 역할
+====
+여러분은 국내 간편결제 서비스 **레드페이(RedPay)** 의 **플랫폼 운영 담당자**입니다.
+
+결제 API가 도는 OpenShift 클러스터를 여러분이 책임지고 있습니다. 배포도, 접근 권한도,
+새벽에 울리는 알림을 받는 것도 여러분입니다.
+
+이 트랙의 과제는 여러분의 서비스에서 벌어진 침해사고를 되짚어 보고,
+**같은 일이 다시 일어나지 않게 만드는 것**입니다.
+====
 
 [NOTE]
 ====
-이 페이지는 이어지는 세 개의 모듈(*Red Hat build of Keycloak* → *Zero Trust Workload Identity Manager* → *Red Hat Advanced Cluster Security*)을
-하나의 사건으로 묶는 도입부입니다. 각 모듈은 이 사건의 **공격 단계 하나씩**을 막습니다.
+이 페이지는 이어지는 세 모듈(*Red Hat build of Keycloak* → *Zero Trust Workload Identity Manager* → *Red Hat Advanced Cluster Security*)을
+하나의 사건으로 묶는 도입부입니다. 각 모듈은 이 사건의 **공격 단계를 하나씩** 막습니다.
 ====
 
-== 03:12 AM — 알림
+== 03:47 AM — 알림
 
-[source,text]
-----
-[PagerDuty] CRITICAL
-레드페이 결제 API — 요청 수 급증
-정상 대비 3,800% ↑ (평소 새벽 시간대 대비)
-대상: /api/v1/payments, /api/v1/settlements
-인증: 정상 로그인 세션 (ops-admin 계정)
-----
+새벽 3시 47분, 여러분의 휴대폰이 울립니다.
 
-**레드페이(RedPay)** 는 국내 간편결제 서비스입니다. 일 거래 120만 건, 회원 380만 명.
+[subs="attributes"]
+++++
+<div class="nrp-alert">
+  <div class="nrp-alert-head"><span class="nrp-dot"></span>PagerDuty · CRITICAL · P1</div>
+  <div class="nrp-alert-title">레드페이 결제 API — 요청 급증</div>
+  <dl>
+    <dt>요청 수</dt><dd><span class="nrp-spike">평소 새벽 대비 3,800% ↑</span></dd>
+    <dt>대상</dt><dd>/api/v1/payments · /api/v1/settlements</dd>
+    <dt>인증</dt><dd>정상 로그인 세션 <span style="color:#a0a0a0">(운영자 계정 ops-admin)</span></dd>
+    <dt>발신</dt><dd>payment-api-7d9f4b · namespace {redpay_ns}</dd>
+  </dl>
+</div>
+++++
+
+여러분이 운영하는 레드페이는 일 거래 120만 건, 회원 380만 명의 서비스입니다.
 고객의 카드번호와 계좌 정보를 다룹니다.
 
 몇 년째 별 탈 없이 잘 돌아가던 시스템이었습니다.
-그런데 아무도 일하지 않는 새벽 3시에, **정상적으로 로그인한 운영자 계정**이 결제 API를 두드리고 있습니다.
+그런데 아무도 일하지 않는 새벽에, **정상적으로 로그인한 운영자 계정**이 결제 데이터를 쓸어 가고 있습니다.
+
+노트북을 열면서 여러분은 이미 직감합니다 — 이건 오탐이 아닙니다.
+
+++++
+<div class="nrp-timeline">
+  <div class="nrp-tl-item is-alert">
+    <div class="nrp-tl-label">탐지</div>
+    <div class="nrp-tl-time">03:47</div>
+    <div class="nrp-tl-body">알림을 받은 시각. 공격자는 이미 한 시간 전부터 운영자 계정으로 로그인해 있었습니다.</div>
+  </div>
+  <div class="nrp-tl-item is-probe">
+    <div class="nrp-tl-label">분석</div>
+    <div class="nrp-tl-time">06:00</div>
+    <div class="nrp-tl-body">팀과 함께 밤새 로그를 뒤진 끝에 공격 경로 3단계가 드러납니다.</div>
+  </div>
+  <div class="nrp-tl-item is-cost">
+    <div class="nrp-tl-label">집계</div>
+    <div class="nrp-tl-time">09:00</div>
+    <div class="nrp-tl-body">피해 규모가 확정되고, 여러분은 경영진 앞에 섭니다.</div>
+  </div>
+</div>
+++++
 
 == 06:00 AM — 공격 경로 3단계
 
-보안팀이 밤새 로그를 뒤진 결과, 공격 경로가 드러났습니다.
+팀과 함께 밤새 로그를 뒤진 끝에 경로가 드러났습니다.
+
+공격자는 **세 개의 문**을 지났습니다. 그리고 세 곳 모두 문이 열려 있었습니다.
+셋 다 여러분이 관리하는 클러스터의 설정이었고, 더 뼈아픈 사실은
+**문을 잠글 도구가 이미 클러스터에 설치되어 있었다**는 점입니다.
+
+++++
+<div class="nrp-figure">
+<svg viewBox="0 0 840 200" role="img" aria-label="공격 경로 다이어그램. 공격자가 방어되지 않은 세 지점을 차례로 통과해 회원 데이터를 외부로 빼냅니다.">
+  <defs>
+    <marker id="nrp-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
+    </marker>
+  </defs>
+
+  <!-- 단계 라벨 -->
+  <g font-size="12" font-weight="700" fill="#a30000" text-anchor="middle">
+    <text x="200" y="22">1단계</text>
+    <text x="420" y="22">2단계</text>
+    <text x="640" y="22">3단계</text>
+  </g>
+
+  <!-- 뚫린 방어 지점: 점선 -->
+  <g stroke="#ee0000" stroke-width="2" stroke-dasharray="5 5" opacity="0.55">
+    <line x1="200" y1="34" x2="200" y2="140"/>
+    <line x1="420" y1="34" x2="420" y2="140"/>
+    <line x1="640" y1="34" x2="640" y2="140"/>
+  </g>
+
+  <!-- 진행 화살표 -->
+  <g stroke="#ee0000" stroke-width="2.5" marker-end="url(#nrp-ar)">
+    <line x1="168" y1="87" x2="230" y2="87"/>
+    <line x1="388" y1="87" x2="450" y2="87"/>
+    <line x1="608" y1="87" x2="670" y2="87"/>
+  </g>
+
+  <!-- 노드 -->
+  <g>
+    <rect x="15" y="55" width="150" height="64" rx="6" fill="#151515"/>
+    <text x="90" y="82" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">공격자</text>
+    <text x="90" y="101" font-size="11.5" fill="#b8b8b8" text-anchor="middle">인터넷</text>
+
+    <rect x="235" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="310" y="82" font-size="14" font-weight="700" fill="#151515" text-anchor="middle">운영자 계정</text>
+    <text x="310" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">로그인 성공</text>
+
+    <rect x="455" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="530" y="82" font-size="14" font-weight="700" fill="#151515" text-anchor="middle">회원 DB</text>
+    <text x="530" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">내부에서 조회</text>
+
+    <rect x="675" y="55" width="150" height="64" rx="6" fill="#faf0f0" stroke="#ee0000" stroke-width="1.5"/>
+    <text x="750" y="82" font-size="14" font-weight="700" fill="#a30000" text-anchor="middle">payment-api</text>
+    <text x="750" y="101" font-size="11.5" fill="#a30000" text-anchor="middle">외부 반출 통로</text>
+  </g>
+
+  <!-- 실패 이유 -->
+  <g font-size="11" fill="#6a6e73" text-anchor="middle">
+    <text x="200" y="160">비밀번호 하나로</text>
+    <text x="200" y="176">로그인 (MFA 없음)</text>
+    <text x="420" y="160">내부 요청이면</text>
+    <text x="420" y="176">무조건 신뢰</text>
+    <text x="640" y="160">latest 이미지 속</text>
+    <text x="640" y="176">RCE 취약 라이브러리</text>
+  </g>
+</svg>
+<div class="nrp-figcaption">세 지점 모두 <strong>점선</strong> — 막아 서는 것이 아무것도 없었습니다.</div>
+</div>
+++++
 
 === 1단계 — "비밀번호는 복잡하게 만들었는데요?"
 
-새벽의 요청은 전부 `ops-admin` 계정의 **정상 로그인 세션**에서 나왔습니다.
+새벽의 요청은 모두 운영자 계정 `ops-admin` 의 **정상 로그인 세션**에서 나왔습니다.
 
 [source,text]
 ----
@@ -52,16 +157,16 @@ include::partial$console-access.adoc[]
 02:43:55  GET  /api/v1/payments?from=2019-01-01   200   (rows=1,204,331)
 ----
 
-`ops-admin` 의 비밀번호는 다른 사이트에서 유출된 비밀번호 목록에 그대로 들어 있었습니다.
+`ops-admin` 의 비밀번호는 다른 사이트에서 유출된 계정 목록에 그대로 들어 있었습니다.
 공격자는 그 비밀번호를 **그냥 입력했을 뿐**입니다.
 
-레드페이는 이미 **Red Hat build of Keycloak** 으로 통합 인증(SSO)을 쓰고 있었습니다.
-다중 인증(MFA)을 켤 수 있는 기능도 처음부터 들어 있었습니다. **다만 아무도 켜지 않았습니다.**
+레드페이는 이미 **Red Hat build of Keycloak** 으로 통합 인증(SSO)을 쓰고 있었고,
+다중 인증(MFA) 기능도 처음부터 들어 있었습니다. **다만 아무도 강제하지 않았습니다.**
 "운영자들이 불편해한다"는 이유였습니다.
 
 [TIP]
 ====
-*"비밀번호를 16자로 강제하고 있었는데요?"* +
+*"비밀번호를 16자 이상으로 강제하고 있었는데요?"* +
 → 그 비밀번호가 다른 곳에서 유출되면 길이는 아무 의미가 없습니다. +
 → 비밀번호는 **"아는 것"** 하나뿐입니다. 공격자도 알 수 있습니다.
 ====
@@ -70,7 +175,7 @@ include::partial$console-access.adoc[]
 
 로그인에 성공한 공격자는 이제 **"내부"** 에 있습니다.
 
-레드페이의 내부 서비스들은 서로를 이렇게 인증했습니다.
+여러분의 내부 서비스들은 서로를 이렇게 인증하고 있었습니다.
 
 [source,text]
 ----
@@ -78,7 +183,7 @@ include::partial$console-access.adoc[]
 ----
 
 결제 서비스 → 정산 서비스 → 회원 DB. 출처가 내부 대역이었으므로 **전부 통과했습니다.**
-어떤 서비스도 "지금 나에게 말을 거는 게 정말 결제 서비스인가?"를 묻지 않았습니다.
+어느 서비스도 "지금 나에게 말을 거는 게 정말 결제 서비스인가?"를 묻지 않았습니다.
 
 **네트워크 위치를 신원으로 착각한 것**이 피해를 회원 DB까지 넓혔습니다.
 
@@ -91,9 +196,9 @@ include::partial$console-access.adoc[]
 
 === 3단계 — "그냥 최신 버전 쓰면 되죠?"
 
-그렇다면 공격자는 어떻게 클러스터 **안의** 컨테이너에서 명령을 실행할 수 있었을까요?
+공격자가 회원 데이터를 밖으로 빼낸 통로는 결제 API 컨테이너였습니다.
 
-6개월 전, 급하게 배포된 결제 API 이미지입니다.
+6개월 전, 오픈 일정에 쫓겨 급하게 올린 결제 API입니다. 여러분도 그때 그 자리에 있었습니다.
 
 [source,yaml]
 ----
@@ -107,10 +212,12 @@ env:
 
 `latest` 태그가 가리키던 이미지 안에는 **원격 코드 실행(RCE) 취약점이 있는 라이브러리**가 들어 있었습니다.
 외부에서 조작된 요청 하나로 컨테이너 안에서 명령을 실행할 수 있는 구멍입니다.
+공격자는 이 구멍으로 데이터를 외부로 내보냈고, 운영자 계정이 막히더라도 **다시 들어올 수 있는 거점**까지 확보했습니다.
+
 아무도 몰랐습니다. **배포 이후로는 아무도 스캔하지 않았으니까요.**
 
-레드페이는 **Red Hat Advanced Cluster Security** 도 이미 도입해 두었습니다.
-`latest` 태그를 잡아내는 정책도 들어 있었습니다. 다만 **"탐지(Inform)"** 로만 켜져 있었고,
+레드페이에는 **Red Hat Advanced Cluster Security** 도 이미 설치되어 있었고,
+`latest` 태그를 잡아내는 정책도 들어 있었습니다. 다만 **탐지(Inform)** 로만 켜져 있었고,
 위반 목록은 아무도 보지 않는 대시보드에 쌓이고 있었습니다.
 
 [TIP]
@@ -122,144 +229,188 @@ env:
 
 == 09:00 AM — 피해 집계
 
-[cols="1,1",options="header"]
-|===
-| 항목 | 규모
-| 유출 레코드 | 380만 건
-| 과징금 (개인정보보호법) | 매출액의 3%
-| 서비스 중단 | 72시간
-| 대외 신뢰도 | 회복에 수 년
-|===
+++++
+<div class="nrp-stats">
+  <div class="nrp-stat">
+    <div class="nrp-stat-num">380<span class="nrp-stat-unit">만 건</span></div>
+    <div class="nrp-stat-label">유출된 고객 레코드</div>
+  </div>
+  <div class="nrp-stat">
+    <div class="nrp-stat-num">3<span class="nrp-stat-unit">%</span></div>
+    <div class="nrp-stat-label">과징금 — 매출액 기준<br>(개인정보보호법)</div>
+  </div>
+  <div class="nrp-stat">
+    <div class="nrp-stat-num">72<span class="nrp-stat-unit">시간</span></div>
+    <div class="nrp-stat-label">전면 서비스 중단</div>
+  </div>
+  <div class="nrp-stat">
+    <div class="nrp-stat-num">수 년</div>
+    <div class="nrp-stat-label">대외 신뢰도 회복 기간</div>
+  </div>
+</div>
+++++
 
-== 여러분의 임무 — 이미 가진 것을 제대로 켜기
+기술적으로 보면 이 사건은 **꺼져 있던 설정 세 개**의 문제였습니다.
+MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
+셋 다 여러분의 백로그에서 "나중에 켜자"에 머물러 있던 항목이었습니다.
 
-경영진이 묻습니다. **"보안 솔루션은 이미 다 사 놓은 것 아니었습니까?"**
+== 여러분의 임무 — 이미 가진 보안을 제대로 켜기
+
+경영진이 여러분에게 묻습니다. **"보안 솔루션은 이미 다 도입한 것 아니었습니까?"**
 
 맞습니다. 레드페이에는 필요한 도구가 **이미 있었습니다.** 제대로 적용하지 않았을 뿐입니다.
-이제라도 그 보안을 제대로 켜서, 레드페이가 더 안전하게 결제 서비스를 할 수 있도록 만드는 것이 이 트랙의 목표입니다.
+이제라도 그 보안을 제대로 적용해서, 레드페이가 더 안전하게 결제 서비스를 할 수 있도록 만드는 것이
+이 트랙의 목표입니다.
 
-이어지는 세 모듈이 각각의 답입니다.
+공격은 한 단계씩 진행됩니다. 그리고 **어느 한 곳에서든 막히면, 그 뒤는 일어나지 않습니다.**
 
-[cols="1,2,3",options="header"]
-|===
-| 모듈 | 막는 공격 단계 | 핵심 아이디어
+++++
+<div class="nrp-figure">
+<svg viewBox="0 0 840 200" role="img" aria-label="보안 통제 적용 다이어그램. 모듈 1(Keycloak), 2(ZTWIM), 3(RHACS)이 각각 공격 단계를 차단하여, 같은 공격을 사전에 방지할 수 있습니다.">
+  <defs>
+    <marker id="nrp-ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
+    </marker>
+  </defs>
 
-| *15 — Red Hat build of Keycloak*
-| 1단계: 비밀번호 하나로 뚫린 사용자 계정
-| 비밀번호만으로는 로그인할 수 없게 만든다. **다중 인증(MFA)** — 내가 가진 기기에서 생성되는 일회용 토큰(OTP)을 함께 요구한다.
+  <!-- 모듈 라벨 -->
+  <g font-size="11" font-weight="700" fill="#3e8635" text-anchor="middle">
+    <text x="200" y="22">모듈 1 · Keycloak</text>
+    <text x="420" y="22">모듈 2 · ZTWIM</text>
+    <text x="640" y="22">모듈 3 · RHACS</text>
+  </g>
 
-| *16 — Zero Trust Workload Identity Manager*
-| 2단계: 네트워크 위치 기반 신뢰
-| **내부 요청도 믿지 않는다.** 워크로드가 암호학적 신원(SVID)을 갖고, IP가 아니라 신원으로 상호 검증(mTLS)한다.
+  <!-- 적용된 보안 통제 -->
+  <g fill="#3e8635">
+    <rect x="193" y="34" width="14" height="106" rx="4"/>
+    <rect x="413" y="34" width="14" height="106" rx="4"/>
+    <rect x="633" y="34" width="14" height="106" rx="4"/>
+  </g>
 
-| *17 — Red Hat Advanced Cluster Security*
-| 3단계: 취약한 `latest` 이미지
-| 취약한 컨테이너가 **애초에 뜨지 못하게** 만든다. 탐지에 머물던 정책을 배포 시점 차단으로 전환한다.
-|===
+  <!-- 1단계에서 차단 -->
+  <line x1="168" y1="87" x2="186" y2="87" stroke="#ee0000" stroke-width="2.5" marker-end="url(#nrp-ar2)"/>
+  <g transform="translate(200,158)">
+    <rect x="-30" y="-13" width="60" height="24" rx="12" fill="#ee0000"/>
+    <text x="0" y="4" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">차단</text>
+  </g>
 
-[NOTE]
-====
-이 트랙의 실습 환경(Keycloak, SPIRE, 레드페이 워크로드)은 **진행자가 사전에 준비**해 두었습니다.
-참가자는 별도의 설치 없이 각 모듈의 실습 절차만 따라가면 됩니다.
-====
+  <!-- 노드: 공격자만 선명, 나머지는 도달하지 못함 -->
+  <rect x="15" y="55" width="150" height="64" rx="6" fill="#151515"/>
+  <text x="90" y="82" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">공격자</text>
+  <text x="90" y="101" font-size="11.5" fill="#b8b8b8" text-anchor="middle">인터넷</text>
+
+  <g opacity="0.4">
+    <rect x="235" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="310" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">운영자 계정</text>
+    <text x="310" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">로그인 불가</text>
+
+    <rect x="455" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="530" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">회원 DB</text>
+    <text x="530" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">안전</text>
+
+    <rect x="675" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="750" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">payment-api</text>
+    <text x="750" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">배포되지 않음</text>
+  </g>
+
+  <!-- 방어 요약 -->
+  <g font-size="11" fill="#3e8635" text-anchor="middle" font-weight="600">
+    <text x="420" y="160">신원 없는 연결 거부</text>
+    <text x="640" y="160">취약 이미지 배포 거부</text>
+  </g>
+  <g font-size="11" fill="#6a6e73" text-anchor="middle">
+    <text x="420" y="176">2단계 차단</text>
+    <text x="640" y="176">3단계 차단</text>
+  </g>
+</svg>
+<div class="nrp-figcaption">단계마다 보안 통제를 적용해 두면, 같은 공격을 <strong>사전에 방지</strong>할 수 있습니다.</div>
+</div>
+++++
+
+이어지는 세 모듈이 각 단계에 대한 답입니다.
+
+++++
+<div class="nrp-defense">
+  <div class="nrp-def">
+    <div class="nrp-def-num">모듈 1 · Red Hat build of Keycloak</div>
+    <div class="nrp-def-title">비밀번호만으로는 못 들어오게</div>
+    <div class="nrp-def-blocks">1단계 — 비밀번호 하나로 뚫린 운영자 계정</div>
+    <div class="nrp-def-body">이미 있던 OTP 기능을 <strong>모든 사용자에게 강제</strong>합니다. 비밀번호가 유출돼도, 사용자의 스마트폰에서 30초마다 바뀌는 토큰이 없으면 로그인할 수 없습니다.</div>
+  </div>
+  <div class="nrp-def">
+    <div class="nrp-def-num">모듈 2 · Zero Trust Workload Identity Manager</div>
+    <div class="nrp-def-title">내부 요청도 믿지 않게</div>
+    <div class="nrp-def-blocks">2단계 — 내부 요청을 무조건 신뢰</div>
+    <div class="nrp-def-body">워크로드가 암호학적 신원(<strong>SVID</strong>)을 갖고, 서로를 상호 TLS(mTLS)로 검증합니다. 내부에 들어와도 신원을 증명하지 못하면 통과하지 못합니다.</div>
+  </div>
+  <div class="nrp-def">
+    <div class="nrp-def-num">모듈 3 · Red Hat Advanced Cluster Security</div>
+    <div class="nrp-def-title">취약한 이미지는 배포되지 않게</div>
+    <div class="nrp-def-blocks">3단계 — latest 이미지 속 RCE 취약 라이브러리</div>
+    <div class="nrp-def-body">탐지에만 머물던 정책을 <strong>배포 시점 차단</strong>으로 전환합니다. 취약한 컨테이너는 애초에 클러스터에 올라오지 못합니다.</div>
+  </div>
+</div>
+++++
 
 == 🧠 워밍업 퀴즈
 
-첫 번째 모듈(Red Hat build of Keycloak)을 시작하기 전에 몸을 풀어 봅니다.
-정답은 각 모듈을 마치면 자연스럽게 알게 됩니다. 지금은 감으로 찍어 보십시오.
+첫 번째 모듈(Red Hat build of Keycloak)에 들어가기 전에 가볍게 몸을 풀어 봅니다.
+보기를 고르고 *정답 확인* 을 누르면 바로 채점됩니다. 정답은 각 모듈을 마치면 자연스럽게 알게 되니,
+지금은 감으로 골라 보셔도 좋습니다.
 
-=== Q0-1
+++++
+<div class="nrp-quiz" data-answer="B">
+  <div class="nrp-quiz-q">Q0-1. <code>ops-admin</code> 계정은 16자 이상의 복잡한 비밀번호를 쓰고 있었습니다. 그런데도 뚫린 이유로 <strong>가장 적절한</strong> 것은?</div>
 
-레드페이의 `ops-admin` 계정은 16자 이상의 복잡한 비밀번호를 쓰고 있었습니다. 그런데도 뚫린 이유로 **가장 적절한** 것은?
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">비밀번호가 충분히 길지 않아서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">인증 수단이 비밀번호 하나뿐이라, 그 비밀번호가 유출되자 공격자와 진짜 사용자를 구별할 방법이 없어서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">Keycloak의 암호화 알고리즘이 약해서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">운영자가 비밀번호를 자주 바꾸지 않아서</span></label>
 
-[none]
-* (A) 비밀번호가 충분히 길지 않아서
-* (B) 인증 요소가 비밀번호 하나뿐이라, 그 비밀번호가 다른 곳에서 유출되자 공격자를 구별할 방법이 없었기 때문
-* (C) Keycloak의 암호화 알고리즘이 약해서
-* (D) 운영자가 비밀번호를 자주 바꾸지 않아서
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (B)</strong></p>
+    <p>비밀번호의 강도는 "추측하기 어려운가"를 결정할 뿐, "유출되었을 때 막을 수 있는가"와는 무관합니다. 유출된 비밀번호를 그대로 넣는 공격(credential stuffing) 앞에서는 길이도 복잡도도 소용이 없습니다.</p>
+    <p>다중 인증(MFA)은 <strong>서로 다른 종류의 증거</strong>를 요구합니다 — "아는 것(비밀번호)" + "가진 것(스마트폰의 OTP 앱)". 비밀번호가 유출되어도 공격자 손에 사용자의 스마트폰이 없으면 로그인할 수 없습니다. 모듈 1에서 직접 설정합니다.</p>
+  </div>
+</div>
 
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (B)**
+<div class="nrp-quiz" data-answer="C">
+  <div class="nrp-quiz-q">Q0-2. OTP 앱에 표시되는 6자리 숫자에 대한 설명으로 <strong>맞는</strong> 것은?</div>
 
-비밀번호의 강도는 "추측하기 어려운가"를 결정할 뿐, "유출되었을 때 막을 수 있는가"와는 무관합니다.
-유출된 비밀번호를 그대로 넣는 공격(credential stuffing)에는 길이도 복잡도도 소용이 없습니다.
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">서버가 로그인할 때마다 문자 메시지로 보내 주는 값이다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">앱이 인터넷에 연결되어 있어야만 생성된다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">등록할 때 QR 코드로 한 번 공유한 비밀 키와 현재 시각으로 계산되며, 보통 30초마다 바뀐다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">한 번 등록하면 바뀌지 않는 고정 PIN이다</span></label>
 
-다중 인증(MFA)은 **서로 다른 종류의 증거**를 요구합니다 —
-"아는 것(비밀번호)" + "가진 것(스마트폰의 OTP 앱)".
-비밀번호가 유출되어도 공격자 손에 내 스마트폰이 없으면 로그인할 수 없습니다.
-15번 모듈에서 직접 설정합니다.
-====
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (C)</strong></p>
+    <p>등록할 때 QR 코드에 담긴 것은 <strong>비밀 키(seed)</strong>입니다. 이후 앱과 서버는 각자 "비밀 키 + 현재 시각(30초 단위)"으로 같은 6자리 숫자를 계산합니다. 그래서 앱은 오프라인에서도 동작하고, 숫자는 30초마다 바뀝니다.</p>
+    <p>공격자가 지금 숫자를 엿보더라도 30초 뒤에는 쓸모가 없습니다. 그래서 QR 코드(비밀 키)는 <strong>등록하는 순간 한 번만</strong> 보여 주고 다시는 노출하지 않습니다. 모듈 1에서 QR 코드를 직접 등록해 봅니다.</p>
+  </div>
+</div>
 
-=== Q0-2
+<div class="nrp-quiz" data-answer="B">
+  <div class="nrp-quiz-q">Q0-3. "같은 네트워크 대역 = 믿을 수 있는 서비스"라는 가정의 가장 큰 문제는?</div>
 
-TOTP(시간 기반 일회용 비밀번호) 앱에 표시되는 6자리 숫자에 대한 설명으로 **맞는** 것은?
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">IP 대역이 부족해진다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">공격자가 한 번 내부에 들어오면 그 순간부터 모든 서비스가 그를 신뢰한다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">네트워크 성능이 느려진다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">IPv6에서는 동작하지 않는다</span></label>
 
-[none]
-* (A) 서버가 매번 문자 메시지로 보내 주는 값이다
-* (B) 앱이 인터넷에 연결되어 있어야만 생성된다
-* (C) QR 코드로 한 번 공유한 비밀 키와 현재 시각으로 계산되며, 보통 30초마다 바뀐다
-* (D) 한 번 등록하면 바뀌지 않는 고정 PIN이다
-
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (C)**
-
-등록할 때 QR 코드에 담긴 것은 **비밀 키(seed)** 입니다. 이후 앱과 서버는 각자
-"비밀 키 + 현재 시각(30초 단위)"으로 같은 6자리 숫자를 계산합니다.
-그래서 앱은 오프라인에서도 동작하고, 숫자는 30초마다 바뀝니다.
-
-공격자가 이번 숫자를 엿보더라도 30초 뒤에는 쓸모가 없습니다.
-그래서 QR 코드(비밀 키) 자체는 **등록하는 순간 한 번만** 보여 주고, 다시는 노출하지 않습니다.
-====
-
-=== Q0-3
-
-"같은 네트워크 대역 = 믿을 수 있는 서비스"라는 가정의 가장 큰 문제는?
-
-[none]
-* (A) IP 대역이 부족해진다
-* (B) 공격자가 한 번 내부에 들어오면 그 순간부터 모든 서비스가 그를 신뢰한다
-* (C) 네트워크 성능이 느려진다
-* (D) IPv6에서는 동작하지 않는다
-
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (B)**
-
-이것을 흔히 "M&M 보안"이라고 부릅니다. 껍질은 딱딱하지만 속은 말랑한 구조입니다.
-
-경계 방어는 **한 번만 뚫리면 되는** 구조입니다. 침입 이후의 횡적 이동(lateral movement)을
-막아 주는 것이 아무것도 없습니다. Zero Trust는 "내부"라는 개념 자체를 없애고,
-**모든 연결이 매번 신원을 증명**하게 만듭니다. 16번 모듈의 주제입니다.
-====
-
-=== Q0-4
-
-레드페이의 CI 파이프라인에는 이미지 스캔이 있었습니다. 그런데도 `latest` 이미지의 RCE 취약점을 놓친 이유로 **가장 적절한** 것은?
-
-[none]
-* (A) 스캔 도구의 탐지율이 낮아서
-* (B) 배포 이후에 공개된 CVE와, 클러스터에 실제로 떠 있는 것을 아무도 지속적으로 보지 않아서
-* (C) 개발자가 스캔 결과를 무시해서
-* (D) 이미지가 너무 커서 스캔이 타임아웃돼서
-
-.정답 및 해설 보기
-[%collapsible]
-====
-**정답: (B)**
-
-CI 스캔은 **그 시점의 스냅샷**입니다. 통과한 순간 스캔의 임무는 끝나지만,
-컨테이너는 그 뒤로 몇 달을 계속 돌아갑니다.
-
-CVE는 매일 새로 공개됩니다. 어제 깨끗했던 이미지가 오늘 취약해집니다.
-그래서 스캔은 파이프라인의 한 단계가 아니라 **클러스터에서 계속 돌아가는 상태 점검**이어야 합니다.
-17번 모듈에서 RHACS가 바로 이 역할을 하는 것을 보게 됩니다.
-====
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (B)</strong></p>
+    <p>이것을 흔히 "M&amp;M 보안"이라고 부릅니다. 껍질은 딱딱하지만 속은 말랑한 구조입니다.</p>
+    <p>경계 방어는 <strong>한 번만 뚫리면 끝나는</strong> 구조입니다. 침입 이후의 횡적 이동(lateral movement)을 막아 주는 것이 아무것도 없습니다. Zero Trust는 "내부"라는 개념 자체를 없애고, <strong>모든 연결이 매번 신원을 증명</strong>하게 만듭니다. 모듈 2의 주제입니다.</p>
+  </div>
+</div>
+++++
 
 == 다음 단계
 
-준비가 되셨으면 첫 번째 방어선인 xref:15-rhbk-mfa.adoc[Red Hat build of Keycloak 모듈]로 이동하십시오.
+준비가 되셨으면 **다음**을 눌러 첫 번째 모듈을 진행합니다.

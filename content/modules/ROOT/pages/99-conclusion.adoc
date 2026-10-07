@@ -1,11 +1,104 @@
 = 워크숍을 완료해 주셔서 감사합니다
 
+include::partial$nrp-assets.adoc[]
+
+== 세 가지 보안 통제 적용 — 되짚어 보기
+
+세 가지 보안 통제를 모두 적용했습니다. 트랙을 시작할 때 봤던 그 공격 경로를 다시 봅니다 —
+이번에는 세 지점 모두 여러분이 무엇으로 막았는지가 함께 표시되어 있습니다.
+
+++++
+<div class="nrp-figure">
+<svg viewBox="0 0 840 250" role="img" aria-label="해결 요약 다이어그램. 공격 1단계는 모듈 1 Keycloak, 2단계는 모듈 2 ZTWIM, 3단계는 모듈 3 RHACS에서 각각 차단되었습니다.">
+  <defs>
+    <marker id="nrp-ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
+    </marker>
+  </defs>
+
+  <!-- 공격 단계 라벨 -->
+  <g font-size="12" font-weight="700" fill="#6a6e73" text-anchor="middle">
+    <text x="200" y="20">1단계</text>
+    <text x="420" y="20">2단계</text>
+    <text x="640" y="20">3단계</text>
+  </g>
+
+  <!-- 적용된 보안 통제 -->
+  <g fill="#3e8635">
+    <rect x="193" y="32" width="14" height="106" rx="4"/>
+    <rect x="413" y="32" width="14" height="106" rx="4"/>
+    <rect x="633" y="32" width="14" height="106" rx="4"/>
+  </g>
+
+  <!-- 1단계에서 차단 -->
+  <line x1="168" y1="85" x2="186" y2="85" stroke="#ee0000" stroke-width="2.5" marker-end="url(#nrp-ar3)"/>
+
+  <!-- 노드 -->
+  <rect x="15" y="53" width="150" height="64" rx="6" fill="#151515"/>
+  <text x="90" y="80" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">공격자</text>
+  <text x="90" y="99" font-size="11.5" fill="#b8b8b8" text-anchor="middle">인터넷</text>
+
+  <g opacity="0.35">
+    <rect x="235" y="53" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="310" y="88" font-size="13" font-weight="700" fill="#6a6e73" text-anchor="middle">운영자 계정</text>
+    <rect x="455" y="53" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="530" y="88" font-size="13" font-weight="700" fill="#6a6e73" text-anchor="middle">회원 DB</text>
+    <rect x="675" y="53" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
+    <text x="750" y="88" font-size="13" font-weight="700" fill="#6a6e73" text-anchor="middle">payment-api</text>
+  </g>
+
+  <!-- 무엇이 문제였고, 무엇으로 막았나 -->
+  <g text-anchor="middle">
+    <g font-size="11" fill="#a30000">
+      <text x="200" y="158">비밀번호 하나로 로그인</text>
+      <text x="420" y="158">내부 요청 = 무조건 신뢰</text>
+      <text x="640" y="158">latest 이미지 · RCE 라이브러리</text>
+    </g>
+
+    <g font-size="10.5" font-weight="700" fill="#3e8635">
+      <text x="200" y="186">모듈 1 · Red Hat build of Keycloak</text>
+      <text x="420" y="186">모듈 2 · ZTWIM</text>
+      <text x="640" y="186">모듈 3 · RHACS</text>
+    </g>
+
+    <g font-size="10.5" fill="#151515">
+      <text x="200" y="206">OTP 등록을 모든 사용자에게</text>
+      <text x="200" y="221">강제 (MFA)</text>
+      <text x="420" y="206">SVID mTLS 로</text>
+      <text x="420" y="221">신원 없는 연결 거부</text>
+      <text x="640" y="206">정책 Enforce 로</text>
+      <text x="640" y="221">배포 자체를 거부</text>
+    </g>
+  </g>
+</svg>
+<div class="nrp-figcaption">같은 공격 경로도, 이제는 <strong>사전에 방지</strong>할 수 있습니다.</div>
+</div>
+++++
+
+[cols="1,2,2",options="header"]
+|===
+| 공격 단계 | 레드페이에서 일어난 일 | 우리가 적용한 보안 통제
+
+| 1단계
+| 유출된 비밀번호 하나로 운영자 계정에 로그인
+| *모듈 1 · Red Hat build of Keycloak* — OTP 기반 다중 인증(MFA)을 모든 사용자에게 강제
+
+| 2단계
+| 내부 대역이라는 이유로 모든 서비스가 공격자를 신뢰
+| *모듈 2 · Zero Trust Workload Identity Manager* — 네트워크 위치가 아닌 암호학적 신원(mTLS)으로 검증
+
+| 3단계
+| `latest` 태그 이미지의 RCE 취약 라이브러리로 데이터 외부 반출
+| *모듈 3 · Red Hat Advanced Cluster Security* — 탐지에 머물던 정책을 배포 시점 차단으로 전환
+|===
+
+각각은 따로 적용해도 가치가 있지만, 함께일 때 의미가 달라집니다.
+공격은 한 단계씩 진행되고, **어느 한 단계에서든 막히면 그 뒤는 일어나지 않습니다.**
+
+레드페이를 무너뜨린 것은 정교한 공격이 아니었습니다. MFA, 워크로드 신원, 이미지 정책 —
+**세 가지 모두 이미 가지고 있었지만 "나중에 켜자"에 머물러 있던 보안**이었습니다.
+
+더 알아보려면 Red Hat의 https://github.com/validatedpatterns/layered-zero-trust[Layered Zero Trust Validated Pattern]을 참고하십시오.
+
 **OpenShift Ops Day Roadshow에 참석해 주셔서 감사합니다.**
-
-진행된 핸즈온 실습이 여러분께 가치 있는 시간이 되었기를 바랍니다. 추가적인 질문이 있으신 경우 강사에게 문의해 주십시오.
-
-== 추가 리소스
-
-* link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20[OpenShift Documentation, window=blank]
-* link:https://developers.redhat.com/learn/openshift[OpenShift Learning, window=blank]
-* link:https://www.redhat.com/en/services/training-and-certification[Red Hat Training & Certification, window=blank]
+추가적인 질문이 있으신 경우 강사에게 문의해 주십시오.

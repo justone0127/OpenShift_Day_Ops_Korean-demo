@@ -39,16 +39,24 @@ A comprehensive modular workshop for OpenShift administrators. Modules are selec
 * *link:content/modules/ROOT/pages/14-acm.adoc[14 - ACM Multi-Cluster Management]* (30 min) - ACM, hosted control planes, VM management, GitOps app deployment, policy-based governance
 *Security Track (레드페이 침해사고 시나리오)*
 
-모듈 15/16/17은 하나의 침해사고를 3단계 공격으로 나누어, 각 단계를 막는 방어선을 순서대로 다룹니다.
-실습 환경은 진행자가 사전 배포 스크립트로 준비하므로 참가자가 긴 YAML을 붙여넣지 않습니다.
-가이드 중간중간 이해도 확인 퀴즈(접기식 해설 포함)가 배치되어 있습니다.
+세 모듈은 하나의 침해사고를 3단계 공격으로 나누어, 각 단계를 막는 보안 통제를 순서대로 적용합니다.
+레드페이는 필요한 보안 솔루션을 이미 도입했지만 제대로 켜지 않았고, 참가자는 그 보안을 "제대로 켜는" 과정을 실습합니다.
+실습 환경은 진행자가 사전 배포 스크립트로 준비하며, 참가자 가이드에는 설치·정리 절차가 없습니다.
+가이드 중간중간 이해도 확인 퀴즈(즉시 채점 + 해설)가 배치되어 있습니다.
 
-* *link:content/modules/ROOT/pages/15-00-security-story.adoc[15-00 - 보안 트랙 시작: 레드페이 침해사고]* (10 min) - 침해사고 스토리, 3단계 공격 경로, 워밍업 퀴즈
-* *link:content/modules/ROOT/pages/15-rhbk-mfa.adoc[15 - Red Hat build of Keycloak (MFA)]* (15 min) - Configure OTP Required action 확인, OpenShift 로그인 화면에서 사용자 등록, QR 코드로 OTP 앱 등록 후 토큰으로 로그인
-* *link:content/modules/ROOT/pages/16-ztwim.adoc[16 - Zero Trust Workload Identity Manager]* (10 min) - SPIFFE 워크로드 신원(SVID) 확인, 비밀번호 없는 mTLS 연결, 무권한 접속 거부 확인
-* *link:content/modules/ROOT/pages/17-acs.adoc[17 - Red Hat Advanced Cluster Security]* (15 min) - 사전 배포된 취약/강화 워크로드 비교, Violations와 CVE 확인, 정책 Enforce 전환과 배포 차단 시연
+* *link:content/modules/ROOT/pages/15-00-security-story.adoc[인트로 - 보안 트랙 시작: 레드페이 침해사고]* (10 min) - 침해사고 스토리, 공격 경로/보안 통제 다이어그램, 피해 집계, 워밍업 퀴즈
+* *link:content/modules/ROOT/pages/15-rhbk-mfa.adoc[모듈 1 - Red Hat build of Keycloak]* (15 min) - Configure OTP 확인과 기본 동작 강제, OpenShift 로그인 화면에서 사용자 등록, QR 코드로 OTP 앱 등록 후 토큰으로 로그인
+* *link:content/modules/ROOT/pages/16-ztwim.adoc[모듈 2 - Zero Trust Workload Identity Manager]* (10 min) - SPIFFE 워크로드 신원(SVID) 확인, 비밀번호 없는 mTLS 연결, 무권한 접속 거부 확인
+* *link:content/modules/ROOT/pages/17-acs.adoc[모듈 3 - Red Hat Advanced Cluster Security]* (15 min) - 사전 배포된 취약/강화 워크로드 비교, Violations와 CVE 확인, 정책 Enforce 전환과 배포 차단 시연
 
-진행자용 문서: link:FACILITATOR-SECURITY-TRACK.adoc[FACILITATOR-SECURITY-TRACK.adoc] (퀴즈 정답 및 사전 준비 절차)
+퀴즈는 라디오 버튼으로 답을 고르고 *정답 확인* 을 누르면 즉시 채점됩니다
+(`content/modules/ROOT/examples/nrp-quiz.js`, `nrp-security.css` — `partials/nrp-assets.adoc` 가 include).
+JS가 로드되지 않으면 해설이 펼쳐진 채로 표시됩니다.
+
+NOTE: 파일명은 전체 로드쇼(01~14)와 번호가 겹치지 않도록 `15/16/17` 을 붙였으며, 진행 순서와 같습니다
+(`15-rhbk-mfa` → `16-ztwim` → `17-acs`).
+
+진행자용 문서: link:FACILITATOR-SECURITY-TRACK.adoc[FACILITATOR-SECURITY-TRACK.adoc] — 시나리오 요약, 퀴즈 정답, 사전 준비 절차, 진행 시 주의점
 
 == Module Selection
 

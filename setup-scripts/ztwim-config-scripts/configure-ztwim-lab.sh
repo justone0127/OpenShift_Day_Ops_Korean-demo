@@ -100,11 +100,14 @@ operator_usable() {
   operator_csv_ready || operator_controller_ready
 }
 
+# 실습에 반드시 필요한 CR 4종만 셉니다.
+# SpireOIDCDiscoveryProvider 는 이 실습에서 쓰지 않으므로 필수 목록에서 제외합니다
+# (ZTWIM_ENABLE_OIDC_PROVIDER=true 로 배포한 경우에도 검증 기준은 동일합니다).
 spire_crs_exist() {
   local count
-  count="$(oc get zerotrustworkloadidentitymanager,spireserver,spireagent,spiffecsidriver,spireoidcdiscoveryprovider \
+  count="$(oc get zerotrustworkloadidentitymanager,spireserver,spireagent,spiffecsidriver \
     -n "${OPERATOR_NAMESPACE}" --no-headers 2>/dev/null | wc -l | tr -d ' ')"
-  [[ "${count}" -ge 5 ]]
+  [[ "${count}" -ge 4 ]]
 }
 
 remove_misplaced_spire_crs() {
@@ -404,7 +407,21 @@ metadata:
   namespace: ${OPERATOR_NAMESPACE}
 spec:
   agentSocketPath: /run/spire/agent-sockets
----
+EOF
+
+  # OIDC Discovery Provider 는 JWT-SVID 를 OIDC 페더레이션(예: AWS IAM)에 쓰기 위한
+  # 컴포넌트입니다. 이 워크샵의 PostgreSQL mTLS 실습은 X509-SVID 만 사용하므로
+  # 기본적으로 배포하지 않습니다.
+  #
+  # 배포할 경우, 자신의 등록 엔트리가 에이전트에 전파되기 전까지
+  # "No identity issued" / "Failed to fetch JWKS from the Workload API" 를 반복 출력하고
+  # 그동안 파드가 Ready 가 되지 않아, 진행자와 참가자에게 불필요한 혼란을 줍니다.
+  #
+  # JWT-SVID/OIDC 를 다루는 확장 시나리오를 진행하려면:
+  #   ZTWIM_ENABLE_OIDC_PROVIDER=true ./configure-ztwim-lab.sh
+  if [[ "${ZTWIM_ENABLE_OIDC_PROVIDER:-false}" == "true" ]]; then
+    log "Applying SpireOIDCDiscoveryProvider (ZTWIM_ENABLE_OIDC_PROVIDER=true)..."
+    oc apply -f - <<EOF
 apiVersion: operator.openshift.io/v1alpha1
 kind: SpireOIDCDiscoveryProvider
 metadata:
@@ -414,6 +431,12 @@ spec:
   jwtIssuer: https://spire-spiffe-oidc-discovery-provider.${CLUSTER_DOMAIN}
   managedRoute: "true"
 EOF
+  else
+    log "Skipping SpireOIDCDiscoveryProvider (not used by this lab)"
+    # 이전 실행에서 남아 있으면 제거해, 준비되지 않는 파드가 보이지 않게 합니다.
+    oc delete spireoidcdiscoveryprovider cluster -n "${OPERATOR_NAMESPACE}" \
+      --ignore-not-found >/dev/null 2>&1 || true
+  fi
 }
 
 wait_for_spire_server() {
