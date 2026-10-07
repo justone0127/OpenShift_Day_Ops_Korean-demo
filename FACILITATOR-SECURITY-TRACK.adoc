@@ -182,6 +182,39 @@ cd OpenShift_Day_Ops_Korean-demo/setup-scripts/security-track-scripts
 RHDP/AgnosticV 환경이라면 이 스크립트를 프로비저닝 단계에 포함시키는 것이 가장 좋습니다.
 ====
 
+=== Showroom 매뉴얼 전환 (프로비저닝 직후 1회)
+
+RHDP 로 클러스터를 처음 프로비저닝하면 Showroom 은 **원본 저장소**(`rhpds/openshift-days-ops-showroom`)를 보고 있습니다.
+이 한국어 매뉴얼(`ops-sc`)로 바꾸고 다시 초기화하려면, 위 환경 구성과 같은 bastion 에서 다음을 실행합니다.
+
+[source,bash]
+----
+cd ~/OpenShift_Day_Ops_Korean-demo/setup-scripts/security-track-scripts
+./switch-showroom-content.sh --status    # 현재 어떤 저장소·브랜치를 보는지 확인
+./switch-showroom-content.sh             # 한국어 저장소 + ops-sc 로 전환하고 재초기화
+----
+
+스크립트가 하는 일:
+
+. `showroom` 네임스페이스를 자동으로 찾습니다 (여러 개면 `./switch-showroom-content.sh showroom-xxxx-1` 처럼 지정).
+. 저장소에 `ops-sc` 브랜치가 실제로 있는지 먼저 확인합니다. 없으면 아무것도 바꾸지 않고 멈춥니다.
+. `git-cloner`(초기화 컨테이너)와 `content` 컨테이너의 `GIT_REPO_URL` / `GIT_REPO_REF` 를 **함께** 바꿉니다.
+. pod 가 새로 뜨며 clone → Antora 빌드를 다시 수행할 때까지 기다리고, 결과(pod 상태·URL)를 보여 줍니다.
+  실패하면 초기화 컨테이너 로그를 출력합니다.
+
+[IMPORTANT]
+====
+저장소 주소와 브랜치는 **반드시 함께** 바꿔야 합니다. 브랜치만 `ops-sc` 로 바꾸면
+원본 저장소에는 그 브랜치가 없어 pod 가 `Init:0/2` 에서 멈춥니다.
+`oc set env` 는 초기화 컨테이너를 바꾸지 못하므로 이 스크립트를 쓰십시오.
+====
+
+매뉴얼을 고쳐 `ops-sc` 에 푸시한 뒤에도 같은 스크립트를 다시 실행하면 됩니다.
+설정이 이미 같으면 pod 만 재시작해 최신 커밋으로 다시 빌드합니다.
+
+NOTE: RHDP 가 Showroom 을 다시 배포하면 원본 설정으로 돌아갈 수 있습니다. 그때도 이 스크립트를 다시 실행하십시오.
+다른 저장소를 쓰려면 `SHOWROOM_REPO_URL=<주소> SHOWROOM_REPO_REF=<브랜치> ./switch-showroom-content.sh` 로 지정합니다.
+
 === 모듈 1 (Keycloak) 사전 구성 상세
 
 `setup-scripts/rhbk-config-scripts/setup-rhbk-mfa-lab.sh` 가 다음을 준비합니다.
@@ -645,6 +678,9 @@ oc get securedcluster -n stackrox -o jsonpath='{.items[0].spec.admissionControl}
 
 | `setup-scripts/security-track-scripts/setup-security-track.sh`
 | 단일 사용자용 진입점 (위 스크립트의 단일 사용자 모드 래퍼)
+
+| `setup-scripts/security-track-scripts/switch-showroom-content.sh`
+| Showroom 매뉴얼을 이 저장소의 `ops-sc` 로 전환하고 재초기화 (프로비저닝 직후, 매뉴얼 수정 후)
 
 | `setup-scripts/rhbk-config-scripts/setup-rhbk-mfa-lab.sh`
 | 모듈 1 — RHBK Operator·Keycloak·`redpay` realm·OAuth 연동 구성, 회차 리셋 (배포 스크립트가 호출)
