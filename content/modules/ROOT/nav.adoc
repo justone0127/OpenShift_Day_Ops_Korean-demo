@@ -11,7 +11,7 @@
 //   module_enable_observability, module_enable_performance,
 //   module_enable_virt, module_enable_devhub, module_enable_ols,
 //   module_enable_acm, module_enable_security,
-//   module_enable_ztwim, module_enable_vault
+//   module_enable_ztwim
 
 // Setup & Overview (always shown)
 * xref:index.adoc[Setup & Overview]
@@ -65,17 +65,20 @@ endif::[]
 ifeval::["{module_enable_acm}" == "true"]
 * xref:14-acm.adoc[ACM Multi-Cluster Management]
 endif::[]
-// Security Track — 누리페이 침해사고 시나리오 (15 → 16 → 17)
-// 인트로 페이지는 ACS 모듈과 함께 노출됩니다.
+// Security Track — 레드페이 침해사고 시나리오 (15 → 16 → 17)
+//   15: Red Hat build of Keycloak (MFA)
+//   16: Zero Trust Workload Identity Manager
+//   17: Red Hat Advanced Cluster Security
+// 인트로 페이지와 RHBK / RHACS 모듈은 module_enable_security 로 함께 노출됩니다.
 ifeval::["{module_enable_security}" == "true"]
-* xref:15-00-security-story.adoc[보안 트랙 시작 — 누리페이 침해사고]
-* xref:15-acs.adoc[Advanced Cluster Security]
-endif::[]
-ifeval::["{module_enable_vault}" == "true"]
-* xref:16-secrets-management.adoc[Secrets Management]
+* xref:15-00-security-story.adoc[보안 트랙 시작 — 레드페이 침해사고]
+* xref:15-rhbk-mfa.adoc[Red Hat build of Keycloak (MFA)]
 endif::[]
 ifeval::["{module_enable_ztwim}" == "true"]
-* xref:17-ztwim.adoc[Zero-Trust Workload Identity Manager]
+* xref:16-ztwim.adoc[Zero Trust Workload Identity Manager]
+endif::[]
+ifeval::["{module_enable_security}" == "true"]
+* xref:17-acs.adoc[Red Hat Advanced Cluster Security]
 endif::[]
 
 // Conclusion (always shown)

@@ -74,7 +74,6 @@ ATTRS="${ATTRS}    module_enable_ols: '${MODULE_ENABLE_OLS:-true}'"$'\n'
 ATTRS="${ATTRS}    module_enable_acm: '${MODULE_ENABLE_ACM:-true}'"$'\n'
 ATTRS="${ATTRS}    module_enable_security: '${MODULE_ENABLE_SECURITY:-true}'"$'\n'
 ATTRS="${ATTRS}    module_enable_ztwim: '${MODULE_ENABLE_ZTWIM:-true}'"$'\n'
-ATTRS="${ATTRS}    module_enable_vault: '${MODULE_ENABLE_VAULT:-true}'"$'\n'
 
 # TOC depth - only show main sections
 ATTRS="${ATTRS}    toclevels: 2"$'\n'
