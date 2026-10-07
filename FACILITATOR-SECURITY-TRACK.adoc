@@ -2,13 +2,13 @@
 :toc: left
 :toclevels: 2
 
-레드페이 침해사고 시나리오로 묶인 세 모듈
+RedPay 침해사고 시나리오로 묶인 세 모듈
 (Red Hat build of Keycloak → Zero Trust Workload Identity Manager → Red Hat Advanced Cluster Security)의
 진행자용 문서입니다. 참가자에게 공개하지 마십시오 — 퀴즈 정답이 포함되어 있습니다.
 
 == 시나리오 요약
 
-잘 돌아가던 레드페이 결제 시스템에서 새벽 시간대에 요청 급증 알림이 울립니다.
+잘 돌아가던 RedPay 결제 시스템에서 새벽 시간대에 요청 급증 알림이 울립니다.
 들어가 보니 **운영자 계정이 털렸습니다** — 다중 인증(MFA)을 쓰지 않았기 때문입니다.
 
 [cols="1,2,2",options="header"]
@@ -28,8 +28,8 @@
 | *모듈 3 — RHACS* : 탐지(Inform)에 머물던 정책을 차단(Enforce)으로 전환
 |===
 
-핵심 메시지: **레드페이는 필요한 보안 솔루션을 이미 도입했지만 제대로 적용하지 않았다.**
-이 트랙은 그 보안을 "이제라도 제대로 켜서" 레드페이가 더 안전하게 결제 서비스를 하도록 만드는 과정입니다.
+핵심 메시지: **RedPay는 필요한 보안 솔루션을 이미 도입했지만 제대로 적용하지 않았다.**
+이 트랙은 그 보안을 "이제라도 제대로 켜서" RedPay가 더 안전하게 결제 서비스를 하도록 만드는 과정입니다.
 
 == 트랙 구성
 
@@ -204,7 +204,7 @@ RHDP/AgnosticV 환경이라면 이 스크립트를 프로비저닝 단계에 포
 
 | Required action *Configure OTP*
 | *Enabled* = On, *Set as default action* = **Off** — 참가자가 실습 2단계에서 직접 켭니다.
-  레드페이의 "기능은 있었지만 강제하지 않은" 상태를 그대로 재현한 것입니다
+  RedPay의 "기능은 있었지만 강제하지 않은" 상태를 그대로 재현한 것입니다
 
 | OIDC client `openshift`
 | redirect URI = `https://oauth-openshift.<apps-domain>/oauth2callback/rhbk`, groups mapper 포함

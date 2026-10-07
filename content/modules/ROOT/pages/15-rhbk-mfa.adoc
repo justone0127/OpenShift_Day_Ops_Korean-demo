@@ -12,7 +12,7 @@ include::partial$console-access.adoc[]
 include::partial$nrp-assets.adoc[]
 
 [IMPORTANT]
-.레드페이 침해사고 — 1단계 공격
+.RedPay 침해사고 — 1단계 공격
 ====
 새벽에 결제 데이터를 쓸어 간 것은 **정상적으로 로그인한 운영자 계정 `ops-admin`** 이었습니다.
 비밀번호는 다른 곳에서 유출된 그대로였고, 여러분의 Keycloak에는 MFA 기능이 있었지만
@@ -26,7 +26,7 @@ include::partial$nrp-assets.adoc[]
 OpenID Connect(OIDC)·SAML 기반의 통합 인증(SSO)과 다중 인증(MFA)을 제공합니다.
 
 여러분의 클러스터에는 RHBK가 이미 설치되어 있고, OpenShift의 Identity Provider(`rhbk`)로 연동되어 있습니다.
-레드페이의 상황과 똑같습니다 — **도구는 있습니다. 켜지 않았을 뿐입니다.**
+RedPay의 상황과 똑같습니다 — **도구는 있습니다. 켜지 않았을 뿐입니다.**
 
 == 학습 목표
 
@@ -67,7 +67,7 @@ echo "Password:     $(oc get secret keycloak-initial-admin -n rhbk -o jsonpath='
 [IMPORTANT]
 ====
 반드시 `redpay` realm에서 작업하십시오. `master` realm은 Keycloak 자체를 관리하는 realm이라,
-여기서 설정을 바꿔도 레드페이 사용자에게는 아무 효과가 없습니다.
+여기서 설정을 바꿔도 RedPay 사용자에게는 아무 효과가 없습니다.
 ====
 
 == 2단계 — OTP 등록을 모든 사용자에게 강제
@@ -101,7 +101,7 @@ image::rhbk-mfa-required-actions.png[Keycloak Authentication 의 Required action
 [NOTE]
 ====
 *Enabled* 만 켜져 있는 상태는 "OTP를 등록할 **수 있는**" 상태일 뿐입니다.
-레드페이가 바로 이 상태였습니다 — 기능은 있었지만, 등록한 사람은 아무도 없었습니다.
+RedPay가 바로 이 상태였습니다 — 기능은 있었지만, 등록한 사람은 아무도 없었습니다.
 
 *Set as default action* 까지 켜야 "OTP를 등록하지 않으면 로그인할 **수 없는**" 상태가 됩니다.
 한 번 OTP를 등록한 사용자는 이후 모든 로그인에서 비밀번호와 함께 OTP를 요구받습니다.
@@ -121,7 +121,7 @@ image::rhbk-mfa-required-actions.png[Keycloak Authentication 의 Required action
   <div class="nrp-quiz-exp">
     <p><strong>정답: (B)</strong></p>
     <p><em>Enabled</em> 는 "이 기능을 쓸 수 있다"는 뜻입니다. 사용자가 계정 설정에서 직접 OTP를 추가하거나, 관리자가 특정 사용자에게 개별로 OTP 등록을 요구할 수 있게 됩니다.</p>
-    <p>하지만 <strong>강제하지 않으면 대부분은 등록하지 않습니다.</strong> 불편하니까요. 레드페이의 <code>ops-admin</code> 이 바로 그런 계정이었습니다.</p>
+    <p>하지만 <strong>강제하지 않으면 대부분은 등록하지 않습니다.</strong> 불편하니까요. RedPay의 <code>ops-admin</code> 이 바로 그런 계정이었습니다.</p>
     <p><em>Set as default action</em> 을 켜면 새 사용자 모두에게 OTP 등록이 <strong>기본으로 요구</strong>됩니다. "보안 기능을 가지고 있는 것"과 "보안 기능을 적용한 것"의 차이입니다.</p>
   </div>
 </div>
@@ -129,7 +129,7 @@ image::rhbk-mfa-required-actions.png[Keycloak Authentication 의 Required action
 
 == 3단계 — OpenShift 로그인 화면에서 새 사용자 등록
 
-이제 레드페이에 새로 합류한 운영자가 되어 OpenShift에 처음 로그인해 봅니다.
+이제 RedPay에 새로 합류한 운영자가 되어 OpenShift에 처음 로그인해 봅니다.
 
 .실습 절차
 . **OCP Console** 탭에서 오른쪽 위의 사용자 이름을 클릭하고 *Log out* 을 선택합니다.
@@ -209,7 +209,7 @@ NOTE: OpenShift에서 로그아웃해도 Keycloak 세션은 잠시 남아 있습
 
 [IMPORTANT]
 ====
-**이것이 레드페이에서 일어나지 않았던 일입니다.**
+**이것이 RedPay에서 일어나지 않았던 일입니다.**
 
 공격자는 `ops-admin` 의 비밀번호를 **정확히** 알고 있었습니다.
 하지만 이 화면 앞에서 멈췄을 것입니다. 6자리 숫자는 운영자의 스마트폰 안에서만, 30초마다 새로 만들어지니까요.
@@ -230,7 +230,7 @@ NOTE: OpenShift에서 로그아웃해도 Keycloak 세션은 잠시 남아 있습
     <p><strong>정답: (B)</strong></p>
     <p>TOTP 값은 짧은 시간 동안만 유효하고, 한 번 쓴 값은 다시 쓸 수 없습니다. 그래서 공격자는 <strong>그 30초 안에 실시간으로</strong> 로그인해야 하고, 다음 로그인에는 또 새 숫자가 필요합니다. (C)처럼 "앞으로 언제든"은 불가능합니다. 다음 숫자를 만들 비밀 키는 사용자의 스마트폰에만 있으니까요.</p>
     <p>그렇다고 (A)처럼 "어떤 경우에도 안전"한 것은 아닙니다. 실시간 중계형 피싱(AitM)은 바로 그 짧은 시간을 노립니다. 그래서 더 높은 보안이 필요한 계정에는 피싱에 강한 인증(WebAuthn / Passkey)을 함께 검토합니다. RHBK는 같은 <em>Required actions</em> 화면에서 <em>Webauthn Register</em> 같은 방식도 지원합니다.</p>
-    <p>MFA가 만능은 아니지만, <strong>유출된 비밀번호만으로 들어오는 공격</strong> — 레드페이 사고의 1단계 — 는 확실히 막습니다.</p>
+    <p>MFA가 만능은 아니지만, <strong>유출된 비밀번호만으로 들어오는 공격</strong> — RedPay 사고의 1단계 — 는 확실히 막습니다.</p>
   </div>
 </div>
 ++++
@@ -276,7 +276,7 @@ oc whoami
 
 1단계 공격은 막았습니다. 이제 유출된 비밀번호만으로는 운영자 계정에 들어올 수 없습니다.
 
-하지만 레드페이 사고에서 피해를 회원 DB까지 넓힌 것은 **"내부에서 온 요청이면 믿는다"** 는 가정이었습니다.
+하지만 RedPay 사고에서 피해를 회원 DB까지 넓힌 것은 **"내부에서 온 요청이면 믿는다"** 는 가정이었습니다.
 공격자가 다른 경로로 한 번이라도 내부에 들어오면, 그 가정은 또다시 무너집니다.
 
 xref:16-ztwim.adoc[다음 모듈]에서 2단계 공격 — 내부 요청을 무조건 신뢰한 문제 — 을 다룹니다.

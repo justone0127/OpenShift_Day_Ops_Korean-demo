@@ -65,7 +65,7 @@ endif::[]
 ifeval::["{module_enable_acm}" == "true"]
 * xref:14-acm.adoc[ACM Multi-Cluster Management]
 endif::[]
-// Security Track — 레드페이 침해사고 시나리오
+// Security Track — RedPay 침해사고 시나리오
 // 진행 순서: 인트로 → 모듈 1 RHBK(MFA) → 모듈 2 ZTWIM → 모듈 3 RHACS
 // 파일명의 15/16/17 은 전체 로드쇼(01~14)와 번호가 겹치지 않도록 붙인 것이며,
 // 진행 순서와 같습니다 (15-rhbk-mfa → 16-ztwim → 17-acs).

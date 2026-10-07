@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 레드페이 보안 트랙 — 다중 사용자 배포 스크립트
+# RedPay 보안 트랙 — 다중 사용자 배포 스크립트
 #
 # 참가자마다 계정(user1, user2, ...)이 하나씩 주어지는 환경을 위해,
 # 사용자별로 격리된 실습 네임스페이스와 워크로드를 생성합니다.
@@ -272,7 +272,7 @@ deploy_user() {
 
   log "[$(display_user "${u}")] 배포 중..."
 
-  # 모듈 3 — 레드페이 결제 API 워크로드
+  # 모듈 3 — RedPay 결제 API 워크로드
   # 매니페스트에 Namespace 가 함께 들어 있지만, 뒤따르는 리소스가
   # "namespace not found" 로 실패하지 않도록 먼저 만들어 둡니다.
   oc create namespace "${ns_pay}" >/dev/null 2>&1 || true
