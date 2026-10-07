@@ -35,7 +35,6 @@ RedPay의 상황과 똑같습니다 — **도구는 있습니다. 켜지 않았�
 * Keycloak 관리 콘솔에서 *Configure OTP* 설정을 확인하고, 새 사용자에게 OTP 등록을 **강제**합니다
 * OpenShift 로그인 화면에서 `rhbk` 를 선택해 새 사용자를 직접 등록합니다
 * QR 코드를 OTP 앱(또는 Chrome 확장 프로그램)에 등록하고, 토큰 값을 입력해 OpenShift에 로그인합니다
-* 다시 로그인할 때 **비밀번호만으로는 들어갈 수 없다**는 것을 확인합니다
 
 == 사전 준비 — OTP 앱
 
@@ -172,27 +171,57 @@ image::rhbk-mfa-login-select-rhbk.png[OpenShift 로그인 화면 — htpasswd �
 +
 TIP: 목록 없이 이전 세션으로 바로 로그인된다면, OCP Console 탭 옆의 **새로 고침 버튼**(원형 화살표)을 클릭하십시오.
 +
-. **REDPAY** 로그인 화면(Keycloak)으로 이동합니다. 아직 계정이 없으므로 로그인 폼 아래의 *New user?* **Register** 링크를 클릭합니다.
+. **REDPAY** 로그인 화면(OpenShift console)으로 이동합니다. 아직 계정이 없으므로 로그인 폼 아래의 *New user?* **Register** 링크를 클릭합니다.
 +
 image::rhbk-mfa-register-link.png[REDPAY 로그인 화면 — 아래쪽 New user? Register 링크를 빨간 상자로 표시, link=self, window=blank, width=60%]
 +
-. 사용자 정보를 입력합니다. **네 항목을 모두 채워야 합니다.**
+. 사용자 정보를 입력합니다. **모든 항목을 채워야 합니다.** 아래 예시 값을 그대로 복사해 붙여 넣으십시오.
 +
 [cols="1,2",options="header"]
 |===
-| 항목 | 입력 예시
+| 항목 | 입력 값
 
 | *Username*
-| `redpay-ops-<본인 이니셜>` (예: `redpay-ops-hgd`)
+a|
+[source,text]
+----
+redpay-ops
+----
+
+| *Password*
+a|
+[source,text]
+----
+RedPay2026!
+----
+
+| *Confirm password*
+a|
+[source,text]
+----
+RedPay2026!
+----
 
 | *Email*
-| `redpay-ops-hgd@example.com`
+a|
+[source,text]
+----
+redpay-ops@example.com
+----
 
-| *First name* / *Last name*
-| 본인 이름 또는 임의의 값
+| *First name*
+a|
+[source,text]
+----
+RedPay
+----
 
-| *Password* / *Confirm password*
-| 기억할 수 있는 비밀번호 (예: `RedPay2026!`)
+| *Last name*
+a|
+[source,text]
+----
+Operator
+----
 |===
 +
 . 아래 화면처럼 모든 항목을 입력한 뒤 *Register* 를 클릭합니다.
@@ -284,31 +313,6 @@ TIP: 카메라로 스캔이 잘 되지 않으면 화면의 *Unable to scan?* 을
 이 모듈은 **"누가 로그인할 수 있는가"** 를 통제합니다. 권한(RBAC) 부여는 그다음 단계의 일입니다.
 ====
 
-== 5단계 — 다시 로그인: 이제 비밀번호만으로는 안 된다
-
-OTP 등록은 한 번이지만, 효과는 **이후의 모든 로그인**에 적용됩니다. 직접 확인해 봅니다.
-
-.실습 절차
-. **OCP Console** 탭에서 오른쪽 위의 사용자 이름 → *Log out* 을 선택합니다.
-. **약 1분**을 기다립니다.
-+
-NOTE: OpenShift에서 로그아웃해도 Keycloak 세션은 잠시 남아 있습니다. 실습 환경은 이 세션의 유휴 시간을 1분으로 짧게 설정해 두었습니다.
-바로 확인하고 싶다면 브라우저의 **시크릿(프라이빗) 창**에서 OCP Console 주소를 열어도 됩니다.
-+
-. 로그인 화면에서 **`rhbk`** 를 선택하고, 3단계에서 만든 *Username* / *Password* 로 로그인합니다.
-. 비밀번호가 맞는데도 바로 들어가지지 않고, **One-time code** 입력 화면이 나타납니다.
-. 먼저 **틀린 숫자**(예: `000000`)를 입력해 봅니다. `Invalid authenticator code` 로 거부됩니다.
-. 이번에는 OTP 앱(또는 확장 프로그램)의 **현재 6자리 숫자**를 입력하고 *Sign In* 을 클릭합니다.
-. OpenShift 콘솔에 로그인됩니다.
-
-[IMPORTANT]
-====
-**이것이 RedPay에서 일어나지 않았던 일입니다.**
-
-공격자는 `ops-admin` 의 비밀번호를 **정확히** 알고 있었습니다.
-하지만 이 화면 앞에서 멈췄을 것입니다. 6자리 숫자는 운영자의 스마트폰 안에서만, 30초마다 새로 만들어지니까요.
-====
-
 ++++
 <div class="nrp-quiz" data-answer="B">
   <div class="nrp-quiz-q">🧠 퀴즈 2. 공격자가 피싱 사이트로 사용자의 비밀번호와 <strong>그 순간의 OTP 6자리</strong>를 함께 가로챘습니다. 다음 중 <strong>맞는</strong> 설명은?</div>
@@ -329,7 +333,7 @@ NOTE: OpenShift에서 로그아웃해도 Keycloak 세션은 잠시 남아 있습
 </div>
 ++++
 
-== 6단계 — 관리 콘솔에서 결과 확인 (선택)
+== 5단계 — 관리 콘솔에서 결과 확인 (선택)
 
 .실습 절차
 . Keycloak 관리 콘솔(`redpay` realm)에서 왼쪽 메뉴의 *Users* 를 클릭합니다.

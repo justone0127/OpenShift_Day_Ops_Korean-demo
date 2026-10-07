@@ -203,9 +203,6 @@ RedPay는 이미 **Red Hat build of Keycloak** 으로 통합 인증(SSO)을 쓰�
 [source,yaml]
 ----
 image: payment-api:latest   # ← 태그가 latest
-env:
-  - name: DB_PASSWORD       # ← 자격 증명이 평문 환경변수로
-    value: "RedPay2024!@#"
 # resources 없음           ← 노드 자원을 전부 소진시킬 수 있음
 # securityContext 없음     ← 불필요한 권한 유지
 ----
