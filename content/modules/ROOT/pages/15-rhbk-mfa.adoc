@@ -4,7 +4,7 @@
 == 모듈 개요
 
 **소요 시간:** 15분 +
-**형식:** 핸즈온 실습 (콘솔 + 스마트폰) +
+**형식:** 핸즈온 실습 (콘솔 + 스마트폰 앱 또는 Chrome 확장 프로그램) +
 **대상 참석자:** Security Engineers, Platform Engineers, IT Operations
 
 include::partial$console-access.adoc[]
@@ -34,19 +34,45 @@ RedPay의 상황과 똑같습니다 — **도구는 있습니다. 켜지 않았�
 
 * Keycloak 관리 콘솔에서 *Configure OTP* 설정을 확인하고, 새 사용자에게 OTP 등록을 **강제**합니다
 * OpenShift 로그인 화면에서 `rhbk` 를 선택해 새 사용자를 직접 등록합니다
-* QR 코드를 OTP 앱에 등록하고, 토큰 값을 입력해 OpenShift에 로그인합니다
+* QR 코드를 OTP 앱(또는 Chrome 확장 프로그램)에 등록하고, 토큰 값을 입력해 OpenShift에 로그인합니다
 * 다시 로그인할 때 **비밀번호만으로는 들어갈 수 없다**는 것을 확인합니다
 
 == 사전 준비 — OTP 앱
 
-스마트폰에 TOTP(시간 기반 일회용 비밀번호)를 지원하는 앱이 하나 필요합니다.
-이미 쓰고 있는 앱이 있다면 그대로 사용하셔도 됩니다.
+TOTP(시간 기반 일회용 비밀번호)를 만들어 주는 도구가 하나 필요합니다. 아래 두 방법 중 하나를 고르십시오.
 
-* Google Authenticator
-* Microsoft Authenticator
-* FreeOTP (Red Hat이 후원하는 오픈소스 앱)
+[cols="1,2,2",options="header"]
+|===
+| 방법 | 준비할 것 | 이런 경우에
 
-TIP: 스마트폰을 쓸 수 없다면 진행자에게 알려 주십시오. TOTP를 지원하는 데스크톱 앱이나 브라우저 확장으로도 실습할 수 있습니다.
+| *방법 A — 스마트폰 앱* (권장)
+| 스마트폰에 아래 앱 중 하나 설치 +
+  · Google Authenticator +
+  · Microsoft Authenticator +
+  · FreeOTP (Red Hat이 후원하는 오픈소스 앱)
+| 스마트폰이 있는 경우. 실제 운영 환경과 같은 방식입니다.
+
+| *방법 B — Chrome 확장 프로그램*
+| Chrome에 *Authenticator* 확장 프로그램 설치 (아래 절차)
+| 스마트폰이 없거나, 앱을 설치할 수 없는 경우
+|===
+
+이미 쓰고 있는 OTP 앱이 있다면 그대로 사용하셔도 됩니다.
+
+=== 방법 B를 쓸 경우 — Chrome 확장 프로그램 설치
+
+.실습 절차
+. Chrome에서 Chrome 웹 스토어의 link:https://chrome.google.com/webstore/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai[Authenticator, window=blank] 페이지를 엽니다.
+  (제작: authenticator.cc · 홈페이지 link:https://authenticator.cc[authenticator.cc, window=blank])
+. *Chrome에 추가* → *확장 프로그램 추가* 를 클릭합니다.
+. 주소창 오른쪽의 퍼즐 모양 아이콘(*확장 프로그램*)을 클릭하고, *Authenticator* 옆의 핀 아이콘을 눌러 **도구 모음에 고정**합니다.
+  4단계에서 이 아이콘을 바로 눌러야 하므로 꼭 고정해 두십시오.
+
+[NOTE]
+====
+확장 프로그램은 OTP 비밀 키를 **브라우저 안에** 보관합니다. 비밀번호와 같은 기기에 두 번째 인증 수단이 있는 셈이라,
+실제 운영 환경에서는 별도 기기(스마트폰)의 앱을 쓰는 것이 더 안전합니다. 이 실습에서는 동작 원리를 확인하는 용도로 충분합니다.
+====
 
 == 1단계 — Keycloak 관리 콘솔 접속
 
@@ -159,27 +185,75 @@ TIP: 목록 없이 이전 세션으로 바로 로그인된다면, OCP Console �
 +
 . *Register* 를 클릭합니다.
 
-== 4단계 — QR 코드로 OTP 앱 등록
+== 4단계 — QR 코드로 OTP 등록
 
 *Register* 를 눌러도 곧바로 로그인되지 않고 **Mobile Authenticator Setup** 화면이 나타납니다.
 2단계에서 켠 *Set as default action* 이 동작한 것입니다.
 
+화면에는 **QR 코드**와 함께 *One-time code*, *Device Name* 입력 칸이 있습니다.
+사전 준비에서 고른 방법에 따라 아래 A 또는 B 중 하나만 진행하십시오.
+
+=== 방법 A — 스마트폰 앱으로 등록
+
 .실습 절차
-. 스마트폰에서 OTP 앱을 열고 **계정 추가(+)** → **QR 코드 스캔** 을 선택합니다.
-. 화면의 **QR 코드**를 스캔합니다.
+. 스마트폰에서 OTP 앱을 열고 계정을 추가합니다.
++
+[cols="1,3",options="header"]
+|===
+| 앱 | 메뉴
+
+| Google Authenticator
+| 오른쪽 아래 *+* → *QR 코드 스캔*
+
+| Microsoft Authenticator
+| 오른쪽 위 *+* → *기타 계정(Google, Facebook 등)* → QR 코드 스캔
+
+| FreeOTP
+| 위쪽 QR 코드 아이콘
+|===
++
+// 스마트폰 캡처 자리 — 파일을 content/modules/ROOT/images/ 에 넣고 아래 주석을 해제하십시오.
+// image::rhbk-mfa-phone-01-add.png[OTP 앱에서 계정 추가 → QR 코드 스캔을 선택하는 화면, width=280]
++
+. 카메라로 컴퓨터 화면의 **QR 코드**를 스캔합니다.
 +
 앱에 `RedPay` 항목과 함께 **6자리 숫자**가 나타납니다. 이 숫자는 30초마다 바뀝니다.
 +
-TIP: QR 코드를 스캔할 수 없다면 화면의 *Unable to scan?* 을 클릭하십시오. 앱에 직접 입력할 수 있는 키 문자열이 표시됩니다.
+// image::rhbk-mfa-phone-02-code.png[OTP 앱에 RedPay 계정과 6자리 숫자가 표시된 화면, width=280]
 +
-. 앱에 표시된 6자리 숫자를 *One-time code* 칸에 입력합니다.
-. *Device Name* 에 기기를 구분할 이름을 입력합니다(예: `my-phone`). 선택 사항입니다.
+TIP: 카메라로 스캔이 잘 되지 않으면 화면의 *Unable to scan?* 을 클릭하십시오. 앱에서 *설정 키 입력* (Google) 또는 *코드를 수동으로 입력* 을 골라 표시된 키 문자열을 입력하면 됩니다.
+
+=== 방법 B — Chrome 확장 프로그램으로 등록
+
+.실습 절차
+. QR 코드가 보이는 상태에서, 도구 모음의 *Authenticator* 아이콘을 클릭합니다.
+. 확장 프로그램 창 **오른쪽 위의 스캔 아이콘**(네모 안의 QR 모양)을 클릭합니다.
+. 화면이 어두워지면 마우스로 **QR 코드 전체를 덮도록 사각형을 드래그**합니다.
+. 확장 프로그램 창에 `RedPay` 항목과 **6자리 숫자**가 나타납니다. 오른쪽 아래 원은 숫자가 바뀌기까지 남은 시간입니다.
+. 숫자를 클릭하면 클립보드에 복사됩니다.
++
+[TIP]
+====
+스캔이 실패하면(예: Showroom 화면 안의 작은 탭이라 QR 코드가 잘리는 경우) 직접 입력하십시오.
+
+. Keycloak 화면에서 *Unable to scan?* 을 클릭해 키 문자열을 복사합니다.
+. *Authenticator* 창 오른쪽 위의 **연필 아이콘** → **+** → *Manual Entry* 를 선택합니다.
+. *Issuer* 에 `RedPay`, *Secret* 에 복사한 키 문자열을 붙여 넣고 *Ok* 를 클릭합니다.
+
+또는 OCP Console을 **새 브라우저 탭**으로 열어 QR 코드를 크게 띄운 뒤 다시 스캔해 보십시오.
+====
+
+=== 코드 입력 (A·B 공통)
+
+.실습 절차
+. 앱(또는 확장 프로그램)에 표시된 6자리 숫자를 *One-time code* 칸에 입력합니다.
+. *Device Name* 에 기기를 구분할 이름을 입력합니다(예: `my-phone`, `chrome`). 선택 사항입니다.
 . *Submit* 을 클릭합니다.
 +
 [NOTE]
 ====
-`Invalid authenticator code` 오류가 나오면 앱의 숫자가 바뀐 직후의 **새 값**을 입력해 다시 시도하십시오.
-계속 실패한다면 스마트폰의 시간 설정이 **자동**으로 되어 있는지 확인하십시오. TOTP는 시각을 기준으로 계산됩니다.
+`Invalid authenticator code` 오류가 나오면 숫자가 바뀐 직후의 **새 값**을 입력해 다시 시도하십시오.
+계속 실패한다면 스마트폰(또는 PC)의 시간 설정이 **자동**으로 되어 있는지 확인하십시오. TOTP는 시각을 기준으로 계산됩니다.
 ====
 +
 . OpenShift 콘솔로 돌아오고, 오른쪽 위에 방금 등록한 사용자 이름이 표시됩니다.
@@ -204,7 +278,7 @@ NOTE: OpenShift에서 로그아웃해도 Keycloak 세션은 잠시 남아 있습
 . 로그인 화면에서 **`rhbk`** 를 선택하고, 3단계에서 만든 *Username* / *Password* 로 로그인합니다.
 . 비밀번호가 맞는데도 바로 들어가지지 않고, **One-time code** 입력 화면이 나타납니다.
 . 먼저 **틀린 숫자**(예: `000000`)를 입력해 봅니다. `Invalid authenticator code` 로 거부됩니다.
-. 이번에는 OTP 앱의 **현재 6자리 숫자**를 입력하고 *Sign In* 을 클릭합니다.
+. 이번에는 OTP 앱(또는 확장 프로그램)의 **현재 6자리 숫자**를 입력하고 *Sign In* 을 클릭합니다.
 . OpenShift 콘솔에 로그인됩니다.
 
 [IMPORTANT]
