@@ -226,7 +226,7 @@ Operator
 +
 . 아래 화면처럼 모든 항목을 입력한 뒤 *Register* 를 클릭합니다.
 +
-image::rhbk-mfa-register-form.png[Register 화면 — 예시 값(redpay-ops, RedPay, Operator)을 입력하고 Register 버튼을 누르는 화면, link=self, window=blank, width=50%]
+image::rhbk-mfa-register-form.png[Register 화면 — 예시 값(redpay-ops, redpay-ops@example.com, RedPay, Operator)을 입력하고 Register 버튼을 누르는 화면, link=self, window=blank, width=50%]
 
 == 4단계 — QR 코드로 OTP 등록
 
