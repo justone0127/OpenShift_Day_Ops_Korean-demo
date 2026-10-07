@@ -163,11 +163,19 @@ RedPay가 바로 이 상태였습니다 — 기능은 있었지만, 등록한 �
 
 .실습 절차
 . **OCP Console** 탭에서 오른쪽 위의 사용자 이름을 클릭하고 *Log out* 을 선택합니다.
-. 로그인 화면에 Identity Provider 목록이 나타납니다. **`rhbk`** 를 클릭합니다.
+. 로그인 화면에 Identity Provider 목록이 나타납니다. 지금까지 쓰던 `htpasswd` 가 아니라 **`rhbk`** 를 클릭합니다.
++
+image::rhbk-mfa-login-select-rhbk.png[OpenShift 로그인 화면 — htpasswd 와 rhbk 중 rhbk 를 빨간 상자로 표시, link=self, window=blank, width=70%]
++
+`rhbk` 는 Keycloak의 `redpay` realm으로 인증을 넘기는 Identity Provider입니다.
+여기서 로그인하면 OpenShift가 아니라 **Keycloak이 사용자를 확인**하고, 그 결과를 OpenShift에 알려 줍니다.
 +
 TIP: 목록 없이 이전 세션으로 바로 로그인된다면, OCP Console 탭 옆의 **새로 고침 버튼**(원형 화살표)을 클릭하십시오.
 +
-. **RedPay** 로그인 화면(Keycloak)으로 이동합니다. 로그인 폼 아래의 **Register** 링크를 클릭합니다.
+. **REDPAY** 로그인 화면(Keycloak)으로 이동합니다. 아직 계정이 없으므로 로그인 폼 아래의 *New user?* **Register** 링크를 클릭합니다.
++
+image::rhbk-mfa-register-link.png[REDPAY 로그인 화면 — 아래쪽 New user? Register 링크를 빨간 상자로 표시, link=self, window=blank, width=60%]
++
 . 사용자 정보를 입력합니다. **네 항목을 모두 채워야 합니다.**
 +
 [cols="1,2",options="header"]
@@ -187,7 +195,9 @@ TIP: 목록 없이 이전 세션으로 바로 로그인된다면, OCP Console �
 | 기억할 수 있는 비밀번호 (예: `RedPay2026!`)
 |===
 +
-. *Register* 를 클릭합니다.
+. 아래 화면처럼 모든 항목을 입력한 뒤 *Register* 를 클릭합니다.
++
+image::rhbk-mfa-register-form.png[Register 화면 — Username, Password, Confirm password, Email, First name, Last name 을 입력한 예시 (비밀번호와 이메일은 가림), link=self, window=blank, width=50%]
 
 == 4단계 — QR 코드로 OTP 등록
 
@@ -195,6 +205,12 @@ TIP: 목록 없이 이전 세션으로 바로 로그인된다면, OCP Console �
 2단계에서 켠 *Set as default action* 이 동작한 것입니다.
 
 화면에는 **QR 코드**와 함께 *One-time code*, *Device Name* 입력 칸이 있습니다.
+
+image::rhbk-mfa-otp-setup.png[Mobile Authenticator Setup 화면 — 빨간 상자의 QR 코드를 OTP 앱으로 스캔 (예시 이미지의 QR 코드는 가림), link=self, window=blank, width=50%]
+
+NOTE: 위 그림의 QR 코드는 예시라 일부러 가려 두었습니다. 여러분 화면에 표시되는 QR 코드를 스캔하십시오.
+QR 코드에는 이 계정의 OTP 비밀 키가 들어 있으므로, 실제 환경에서는 다른 사람에게 보여 주거나 캡처해 공유하지 마십시오.
+
 사전 준비에서 고른 방법에 따라 아래 A 또는 B 중 하나만 진행하십시오.
 
 === 방법 A — 스마트폰 앱으로 등록
