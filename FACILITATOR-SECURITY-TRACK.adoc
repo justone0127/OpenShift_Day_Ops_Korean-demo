@@ -38,7 +38,7 @@ RedPay 침해사고 시나리오로 묶인 세 모듈
 | 페이지 | 내용 | 시간 | 참가자가 하는 일
 
 | 인트로 — `15-00-security-story.adoc`
-| 침해사고 스토리(알림·타임라인·공격 경로 다이어그램·피해 집계) + 워밍업 퀴즈 3문항
+| 침해사고 스토리(알림·타임라인·공격 경로 다이어그램·피해 집계) + 워밍업 퀴즈 4문항
 | 10분
 | 없음 — 읽기와 퀴즈
 
@@ -585,7 +585,7 @@ oc get securedcluster -n stackrox -o jsonpath='{.items[0].spec.admissionControl}
 가이드에서는 참가자가 답을 고른 뒤 채점될 때 해설이 펼쳐집니다.
 아래는 진행자가 미리 훑어 둘 요약본입니다.
 
-=== 인트로 (15-00) — 워밍업 3문항
+=== 인트로 (15-00) — 워밍업 4문항
 
 [cols="1,1,4",options="header"]
 |===
@@ -602,6 +602,10 @@ oc get securedcluster -n stackrox -o jsonpath='{.items[0].spec.admissionControl}
 | Q0-3
 | *(B)*
 | M&M 보안 — 한 번만 뚫리면 끝나는 구조. 횡적 이동을 막을 계층이 없다.
+
+| Q0-4
+| *(B)*
+| CI 스캔은 시점의 스냅샷. 클러스터는 계속 살아 있고 CVE는 매일 새로 나온다. 모듈 3(RHACS)으로 연결.
 |===
 
 === 모듈 1 — Red Hat build of Keycloak (2문항)

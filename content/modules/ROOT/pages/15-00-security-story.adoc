@@ -354,7 +354,7 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
 
 == 🧠 워밍업 퀴즈
 
-첫 번째 모듈(Red Hat build of Keycloak)에 들어가기 전에 가볍게 몸을 풀어 봅니다.
+첫 번째 모듈에 들어가기 전에 세 모듈의 핵심을 가볍게 짚어 봅니다.
 보기를 고르고 *정답 확인* 을 누르면 바로 채점됩니다. 정답은 각 모듈을 마치면 자연스럽게 알게 되니,
 지금은 감으로 골라 보셔도 좋습니다.
 
@@ -407,6 +407,23 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
     <p><strong>정답: (B)</strong></p>
     <p>이것을 흔히 "M&amp;M 보안"이라고 부릅니다. 껍질은 딱딱하지만 속은 말랑한 구조입니다.</p>
     <p>경계 방어는 <strong>한 번만 뚫리면 끝나는</strong> 구조입니다. 침입 이후의 횡적 이동(lateral movement)을 막아 주는 것이 아무것도 없습니다. Zero Trust는 "내부"라는 개념 자체를 없애고, <strong>모든 연결이 매번 신원을 증명</strong>하게 만듭니다. 모듈 2의 주제입니다.</p>
+  </div>
+</div>
+
+<div class="nrp-quiz" data-answer="B">
+  <div class="nrp-quiz-q">Q0-4. RedPay의 CI 파이프라인에는 이미지 스캔이 있었습니다. 그런데도 <code>latest</code> 이미지 속 RCE 취약점을 놓친 이유로 <strong>가장 적절한</strong> 것은?</div>
+
+  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">스캔 도구의 탐지율이 낮아서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">배포 이후에 공개된 CVE와, 클러스터에 실제로 떠 있는 것을 아무도 지속적으로 보지 않아서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">개발자가 스캔 결과를 무시해서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">이미지가 너무 커서 스캔이 타임아웃돼서</span></label>
+
+  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
+  <div class="nrp-quiz-exp">
+    <p><strong>정답: (B)</strong></p>
+    <p>CI 스캔은 <strong>그 시점의 스냅샷</strong>입니다. 통과한 순간 스캔의 임무는 끝나지만, 컨테이너는 그 뒤로 몇 달을 계속 돌아갑니다.</p>
+    <p>CVE는 매일 새로 공개됩니다. 어제 깨끗했던 이미지가 오늘 취약해집니다. 그래서 스캔은 파이프라인의 한 단계가 아니라 <strong>클러스터에서 계속 돌아가는 상태 점검</strong>이어야 합니다. 모듈 3에서 RHACS가 바로 이 역할을 하는 것을 보게 됩니다.</p>
   </div>
 </div>
 ++++
