@@ -411,7 +411,40 @@ print(json.dumps({"spec": {"identityProviders": idps}}))')"
   done
   oc rollout status deployment/oauth-openshift -n openshift-authentication --timeout=300s >/dev/null || \
     warn "oauth-openshift rollout 확인 실패 — oc get pods -n openshift-authentication 로 확인하십시오"
+  wait_oauth_settled
   log "OAuth 연동 완료 — OpenShift 로그인 화면에 '${RHBK_IDP_NAME}' 가 표시됩니다"
+}
+
+# OAuth pod 일부만 새 설정으로 바뀐 상태에서 로그인하면, 요청이 옛 설정의 pod 로 가는 순간
+# "Authentication error ... Try again" 이 납니다. rollout status 만으로는 operator 가
+# 이어서 한 번 더 롤아웃하는 경우를 놓칠 수 있으므로, 다음이 모두 만족될 때까지 기다립니다.
+#   - authentication ClusterOperator: Available=True, Progressing=False
+#   - oauth-openshift pod 가 모두 Running/Ready 이고, 전부 같은 ReplicaSet(새 설정)에 속함
+oauth_settled() {
+  local avail prog total ready rs
+  avail="$(oc get co authentication -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' 2>/dev/null)"
+  prog="$(oc get co authentication -o jsonpath='{.status.conditions[?(@.type=="Progressing")].status}' 2>/dev/null)"
+  [[ "${avail}" == "True" && "${prog}" == "False" ]] || return 1
+  total="$(oc get pods -n openshift-authentication -l app=oauth-openshift --no-headers 2>/dev/null | wc -l | tr -d ' ')"
+  ready="$(oc get pods -n openshift-authentication -l app=oauth-openshift --no-headers 2>/dev/null | grep -c '1/1 *Running' || true)"
+  rs="$(oc get pods -n openshift-authentication -l app=oauth-openshift \
+        -o jsonpath='{range .items[*]}{.metadata.labels.pod-template-hash}{"\n"}{end}' 2>/dev/null | sort -u | wc -l | tr -d ' ')"
+  [[ "${total}" -ge 1 && "${ready}" -eq "${total}" && "${rs}" -eq 1 ]]
+}
+
+wait_oauth_settled() {
+  log "OAuth pod 가 모두 새 설정으로 안정될 때까지 대기 (최대 6분)..."
+  local elapsed=0 stable=0
+  # 순간적으로 조건을 만족했다가 다시 롤아웃되는 경우를 걸러 내기 위해 30초 연속 안정을 확인합니다.
+  while (( stable < 30 )); do
+    if oauth_settled; then stable=$((stable + 5)); else stable=0; fi
+    sleep 5; elapsed=$((elapsed + 5))
+    if (( elapsed >= 360 )); then
+      warn "OAuth 가 아직 안정되지 않았습니다 — oc get co authentication; oc get pods -n openshift-authentication 로 확인하십시오"
+      return 0
+    fi
+  done
+  log "  OAuth 안정됨 ($(oc get pods -n openshift-authentication -l app=oauth-openshift --no-headers | wc -l | tr -d ' ')개 pod, 모두 새 설정)"
 }
 
 # ─────────────────────────────────────────────────────────────────────
@@ -463,6 +496,11 @@ import sys,json; r=json.load(sys.stdin); print("Enabled=%s, Set as default actio
 
   if oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}' | tr ' ' '\n' | grep -qx "${RHBK_IDP_NAME}"; then
     echo "  ✓ OAuth identity provider '${RHBK_IDP_NAME}'"
+    if oauth_settled; then
+      echo "  ✓ OAuth pod 모두 새 설정으로 안정됨"
+    else
+      echo "  ✗ OAuth pod 가 아직 롤아웃 중 — 잠시 후 다시 확인하십시오 (이 상태에서 로그인하면 'Try again' 오류가 날 수 있음)"; ok=false
+    fi
   else
     echo "  ✗ OAuth identity provider '${RHBK_IDP_NAME}'"; ok=false
   fi

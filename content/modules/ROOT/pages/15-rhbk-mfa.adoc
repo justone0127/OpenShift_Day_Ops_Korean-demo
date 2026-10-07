@@ -277,6 +277,20 @@ TIP: 카메라로 스캔이 잘 되지 않으면 화면의 *Unable to scan?* 을
 ====
 +
 . OpenShift 콘솔로 돌아오고, 오른쪽 위에 방금 등록한 사용자 이름이 표시됩니다.
++
+[NOTE]
+.Authentication error 화면이 나타나면
+====
+`rhbk` 로 처음 로그인할 때 아래와 같은 **Authentication error** 화면이 나타날 수 있습니다.
+
+image::oidc-auth-error.png[rhbk 로그인 직후 나타날 수 있는 Authentication error 화면과 Try again 버튼, link=self, window=blank, width=70%]
+
+계정이나 OTP 등록에 문제가 있는 것이 아닙니다. OpenShift 콘솔이 로그인 세션을 확인하는 과정에서 잠깐 어긋난 것입니다.
+**Try again** 을 클릭하거나, OCP Console 탭 옆의 **새로 고침 버튼**(원형 화살표)을 클릭하십시오.
+이미 등록한 계정으로 다시 로그인되며, OTP를 처음부터 다시 등록할 필요는 없습니다.
+
+몇 번 시도해도 계속 같은 화면이 나오면 진행자에게 알려 주십시오.
+====
 
 [NOTE]
 ====
@@ -300,6 +314,8 @@ NOTE: OpenShift에서 로그아웃해도 Keycloak 세션은 잠시 남아 있습
 . 먼저 **틀린 숫자**(예: `000000`)를 입력해 봅니다. `Invalid authenticator code` 로 거부됩니다.
 . 이번에는 OTP 앱(또는 확장 프로그램)의 **현재 6자리 숫자**를 입력하고 *Sign In* 을 클릭합니다.
 . OpenShift 콘솔에 로그인됩니다.
++
+TIP: 이번에도 *Authentication error* 화면이 나오면 4단계와 같이 **Try again** 을 클릭하십시오.
 
 [IMPORTANT]
 ====
