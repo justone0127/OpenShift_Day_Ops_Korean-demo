@@ -70,7 +70,7 @@ endif::[]
 // 파일명의 15/16/17 은 전체 로드쇼(01~14)와 번호가 겹치지 않도록 붙인 것이며,
 // 진행 순서와 같습니다 (15-rhbk-mfa → 16-ztwim → 17-acs).
 ifeval::["{module_enable_security}" == "true"]
-* xref:15-00-security-story.adoc[보안 트랙 시작 — 레드페이 침해사고]
+* xref:15-00-security-story.adoc[보안 트랙 시작 — RedPay 침해사고]
 * xref:15-rhbk-mfa.adoc[모듈 1 — Red Hat build of Keycloak]
 endif::[]
 ifeval::["{module_enable_ztwim}" == "true"]
