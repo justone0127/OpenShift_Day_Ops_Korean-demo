@@ -1,125 +1,125 @@
 = Zero Trust Workload Identity Manager (ZTWIM)
 :page-toclevels: 1
 
-== 모듈 개요
+== Module overview
 
-**소요 시간:** 10분 +
-**형식:** 개념 설명 + 확인 실습 + 퀴즈 +
-**대상 참석자:** Security Engineers, Platform Engineers, IT Operations
+**Duration:** 10 minutes +
+**Format:** Concepts + verification labs + quiz +
+**Audience:** Security Engineers, Platform Engineers, IT Operations
 
 include::partial$console-access.adoc[]
 
 include::partial$nrp-assets.adoc[]
 
 [IMPORTANT]
-.RedPay 침해사고 — 2단계 공격
+.The RedPay breach — Stage 2
 ====
-운영자 계정으로 로그인한 공격자는 그 순간부터 **"내부"** 에 있었습니다.
-여러분의 내부 서비스들은 "10.128.0.0/14 대역에서 왔으면 우리 편"이라는 규칙으로 서로를 믿었고,
-결제 서비스 → 정산 서비스 → 회원 DB까지 아무도 공격자를 막지 않았습니다.
+The moment the attacker logged in with the operator account, they were **"inside"**.
+Your internal services trusted each other with the rule "if it comes from 10.128.0.0/14, it's one of us",
+so nothing stopped the attacker from the payment service → the settlement service → the customer DB.
 
-모듈 1에서 MFA로 계정 탈취는 막았습니다. 하지만 공격자가 들어오는 길은 하나가 아닙니다.
-모듈 3에서 다룰 취약한 컨테이너도 그런 길입니다. **그래서 내부에서 들어온 요청도 믿으면 안 됩니다.**
+In Module 1, you stopped account takeover with MFA. But there is more than one way in for an attacker.
+The vulnerable container covered in Module 3 is another. **That is why you must not trust requests just because they come from inside.**
 
-이 모듈에서 여러분이 적용할 두 번째 보안 통제입니다.
+This is the second security control you will apply in this track.
 ====
 
 [NOTE]
 ====
-이 모듈은 **어떤 상황에 필요한 기술인지**를 이해하는 데 초점을 둡니다.
-SPIRE 플랫폼과 실습 워크로드는 여러분의 클러스터에 이미 구성되어 있습니다.
+This module focuses on understanding **in which situations this technology is needed**.
+The SPIRE platform and the lab workloads are already set up on your cluster.
 ====
 
-== 학습 목표
+== Learning objectives
 
-이 모듈을 마칠 때쯤 여러분은 다음을 설명할 수 있게 됩니다:
+By the end of this module, you will be able to explain:
 
-* "네트워크 위치 기반 신뢰"가 왜 무너지는가
-* SPIFFE 워크로드 신원(SVID)이 정확히 무엇을 대체하는가
-* 이 기술이 실무의 어떤 상황에서 필요해지는가
+* Why "trust based on network location" breaks down
+* Exactly what a SPIFFE workload identity (SVID) replaces
+* In which real-world situations this technology becomes necessary
 
-== 왜 네트워크 위치는 신원이 아닌가
+== Why network location is not identity
 
-대부분의 내부 시스템은 이렇게 만들어져 있습니다.
+Most internal systems are built like this:
 
 [source,text]
 ----
-방화벽 / VPC 경계 ──── 안에 들어온 것은 신뢰
-                      "내부망이니까 괜찮아요"
+Firewall / VPC perimeter ──── whatever gets inside is trusted
+                              "it's the internal network, so it's fine"
 ----
 
-이 구조를 흔히 **M&M 보안**이라고 부릅니다. 껍질은 딱딱한데 속은 말랑합니다.
-그리고 이 구조에는 치명적인 성질이 하나 있습니다 — **한 번만 뚫리면 됩니다.**
+This model is often called **M&M security**: a hard shell with a soft center.
+And it has one fatal property — **one breach is all it takes.**
 
-RedPay에서 벌어진 일이 정확히 그것입니다.
-공격자가 운영자 계정으로 로그인한 순간, 그는 "내부"에 있었습니다.
-정산 서비스도, 회원 DB도, 그를 막을 이유를 가지고 있지 않았습니다.
-**출처 IP가 내부 대역이었으니까요.**
+That is exactly what happened at RedPay.
+The moment the attacker logged in with the operator account, they were "inside".
+Neither the settlement service nor the customer DB had any reason to stop them.
+**The source IP was in the internal range.**
 
-여기서 근본 오류는 이것입니다:
+The root mistake is this:
 
 [quote]
 ____
-IP 주소는 **어디에 있는지**를 말해 줄 뿐, **누구인지**를 말해 주지 않습니다.
+An IP address only tells you **where** something is, not **who** it is.
 ____
 
-Kubernetes에서는 이 문제가 더 심각합니다. Pod IP는 재시작할 때마다 바뀌고,
-같은 노드에서 전혀 다른 팀의 워크로드가 나란히 돌아갑니다.
-"10.128.x.x 대역"에는 여러분의 결제 서비스도, 방금 배포된 정체불명의 사이드카도 함께 들어 있습니다.
+On Kubernetes, the problem is even worse. Pod IPs change every time a pod restarts,
+and workloads from completely different teams run side by side on the same node.
+The "10.128.x.x range" contains your payment service and also the unknown sidecar that was just deployed.
 
-== SPIFFE가 바꾸는 것
+== What SPIFFE changes
 
-**SPIFFE**(Secure Production Identity Framework for Everyone)는
-워크로드에게 **암호학적으로 증명 가능한 신원**을 부여하는 오픈 표준입니다.
-**SPIRE**가 그 표준의 런타임 구현이고, **ZTWIM**은 SPIRE를 OpenShift에서 운영 가능한 형태로 제공하는 Red Hat 오퍼레이터입니다.
+**SPIFFE** (Secure Production Identity Framework for Everyone) is an open standard
+that gives workloads a **cryptographically verifiable identity**.
+**SPIRE** is the runtime implementation of that standard, and **ZTWIM** is the Red Hat operator that delivers SPIRE in a form you can run on OpenShift.
 
-핵심 아이디어는 단순합니다. 신뢰의 근거를 **네트워크 위치에서 워크로드 신원으로** 옮깁니다.
+The core idea is simple: move the basis of trust **from network location to workload identity**.
 
 [cols="1,2,2",options="header"]
 |===
-| | 기존 방식 | SPIFFE 방식
+| | Traditional approach | SPIFFE approach
 
-| 신뢰의 근거
-| 출처 IP 대역
-| 워크로드가 제시하는 X.509 인증서(SVID)
+| Basis of trust
+| Source IP range
+| An X.509 certificate (SVID) presented by the workload
 
-| 신원의 출처
-| 네트워크 구성
+| Source of identity
+| Network configuration
 | Kubernetes namespace + ServiceAccount
 
-| 자격 증명 수명
-| 비밀번호 — 사실상 무기한
-| 인증서 — 기본 1시간, 자동 갱신
+| Credential lifetime
+| Password — effectively forever
+| Certificate — 1 hour by default, renewed automatically
 
-| 탈취 시 대응
-| 전 시스템 비밀번호 교체
-| 만료를 기다리거나 해당 신원만 폐기
+| Response to theft
+| Rotate passwords across every system
+| Wait for it to expire, or revoke just that identity
 
-| 검증 방향
-| 단방향 (서버만 증명)
-| 양방향 mTLS (서로 증명)
+| Direction of verification
+| One-way (only the server proves itself)
+| Two-way mTLS (both sides prove themselves)
 |===
 
-발급되는 신원은 다음과 같은 형태의 URI입니다:
+The issued identity is a URI that looks like this:
 
 [source,text]
 ----
 spiffe://<trust-domain>/ns/<namespace>/sa/<serviceaccount>
                         └─────────────────────────────────┘
-                        Kubernetes의 실제 신원에 직접 묶여 있습니다
+                        Bound directly to the real Kubernetes identity
 ----
 
-이 값은 워크로드가 **스스로 주장하는 것이 아닙니다.** SPIRE 에이전트가 노드에서
-해당 프로세스가 정말 그 namespace의 그 ServiceAccount로 실행 중인지 확인한 뒤 발급합니다.
-공격자가 다른 pod에서 이 인증서를 흉내 낼 방법이 없습니다.
+This value is **not something the workload claims for itself.** The SPIRE agent on the node
+verifies that the process really is running as that ServiceAccount in that namespace before issuing it.
+An attacker in another pod has no way to impersonate this certificate.
 
-== 확인 실습 — 무엇이 발급되었나
+== Verification lab — What was issued
 
-`postgresql-spiffe`(서버)와 `postgresql-spiffe-client`(클라이언트)가 각각 배포되어 있습니다.
-두 워크로드 모두 `spiffe-helper` 사이드카가 인증서를 `/opt/postgresql-certs/` 에 자동으로 유지합니다.
+`postgresql-spiffe` (server) and `postgresql-spiffe-client` (client) are each deployed.
+In both workloads, a `spiffe-helper` sidecar automatically keeps the certificates in `/opt/postgresql-certs/`.
 
-.실습 절차
-. 두 pod가 모두 `2/2 Running` 인지 확인합니다 (애플리케이션 컨테이너 + `spiffe-helper` 사이드카):
+.Procedure
+. Confirm that both pods are `2/2 Running` (the application container + the `spiffe-helper` sidecar):
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
@@ -129,10 +129,10 @@ oc get pods -n postgresql-spiffe-client
 +
 [NOTE]
 ====
-pod가 보이지 않으면 진행자에게 알려 주십시오.
+If you do not see the pods, let the facilitator know.
 ====
 +
-. 클라이언트에게 발급된 인증서를 열어 봅니다:
+. Open the certificate issued to the client:
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
@@ -140,7 +140,7 @@ oc rsh -n postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgr
   sh -c 'openssl x509 -in /opt/postgresql-certs/svid.pem -noout -subject -dates -ext subjectAltName'
 ----
 +
-출력에서 세 가지를 확인하십시오:
+Check three things in the output:
 +
 [source,text,subs="+attributes,+macros"]
 ----
@@ -149,41 +149,41 @@ notBefore=...  notAfter=...                                 <2>
 X509v3 Subject Alternative Name:
     URI:spiffe://<trust-domain>/ns/postgresql-spiffe-client/sa/postgresql-spiffe-client   <3>
 ----
-<1> *CN* — PostgreSQL의 데이터베이스 사용자 이름과 일치합니다. DB는 이 값을 사용자명으로 매핑합니다.
-<2> *유효 기간* — `notAfter` 가 `notBefore` 로부터 약 **1시간** 뒤입니다. 비밀번호에는 없던 개념입니다.
-<3> *SPIFFE ID* — 이 신원이 어느 namespace의 어느 ServiceAccount에 묶여 있는지 명시되어 있습니다.
+<1> *CN* — Matches the PostgreSQL database user name. The DB maps this value to the user name.
+<2> *Validity period* — `notAfter` is about **1 hour** after `notBefore`. Passwords never had this concept.
+<3> *SPIFFE ID* — States exactly which ServiceAccount in which namespace this identity is bound to.
 
-세 번째 항목이 이 모듈 전체의 요점입니다.
-이 인증서는 "RedPay의 결제 클라이언트"라는 **검증 가능한 주장**이며,
-그 주장의 근거는 네트워크가 아니라 Kubernetes의 실제 신원입니다.
+The third item is the whole point of this module.
+This certificate is a **verifiable claim** that it is "RedPay's payment client",
+and that claim is backed by the real Kubernetes identity, not by the network.
 
 ++++
 <div class="nrp-quiz" data-answer="B">
-  <div class="nrp-quiz-q">🧠 퀴즈 1. SPIFFE 인증서의 기본 수명이 <strong>1시간</strong>으로 짧게 설정되는 이유로 <strong>가장 적절한</strong> 것은?</div>
+  <div class="nrp-quiz-q">🧠 Quiz 1. What is the <strong>most accurate</strong> reason SPIFFE certificates have a short default lifetime of <strong>1 hour</strong>?</div>
 
-  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">인증서 파일 크기를 줄여 네트워크 대역폭을 절약하기 위해</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">탈취되더라도 악용 가능한 시간 창(window)을 좁히고, 폐기(revocation) 인프라 없이도 자동으로 무효화되도록 하기 위해</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">TLS 표준이 1시간을 초과하는 인증서를 금지하기 때문</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">짧은 인증서가 암호학적으로 더 강력하기 때문</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">To reduce certificate file size and save network bandwidth</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">To narrow the window in which a stolen certificate can be abused, and to have it invalidate itself without any revocation infrastructure</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">Because the TLS standard forbids certificates valid for more than 1 hour</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt1" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">Because short-lived certificates are cryptographically stronger</span></label>
 
-  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <button type="button" class="nrp-quiz-check">Check answer</button>
   <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
   <div class="nrp-quiz-exp">
-    <p><strong>정답: (B)</strong></p>
-    <p>두 가지 효과가 있습니다.</p>
-    <p><strong>첫째, 피해 범위를 시간으로 제한합니다.</strong> RedPay의 서비스 간 비밀번호는 몇 년째 바뀐 적이 없어서, 공격자는 서두를 이유가 없었습니다. 1시간짜리 인증서라면 그 여유가 사라집니다.</p>
-    <p><strong>둘째, 폐기 문제를 우회합니다.</strong> X.509에서 인증서를 중간에 무효화하는 것(CRL, OCSP)은 운영이 까다롭고 실제로 잘 동작하지 않는 것으로 악명 높습니다. 수명을 짧게 하면 <strong>"폐기"가 그냥 "기다리기"가 됩니다.</strong></p>
-    <p>이것이 가능한 이유는 갱신이 자동이기 때문입니다. <code>spiffe-helper</code> 사이드카가 만료 전에 새 인증서를 받아 파일을 교체하고, 애플리케이션은 재시작하지 않습니다. 수동으로 관리해야 한다면 1시간 수명은 운영이 불가능합니다.</p>
+    <p><strong>Answer: (B)</strong></p>
+    <p>There are two effects.</p>
+    <p><strong>First, it limits the damage in time.</strong> RedPay's service-to-service passwords had not changed in years, so the attacker had no reason to hurry. With a 1-hour certificate, that luxury disappears.</p>
+    <p><strong>Second, it sidesteps the revocation problem.</strong> Invalidating an X.509 certificate before it expires (CRL, OCSP) is notoriously hard to operate and often does not work well in practice. With a short lifetime, <strong>"revoking" simply becomes "waiting".</strong></p>
+    <p>This only works because renewal is automatic. The <code>spiffe-helper</code> sidecar fetches a new certificate before expiry and replaces the files, and the application does not restart. If you had to manage it by hand, a 1-hour lifetime would be impossible to operate.</p>
   </div>
 </div>
 ++++
 
-== 확인 실습 — 비밀번호 없는 연결, 그리고 거부
+== Verification lab — A passwordless connection, and a rejection
 
-이제 이 신원이 실제로 어떻게 쓰이는지 봅니다.
+Now let's see how this identity is actually used.
 
-.실습 절차
-. 클라이언트에서 PostgreSQL에 연결합니다. **비밀번호를 입력하는 곳이 없다는 점**에 주목하십시오:
+.Procedure
+. Connect to PostgreSQL from the client. Notice that **there is nowhere to enter a password**:
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
@@ -192,7 +192,7 @@ oc rsh -n postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgr
   -c "SELECT current_user, ssl, client_dn FROM pg_stat_ssl WHERE pid = pg_backend_pid();"
 ----
 +
-예상 출력:
+Expected output:
 +
 [source,text]
 ----
@@ -202,19 +202,19 @@ oc rsh -n postgresql-spiffe-client -c postgresql-spiffe-client deployment/postgr
 (1 row)
 ----
 +
-세 값이 한 줄에 모여 있는 것이 이 실습의 핵심입니다:
+The key point of this lab is that these three values appear together on one line:
 +
-* `current_user` — DB가 인식한 사용자. **인증서의 CN에서 왔습니다.**
-* `ssl` = `t` — 이 연결이 TLS로 암호화되었습니다.
-* `client_dn` — 클라이언트가 제시한 **인증서의 주체**입니다.
-  앞 단계에서 `openssl` 로 확인한 값과 같습니다.
+* `current_user` — The user the DB recognized. **It came from the certificate's CN.**
+* `ssl` = `t` — This connection is encrypted with TLS.
+* `client_dn` — The **subject of the certificate** presented by the client.
+  It matches the value you checked with `openssl` in the previous step.
 +
-DB는 "이 연결이 누구인가"를 **인증서로** 판단했고, 비밀번호는 애초에 관여하지 않았습니다.
+The DB decided "who this connection is" **from the certificate**, and a password was never involved.
 +
-`sslmode=verify-full` 은 가장 엄격한 모드입니다 — 서버 인증서 검증, 호스트명 일치 확인,
-그리고 클라이언트 인증서 제시를 모두 요구합니다. 양쪽이 서로를 증명하는 **상호 TLS(mTLS)** 입니다.
+`sslmode=verify-full` is the strictest mode — it requires server certificate verification, a hostname match,
+and a client certificate. Both sides prove themselves to each other: this is **mutual TLS (mTLS)**.
 +
-. 이번에는 공격자의 입장이 되어 봅니다. **같은 namespace 안에서**, 네트워크로는 완전히 도달 가능한 pod를 띄우고 접속을 시도합니다:
+. Now put yourself in the attacker's shoes. **In the same namespace**, start a pod that can fully reach the server over the network, and try to connect:
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
@@ -225,7 +225,7 @@ oc exec -n postgresql-spiffe-client attacker -- \
   psql "host=postgresql-spiffe.postgresql-spiffe.svc port=5432 user=postgresql_spiffe dbname=testdb" 2>&1 | head -3
 ----
 +
-예상 출력:
+Expected output:
 +
 [source,text,subs="+attributes"]
 ----
@@ -236,37 +236,37 @@ port 5432 failed: FATAL:  pg_hba.conf rejects connection for host "10.x.x.x",
 user "postgresql_spiffe", database "testdb", no encryption
 ----
 +
-오류가 **두 줄**인 데는 이유가 있습니다. `psql` 은 먼저 TLS로 붙어 보고,
-실패하면 암호화 없이 한 번 더 시도합니다.
+There is a reason the error has **two parts**. `psql` first tries to connect with TLS,
+and if that fails it tries once more without encryption.
 
 [cols="1,2",options="header"]
 |===
-| 시도 | 거부 사유
+| Attempt | Reason for rejection
 
-| TLS 연결
+| TLS connection
 | `connection requires a valid client certificate` +
-  — 유효한 클라이언트 인증서가 없습니다
+  — there is no valid client certificate
 
-| 평문 연결
+| Plaintext connection
 | `pg_hba.conf rejects connection ... no encryption` +
-  — 암호화되지 않은 연결은 아예 받지 않습니다
+  — unencrypted connections are not accepted at all
 |===
 
-**두 경로 모두 막혔습니다.** 우회로가 없습니다.
+**Both paths are blocked.** There is no way around it.
 
 [IMPORTANT]
 ====
-**이것이 RedPay에서 일어나지 않았던 일입니다.**
+**This is what did not happen at RedPay.**
 
-이 pod는 모든 조건을 갖추고 있었습니다 — 같은 namespace, 같은 네트워크 대역,
-DNS로 서버 이름을 해석할 수 있고, 5432 포트에 도달합니다.
-`NetworkPolicy` 도 이 트래픽을 막지 않았습니다.
+This pod had everything going for it — the same namespace, the same network range,
+it could resolve the server name through DNS, and it reached port 5432.
+No `NetworkPolicy` blocked this traffic either.
 
-그런데 거부되었습니다. **신원을 증명하지 못했기 때문**입니다.
-네트워크 도달 가능성과 접근 권한이 완전히 분리되어 있습니다.
+Yet it was rejected — **because it could not prove its identity**.
+Network reachability and access rights are completely separate.
 ====
 
-. 테스트 pod를 정리합니다:
+. Clean up the test pod:
 +
 [source,bash,subs="+macros,+attributes",role=execute]
 ----
@@ -275,76 +275,76 @@ oc delete pod attacker -n postgresql-spiffe-client
 
 ++++
 <div class="nrp-quiz" data-answer="B">
-  <div class="nrp-quiz-q">🧠 퀴즈 2. 위 실습에서 <code>attacker</code> pod는 서버에 네트워크로 완전히 도달할 수 있었는데도 거부되었습니다. 동일한 보호를 <code>NetworkPolicy</code> 만으로 달성하려 할 때의 <strong>근본적인</strong> 한계는?</div>
+  <div class="nrp-quiz-q">🧠 Quiz 2. In the lab above, the <code>attacker</code> pod could fully reach the server over the network but was still rejected. What is the <strong>fundamental</strong> limitation of trying to achieve the same protection with <code>NetworkPolicy</code> alone?</div>
 
-  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">NetworkPolicy는 PostgreSQL의 5432 포트를 제어할 수 없다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">NetworkPolicy는 label과 namespace 기준으로 트래픽을 허용/차단하는데, label은 워크로드가 스스로 붙이는 것이므로 위조 가능한 주장이다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">NetworkPolicy는 OVN-Kubernetes에서만 동작한다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">NetworkPolicy는 성능 저하가 커서 프로덕션에 부적합하다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">NetworkPolicy cannot control PostgreSQL's port 5432</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">NetworkPolicy allows or blocks traffic based on labels and namespaces, and labels are set by the workloads themselves, so they are a claim that can be forged</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">NetworkPolicy only works with OVN-Kubernetes</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-zt2" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">NetworkPolicy degrades performance too much to be used in production</span></label>
 
-  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <button type="button" class="nrp-quiz-check">Check answer</button>
   <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
   <div class="nrp-quiz-exp">
-    <p><strong>정답: (B)</strong></p>
-    <p><code>NetworkPolicy</code> 는 훌륭한 도구이고 반드시 써야 합니다. 다만 그것이 검증하는 것은 <strong>"이 트래픽이 어디서 왔는가"</strong> 입니다.</p>
-    <p>문제는 그 "어디"의 근거입니다. <code>podSelector</code> 는 pod의 label을 봅니다. 그런데 label은 매니페스트에 적는 <strong>자기 신고</strong>입니다. 해당 namespace에 pod를 만들 권한이 있는 사람은 원하는 label을 붙일 수 있습니다.</p>
-    <p>SPIFFE는 다릅니다. SVID는 워크로드가 발급하는 것이 아니라 <strong>SPIRE가 검증 후 발급</strong>합니다. SPIRE 에이전트는 노드에서 요청 프로세스를 직접 확인해 그것이 정말 그 ServiceAccount로 실행 중인지 판별합니다. 위조하려면 노드 자체를 장악해야 합니다.</p>
-    <p><strong>둘은 대체 관계가 아니라 계층 관계입니다.</strong> NetworkPolicy는 공격 표면을 줄이고(도달 자체를 차단), SPIFFE는 도달한 연결의 신원을 검증합니다. RedPay에는 두 번째 계층이 아예 없었습니다.</p>
+    <p><strong>Answer: (B)</strong></p>
+    <p><code>NetworkPolicy</code> is an excellent tool and you should definitely use it. But what it verifies is <strong>"where this traffic came from"</strong>.</p>
+    <p>The problem is what that "where" is based on. A <code>podSelector</code> looks at pod labels. But labels are <strong>self-declared</strong> in the manifest. Anyone allowed to create pods in that namespace can attach whatever labels they like.</p>
+    <p>SPIFFE is different. An SVID is not issued by the workload itself; it is <strong>issued by SPIRE after verification</strong>. The SPIRE agent inspects the requesting process directly on the node to determine whether it really is running as that ServiceAccount. Forging it would require taking over the node itself.</p>
+    <p><strong>The two are layers, not substitutes.</strong> NetworkPolicy reduces the attack surface (by blocking reachability), and SPIFFE verifies the identity of connections that do get through. RedPay did not have the second layer at all.</p>
   </div>
 </div>
 ++++
 
-== 실무에서는 어떤 상황에 필요한가
+== When is this needed in practice?
 
-이 기술이 항상 필요한 것은 아닙니다. 다음 상황에서 도입 가치가 분명해집니다.
+This technology is not always necessary. Its value becomes clear in the following situations.
 
 [cols="1,2",options="header"]
 |===
-| 상황 | 왜 SPIFFE가 답이 되는가
+| Situation | Why SPIFFE is the answer
 
-| *서비스 간 인증이 IP/네트워크 대역에 의존하는 경우*
-| 가장 전형적인 도입 사유입니다. 침해 이후 횡적 이동을 막을 계층이 아예 없는 상태입니다.
+| *Service-to-service authentication relies on IP / network ranges*
+| The most typical reason to adopt it. There is no layer at all to stop lateral movement after a breach.
 
-| *공유 자격 증명을 여러 서비스가 함께 쓰는 경우*
-| 하나가 유출되면 전부 교체해야 하고, 그래서 아무도 교체하지 않게 됩니다. 워크로드별 신원은 이 문제를 구조적으로 없앱니다.
+| *Multiple services share the same credentials*
+| If one leaks, all of them have to be rotated — so nobody ever rotates them. Per-workload identities remove this problem structurally.
 
-| *멀티 클러스터 / 하이브리드 환경*
-| trust domain을 연합(federation)하면 클러스터 경계를 넘어 동일한 신원 체계를 씁니다. 네트워크 구성에 의존하지 않으므로 온프레미스-클라우드 혼합 환경에서 특히 유효합니다.
+| *Multi-cluster / hybrid environments*
+| Federating trust domains lets you use the same identity system across cluster boundaries. Because it does not depend on network configuration, it is especially effective in mixed on-premises and cloud environments.
 
-| *감사에서 "누가 이 데이터에 접근했는가"를 증명해야 하는 경우*
-| 공유 계정으로는 답할 수 없는 질문입니다. 워크로드별 인증서는 접근 주체를 특정합니다.
+| *Audits require proof of "who accessed this data"*
+| A question shared accounts cannot answer. Per-workload certificates pinpoint who made the access.
 
-| *레거시 애플리케이션을 수정하지 않고 mTLS를 적용해야 하는 경우*
-| `spiffe-helper` 사이드카가 표준 PEM 파일을 파일시스템에 놓아 줍니다. 애플리케이션은 평범한 TLS 클라이언트 인증서를 쓰는 것처럼 동작하면 됩니다 — 실습에서 `psql` 이 그렇게 했습니다.
+| *mTLS must be applied without modifying legacy applications*
+| The `spiffe-helper` sidecar drops standard PEM files on the file system. The application just behaves as if it were using an ordinary TLS client certificate — exactly what `psql` did in the lab.
 |===
 
 [TIP]
-.Service Mesh와는 어떤 관계인가요?
+.How does this relate to Service Mesh?
 ====
-Red Hat OpenShift Service Mesh(Istio)도 mTLS를 제공하며, 내부적으로 SPIFFE 신원 형식을 씁니다.
+Red Hat OpenShift Service Mesh (Istio) also provides mTLS and uses the SPIFFE identity format internally.
 
-차이는 적용 지점입니다. Service Mesh는 사이드카 프록시가 **HTTP/gRPC 트래픽을 가로채** 처리하므로
-애플리케이션은 아무것도 모릅니다. 반면 ZTWIM은 워크로드에 **인증서 자체를 건네줍니다.**
+The difference is where it is applied. In Service Mesh, a sidecar proxy **intercepts HTTP/gRPC traffic**,
+so the application knows nothing about it. ZTWIM, on the other hand, **hands the certificate itself** to the workload.
 
-그래서 실습처럼 **PostgreSQL 프로토콜**을 쓰는 경우나, 애플리케이션이 인증서를 직접 다뤄야 하는 경우,
-또는 메시 밖의 워크로드까지 같은 신원 체계로 묶어야 하는 경우에 ZTWIM이 적합합니다.
-둘을 함께 쓰는 구성도 흔합니다.
+That makes ZTWIM a good fit when you use the **PostgreSQL protocol** as in the lab, when the application must handle certificates directly,
+or when you need to bring workloads outside the mesh into the same identity system.
+Using the two together is also common.
 ====
 
-== 학습 내용 요약
+== Summary
 
-* **IP 주소는 위치이지 신원이 아닙니다.** 경계 방어는 한 번만 뚫리면 되는 구조이며, 침해 이후의 횡적 이동을 막지 못합니다.
-* **SPIFFE 신원(SVID)** 은 X.509 인증서를 Kubernetes namespace + ServiceAccount에 묶습니다. 워크로드의 자기 신고가 아니라 SPIRE가 검증 후 발급합니다.
-* **짧은 수명(기본 1시간) + 자동 갱신**이 핵심입니다. 탈취 시 악용 창을 좁히고, 운영이 까다로운 폐기 인프라를 불필요하게 만듭니다.
-* **mTLS는 양방향 검증**입니다. 클라이언트도 서버도 서로에게 신원을 증명합니다.
-* **네트워크 도달 가능성과 접근 권한이 분리됩니다.** 같은 namespace에 있어도 유효한 신원이 없으면 거부됩니다.
-* NetworkPolicy와 SPIFFE는 **대체가 아니라 계층**입니다. 전자는 도달을 줄이고, 후자는 도달한 연결을 검증합니다.
+* **An IP address is a location, not an identity.** Perimeter defense only needs to be breached once, and it does not stop lateral movement after a breach.
+* A **SPIFFE identity (SVID)** binds an X.509 certificate to a Kubernetes namespace + ServiceAccount. It is not self-declared by the workload; SPIRE issues it after verification.
+* **Short lifetime (1 hour by default) + automatic renewal** is the key. It narrows the window for abuse if stolen and removes the need for hard-to-operate revocation infrastructure.
+* **mTLS is two-way verification.** Both the client and the server prove their identity to each other.
+* **Network reachability and access rights are separated.** Even in the same namespace, a connection without a valid identity is rejected.
+* NetworkPolicy and SPIFFE are **layers, not substitutes**. The former reduces reachability; the latter verifies the connections that get through.
 
-== 다음 단계
+== Next steps
 
-2단계 공격도 막았습니다. 이제 내부에 들어온 요청이라도 **신원을 증명하지 못하면** 거부됩니다.
+You have stopped Stage 2 of the attack as well. Now even a request from inside is rejected **if it cannot prove its identity**.
 
-남은 문은 하나입니다. 공격자가 데이터를 밖으로 빼낸 통로 — 6개월 전 `latest` 태그로 배포된 결제 API 이미지입니다.
-그 안에는 원격 코드 실행(RCE) 취약 라이브러리가 들어 있었고, RedPay의 RHACS는 그것을 **탐지만** 하고 있었습니다.
+One door remains: the path the attacker used to get data out — the payment API image deployed six months ago with the `latest` tag.
+It contained a library with a remote code execution (RCE) vulnerability, and RedPay's RHACS was **only detecting** it.
 
-xref:17-acs.adoc[마지막 모듈]에서 3단계 공격을 다룹니다.
+The xref:17-acs.adoc[final module] covers Stage 3 of the attack.

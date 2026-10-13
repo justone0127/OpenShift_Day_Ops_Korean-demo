@@ -1,17 +1,17 @@
 /* ==========================================================================
-   보안 트랙 (RedPay 침해사고) 전용 스타일
+   Styles for the security track (the RedPay breach)
 
-   partials/nrp-assets.adoc 이 <style> 블록 안으로 이 파일을 include 합니다.
-   UI 번들이 아니라 콘텐츠 쪽에 두는 이유:
-     - site.yml 의 ui.supplemental_files 는 배열 형식이라 디렉터리를 복사하지 않고
-     - default-site.yml(프로덕션 플레이북)에는 supplemental_files 자체가 없습니다.
-   즉 UI 쪽에 넣으면 RHDP 배포에서 로드되지 않습니다.
+   partials/nrp-assets.adoc includes this file inside a <style> block.
+   Why it lives with the content instead of the UI bundle:
+     - ui.supplemental_files in site.yml is an array, so it does not copy directories, and
+     - default-site.yml (the production playbook) has no supplemental_files at all.
+   In other words, anything placed in the UI would not load in RHDP deployments.
 
-   모든 클래스에 nrp- 접두사를 붙여 테마 스타일과 충돌하지 않게 했습니다.
-   배경/글자색을 명시해 라이트·다크 테마 모두에서 동일하게 보이도록 합니다.
+   Every class has an nrp- prefix to avoid clashing with theme styles.
+   Background and text colors are explicit so things look the same in light and dark themes.
    ========================================================================== */
 
-/* --- 페이저 알림 (히어로) ------------------------------------------------ */
+/* --- Pager alert (hero) ------------------------------------------------ */
 
 .nrp-alert {
     background: #151515;
@@ -73,7 +73,7 @@
 .nrp-alert dd { color: #f0f0f0; margin: 0; }
 .nrp-spike   { color: #ff5c5c; font-weight: 700; }
 
-/* --- 타임라인 ------------------------------------------------------------ */
+/* --- Timeline ------------------------------------------------------------ */
 
 .nrp-timeline {
     display: flex;
@@ -116,7 +116,7 @@
 
 .nrp-tl-body { font-size: 0.9rem; line-height: 1.45; }
 
-/* --- 다이어그램 래퍼 ----------------------------------------------------- */
+/* --- Diagram wrapper ----------------------------------------------------- */
 
 .nrp-figure {
     background: #ffffff;
@@ -137,7 +137,7 @@
     text-align: center;
 }
 
-/* --- 피해 집계 스탯 ------------------------------------------------------ */
+/* --- Damage stats ------------------------------------------------------ */
 
 .nrp-stats {
     display: grid;
@@ -170,7 +170,7 @@
     margin-top: 0.35rem;
 }
 
-/* --- 보안 통제 카드 --------------------------------------------------------- */
+/* --- Security control cards --------------------------------------------------------- */
 
 .nrp-defense {
     display: grid;
@@ -211,9 +211,9 @@
 
 .nrp-def-body { font-size: 0.9rem; line-height: 1.5; }
 
-/* --- 인터랙티브 퀴즈 ------------------------------------------------------
-   채점 로직은 examples/nrp-quiz.js 에 있습니다.
-   html.nrp-js 가 붙어 있을 때만 해설을 숨기므로, JS 실패 시에도 내용이 보입니다.
+/* --- Interactive quiz -----------------------------------------------------
+   The grading logic is in examples/nrp-quiz.js.
+   Explanations are hidden only when html.nrp-js is set, so content stays visible if JS fails.
    -------------------------------------------------------------------------- */
 
 .nrp-quiz {
@@ -302,14 +302,14 @@ html.nrp-js .nrp-quiz-check { display: inline-block; }
 .nrp-quiz-exp > :last-child { margin-bottom: 0; }
 .nrp-quiz-exp p { margin: 0 0 0.7rem; }
 
-/* JS 가 살아 있을 때만 숨깁니다. */
+/* Hide only while JS is running. */
 html.nrp-js .nrp-quiz-result,
 html.nrp-js .nrp-quiz-exp { display: none; }
 html.nrp-js .nrp-quiz.is-prompt .nrp-quiz-result,
 html.nrp-js .nrp-quiz.is-answered .nrp-quiz-result { display: block; }
 html.nrp-js .nrp-quiz.is-answered .nrp-quiz-exp { display: block; }
 
-/* ── 복사 버튼이 있는 입력 값 목록 (nrp-copy.js) ───────────────────── */
+/* ── Input value list with copy buttons (nrp-copy.js) ───────────────────── */
 .nrp-copy-list {
     container-type: inline-size;
     border: 1px solid #d2d2d2;
@@ -360,7 +360,7 @@ html.nrp-js .nrp-quiz.is-answered .nrp-quiz-exp { display: block; }
 .nrp-copy-btn.is-done { background: #3e8635; border-color: #3e8635; color: #ffffff; }
 html.nrp-js .nrp-copy-btn { display: inline-block; }
 
-/* 좁은 가이드 패널에서는 항목 이름을 위로 올립니다 (패널 폭 기준) */
+/* In a narrow guide panel, move the field name above the value (based on panel width) */
 @container (max-width: 460px) {
     .nrp-copy-row { grid-template-columns: 1fr auto; }
     .nrp-copy-label { grid-column: 1 / -1; }

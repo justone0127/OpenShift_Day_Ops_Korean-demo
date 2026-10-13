@@ -23,7 +23,7 @@ asciidoc:
     # inject-env-vars.sh 에 REDPAY_NS / SPIFFE_SERVER_NS / SPIFFE_CLIENT_NS 를
     # 인스턴스별로 넘겨 'user1-redpay' 처럼 접두사가 붙은 이름을 쓰십시오.
     lab_user: 'user1'
-    lab_user_password: '(진행자에게 받은 비밀번호)'
+    lab_user_password: '(provided by your facilitator)'
     api_url: 'https://api.example.com:6443'
     redpay_ns: 'redpay'
     spiffe_server_ns: 'postgresql-spiffe'

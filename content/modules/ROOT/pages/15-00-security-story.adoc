@@ -1,154 +1,154 @@
-= 보안 트랙 시작 — RedPay 침해사고
+= Security Track Start — The RedPay Breach
 :page-toclevels: 1
 
-== 모듈 개요
+== Module overview
 
-**소요 시간:** 10분 +
-**형식:** 읽기 + 워밍업 퀴즈 +
-**대상 참석자:** Security Engineers, Platform Engineers, IT Operations
+**Duration:** 10 minutes +
+**Format:** Reading + warm-up quiz +
+**Audience:** Security Engineers, Platform Engineers, IT Operations
 
 include::partial$console-access.adoc[]
 
 include::partial$nrp-assets.adoc[]
 
 [IMPORTANT]
-.여러분의 역할
+.Your role
 ====
-여러분은 국내 간편결제 서비스 **RedPay** 의 **플랫폼 운영 담당자**입니다.
+You are the **platform operations owner** at **RedPay**, a mobile payment service.
 
-결제 API가 도는 OpenShift 클러스터를 여러분이 책임지고 있습니다. 배포도, 접근 권한도,
-새벽에 울리는 알림을 받는 것도 여러분입니다.
+You are responsible for the OpenShift cluster that runs the payment API. Deployments, access control,
+and the alerts that go off in the middle of the night are all yours.
 
-이 트랙의 과제는 여러분의 서비스에서 벌어진 침해사고를 되짚어 보고,
-**같은 일이 다시 일어나지 않게 만드는 것**입니다.
+Your task in this track is to look back at the breach that hit your service and
+**make sure it never happens again**.
 ====
 
 [NOTE]
 ====
-이 페이지는 이어지는 세 모듈(*Red Hat build of Keycloak* → *Zero Trust Workload Identity Manager* → *Red Hat Advanced Cluster Security*)을
-하나의 사건으로 묶는 도입부입니다. 각 모듈은 이 사건의 **공격 단계를 하나씩** 막습니다.
+This page is the introduction that ties the next three modules (*Red Hat build of Keycloak* → *Zero Trust Workload Identity Manager* → *Red Hat Advanced Cluster Security*)
+into a single incident. Each module stops **one stage of the attack**.
 ====
 
-== 03:47 AM — 알림
+== 03:47 AM — The alert
 
-새벽 3시 47분, 여러분의 휴대폰이 울립니다.
+It is 3:47 in the morning, and your phone goes off.
 
 [subs="attributes"]
 ++++
 <div class="nrp-alert">
   <div class="nrp-alert-head"><span class="nrp-dot"></span>PagerDuty · CRITICAL · P1</div>
-  <div class="nrp-alert-title">RedPay 결제 API — 요청 급증</div>
+  <div class="nrp-alert-title">RedPay payment API — request spike</div>
   <dl>
-    <dt>요청 수</dt><dd><span class="nrp-spike">평소 새벽 대비 3,800% ↑</span></dd>
-    <dt>대상</dt><dd>/api/v1/payments · /api/v1/settlements</dd>
-    <dt>인증</dt><dd>정상 로그인 세션 <span style="color:#a0a0a0">(운영자 계정 ops-admin)</span></dd>
-    <dt>발신</dt><dd>payment-api-7d9f4b · namespace {redpay_ns}</dd>
+    <dt>Requests</dt><dd><span class="nrp-spike">3,800% ↑ vs. a normal night</span></dd>
+    <dt>Target</dt><dd>/api/v1/payments · /api/v1/settlements</dd>
+    <dt>Auth</dt><dd>Valid login session <span style="color:#a0a0a0">(operator account ops-admin)</span></dd>
+    <dt>Source</dt><dd>payment-api-7d9f4b · namespace {redpay_ns}</dd>
   </dl>
 </div>
 ++++
 
-여러분이 운영하는 RedPay는 일 거래 120만 건, 회원 380만 명의 서비스입니다.
-고객의 카드번호와 계좌 정보를 다룹니다.
+RedPay handles 1.2 million transactions a day for 3.8 million members.
+It processes customers' card numbers and bank account details.
 
-몇 년째 별 탈 없이 잘 돌아가던 시스템이었습니다.
-그런데 아무도 일하지 않는 새벽에, **정상적으로 로그인한 운영자 계정**이 결제 데이터를 쓸어 가고 있습니다.
+The system had been running without a hitch for years.
+Yet in the middle of the night, when nobody is working, **an operator account with a valid login** is sweeping up payment data.
 
-노트북을 열면서 여러분은 이미 직감합니다 — 이건 오탐이 아닙니다.
+As you open your laptop, you already know — this is not a false positive.
 
 ++++
 <div class="nrp-timeline">
   <div class="nrp-tl-item is-alert">
-    <div class="nrp-tl-label">탐지</div>
+    <div class="nrp-tl-label">Detected</div>
     <div class="nrp-tl-time">03:47</div>
-    <div class="nrp-tl-body">알림을 받은 시각. 공격자는 이미 한 시간 전부터 운영자 계정으로 로그인해 있었습니다.</div>
+    <div class="nrp-tl-body">When the alert arrived. The attacker had already been logged in as the operator for an hour.</div>
   </div>
   <div class="nrp-tl-item is-probe">
-    <div class="nrp-tl-label">분석</div>
+    <div class="nrp-tl-label">Analyzed</div>
     <div class="nrp-tl-time">06:00</div>
-    <div class="nrp-tl-body">팀과 함께 밤새 로그를 뒤진 끝에 공격 경로 3단계가 드러납니다.</div>
+    <div class="nrp-tl-body">After digging through logs all night with your team, the three-stage attack path comes to light.</div>
   </div>
   <div class="nrp-tl-item is-cost">
-    <div class="nrp-tl-label">집계</div>
+    <div class="nrp-tl-label">Assessed</div>
     <div class="nrp-tl-time">09:00</div>
-    <div class="nrp-tl-body">피해 규모가 확정되고, 여러분은 경영진 앞에 섭니다.</div>
+    <div class="nrp-tl-body">The damage is confirmed, and you stand in front of the executives.</div>
   </div>
 </div>
 ++++
 
-== 06:00 AM — 공격 경로 3단계
+== 06:00 AM — The three-stage attack path
 
-팀과 함께 밤새 로그를 뒤진 끝에 경로가 드러났습니다.
+After digging through logs all night with your team, the path becomes clear.
 
-공격자는 **세 개의 문**을 지났습니다. 그리고 세 곳 모두 문이 열려 있었습니다.
-셋 다 여러분이 관리하는 클러스터의 설정이었고, 더 뼈아픈 사실은
-**문을 잠글 도구가 이미 클러스터에 설치되어 있었다**는 점입니다.
+The attacker went through **three doors**, and all three were open.
+All three were settings in the cluster you manage. Even more painful:
+**the tools to lock those doors were already installed in the cluster.**
 
 ++++
 <div class="nrp-figure">
-<svg viewBox="0 0 840 200" role="img" aria-label="공격 경로 다이어그램. 공격자가 방어되지 않은 세 지점을 차례로 통과해 회원 데이터를 외부로 빼냅니다.">
+<svg viewBox="0 0 840 200" role="img" aria-label="Attack path diagram. The attacker passes three undefended points in turn and exfiltrates customer data.">
   <defs>
     <marker id="nrp-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
     </marker>
   </defs>
 
-  <!-- 단계 라벨 -->
+  <!-- Stage labels -->
   <g font-size="12" font-weight="700" fill="#a30000" text-anchor="middle">
-    <text x="200" y="22">1단계</text>
-    <text x="420" y="22">2단계</text>
-    <text x="640" y="22">3단계</text>
+    <text x="200" y="22">Stage 1</text>
+    <text x="420" y="22">Stage 2</text>
+    <text x="640" y="22">Stage 3</text>
   </g>
 
-  <!-- 뚫린 방어 지점: 점선 -->
+  <!-- Breached defense points: dashed -->
   <g stroke="#ee0000" stroke-width="2" stroke-dasharray="5 5" opacity="0.55">
     <line x1="200" y1="34" x2="200" y2="140"/>
     <line x1="420" y1="34" x2="420" y2="140"/>
     <line x1="640" y1="34" x2="640" y2="140"/>
   </g>
 
-  <!-- 진행 화살표 -->
+  <!-- Progress arrows -->
   <g stroke="#ee0000" stroke-width="2.5" marker-end="url(#nrp-ar)">
     <line x1="168" y1="87" x2="230" y2="87"/>
     <line x1="388" y1="87" x2="450" y2="87"/>
     <line x1="608" y1="87" x2="670" y2="87"/>
   </g>
 
-  <!-- 노드 -->
+  <!-- Nodes -->
   <g>
     <rect x="15" y="55" width="150" height="64" rx="6" fill="#151515"/>
-    <text x="90" y="82" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">공격자</text>
-    <text x="90" y="101" font-size="11.5" fill="#b8b8b8" text-anchor="middle">인터넷</text>
+    <text x="90" y="82" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">Attacker</text>
+    <text x="90" y="101" font-size="11.5" fill="#b8b8b8" text-anchor="middle">Internet</text>
 
     <rect x="235" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
-    <text x="310" y="82" font-size="14" font-weight="700" fill="#151515" text-anchor="middle">운영자 계정</text>
-    <text x="310" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">로그인 성공</text>
+    <text x="310" y="82" font-size="14" font-weight="700" fill="#151515" text-anchor="middle">Operator account</text>
+    <text x="310" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">Login succeeded</text>
 
     <rect x="455" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
-    <text x="530" y="82" font-size="14" font-weight="700" fill="#151515" text-anchor="middle">회원 DB</text>
-    <text x="530" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">내부에서 조회</text>
+    <text x="530" y="82" font-size="14" font-weight="700" fill="#151515" text-anchor="middle">Customer DB</text>
+    <text x="530" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">Queried from inside</text>
 
     <rect x="675" y="55" width="150" height="64" rx="6" fill="#faf0f0" stroke="#ee0000" stroke-width="1.5"/>
     <text x="750" y="82" font-size="14" font-weight="700" fill="#a30000" text-anchor="middle">payment-api</text>
-    <text x="750" y="101" font-size="11.5" fill="#a30000" text-anchor="middle">외부 반출 통로</text>
+    <text x="750" y="101" font-size="11.5" fill="#a30000" text-anchor="middle">Exfiltration path</text>
   </g>
 
-  <!-- 실패 이유 -->
+  <!-- Why each point failed -->
   <g font-size="11" fill="#6a6e73" text-anchor="middle">
-    <text x="200" y="160">비밀번호 하나로</text>
-    <text x="200" y="176">로그인 (MFA 없음)</text>
-    <text x="420" y="160">내부 요청이면</text>
-    <text x="420" y="176">무조건 신뢰</text>
-    <text x="640" y="160">latest 이미지 속</text>
-    <text x="640" y="176">RCE 취약 라이브러리</text>
+    <text x="200" y="160">Login with a single</text>
+    <text x="200" y="176">password (no MFA)</text>
+    <text x="420" y="160">Internal requests</text>
+    <text x="420" y="176">trusted blindly</text>
+    <text x="640" y="160">latest image with an</text>
+    <text x="640" y="176">RCE-vulnerable library</text>
   </g>
 </svg>
-<div class="nrp-figcaption">세 지점 모두 <strong>점선</strong> — 막아 서는 것이 아무것도 없었습니다.</div>
+<div class="nrp-figcaption">All three points are <strong>dashed</strong> — nothing stood in the way.</div>
 </div>
 ++++
 
-=== 1단계 — "비밀번호는 복잡하게 만들었는데요?"
+=== Stage 1 — "But we made the password complex!"
 
-새벽의 요청은 모두 운영자 계정 `ops-admin` 의 **정상 로그인 세션**에서 나왔습니다.
+Every request that night came from a **valid login session** of the operator account `ops-admin`.
 
 [source,text]
 ----
@@ -157,274 +157,273 @@ include::partial$nrp-assets.adoc[]
 02:43:55  GET  /api/v1/payments?from=2019-01-01   200   (rows=1,204,331)
 ----
 
-`ops-admin` 의 비밀번호는 다른 사이트에서 유출된 계정 목록에 그대로 들어 있었습니다.
-공격자는 그 비밀번호를 **그냥 입력했을 뿐**입니다.
+The `ops-admin` password appeared, unchanged, in a list of credentials leaked from another site.
+The attacker **simply typed it in**.
 
-RedPay는 이미 **Red Hat build of Keycloak** 으로 통합 인증(SSO)을 쓰고 있었고,
-다중 인증(MFA) 기능도 처음부터 들어 있었습니다. **다만 아무도 강제하지 않았습니다.**
-"운영자들이 불편해한다"는 이유였습니다.
+RedPay was already using **Red Hat build of Keycloak** for single sign-on (SSO),
+and multi-factor authentication (MFA) was available from day one. **Nobody enforced it.**
+The reason: "operators find it inconvenient."
 
 [TIP]
 ====
-*"비밀번호를 16자 이상으로 강제하고 있었는데요?"* +
-→ 그 비밀번호가 다른 곳에서 유출되면 길이는 아무 의미가 없습니다. +
-→ 비밀번호는 **"아는 것"** 하나뿐입니다. 공격자도 알 수 있습니다.
+*"But we required passwords of 16 characters or more!"* +
+→ Once the password leaks somewhere else, its length means nothing. +
+→ A password is only **"something you know"**. The attacker can know it too.
 ====
 
-=== 2단계 — "내부에서 온 요청이니까 괜찮아요"
+=== Stage 2 — "It came from inside, so it's fine"
 
-로그인에 성공한 공격자는 이제 **"내부"** 에 있습니다.
+Having logged in, the attacker is now **"inside"**.
 
-여러분의 내부 서비스들은 서로를 이렇게 인증하고 있었습니다.
+Your internal services authenticated one another like this:
 
 [source,text]
 ----
-"10.128.0.0/14 대역에서 온 요청이면 = 우리 서비스"
+"If the request comes from 10.128.0.0/14 = it's one of our services"
 ----
 
-결제 서비스 → 정산 서비스 → 회원 DB. 출처가 내부 대역이었으므로 **전부 통과했습니다.**
-어느 서비스도 "지금 나에게 말을 거는 게 정말 결제 서비스인가?"를 묻지 않았습니다.
+Payment service → settlement service → customer DB. Since the source was an internal range, **everything let it through.**
+No service ever asked, "Is the one talking to me really the payment service?"
 
-**네트워크 위치를 신원으로 착각한 것**이 피해를 회원 DB까지 넓혔습니다.
+**Mistaking network location for identity** let the damage spread all the way to the customer DB.
 
 [TIP]
 ====
-*"방화벽이 있잖아요?"* +
-→ 방화벽은 "어디서 왔는가"를 봅니다. 공격자는 이미 "안"에 있습니다. +
-→ **내부에서 들어온 요청도 믿으면 안 됩니다.**
+*"But we have a firewall!"* +
+→ A firewall looks at "where it came from". The attacker is already "inside". +
+→ **You must not trust requests just because they come from inside.**
 ====
 
-=== 3단계 — "그냥 최신 버전 쓰면 되죠?"
+=== Stage 3 — "Can't we just use the latest version?"
 
-공격자가 회원 데이터를 밖으로 빼낸 통로는 결제 API 컨테이너였습니다.
+The path the attacker used to get customer data out was the payment API container.
 
-6개월 전, 오픈 일정에 쫓겨 급하게 올린 결제 API입니다. 여러분도 그때 그 자리에 있었습니다.
+It is the payment API pushed out in a hurry six months ago to meet a launch date. You were there when it happened.
 
 [source,yaml]
 ----
-image: payment-api:latest   # ← 태그가 latest
-# resources 없음           ← 노드 자원을 전부 소진시킬 수 있음
-# securityContext 없음     ← 불필요한 권한 유지
+image: payment-api:latest   # ← tagged latest
+# no resources             ← can exhaust all node resources
+# no securityContext       ← keeps unnecessary privileges
 ----
 
-`latest` 태그가 가리키던 이미지 안에는 **원격 코드 실행(RCE) 취약점이 있는 라이브러리**가 들어 있었습니다.
-외부에서 조작된 요청 하나로 컨테이너 안에서 명령을 실행할 수 있는 구멍입니다.
-공격자는 이 구멍으로 데이터를 외부로 내보냈고, 운영자 계정이 막히더라도 **다시 들어올 수 있는 거점**까지 확보했습니다.
+The image that the `latest` tag pointed to contained **a library with a remote code execution (RCE) vulnerability**.
+A single crafted request from outside could run commands inside the container.
+Through that hole, the attacker sent data out and secured **a foothold to come back in**, even if the operator account were locked.
 
-아무도 몰랐습니다. **배포 이후로는 아무도 스캔하지 않았으니까요.**
+Nobody knew. **Nobody had scanned it since it was deployed.**
 
-RedPay에는 **Red Hat Advanced Cluster Security** 도 이미 설치되어 있었고,
-`latest` 태그를 잡아내는 정책도 들어 있었습니다. 다만 **탐지(Inform)** 로만 켜져 있었고,
-위반 목록은 아무도 보지 않는 대시보드에 쌓이고 있었습니다.
+RedPay had **Red Hat Advanced Cluster Security** installed as well,
+including a policy that catches the `latest` tag. But it was only set to **Inform**,
+and the violations piled up on a dashboard nobody looked at.
 
 [TIP]
 ====
-*"이미지 스캔은 CI에서 하고 있었는데요?"* +
-→ CI를 통과한 **뒤에** 배포된 이미지는 누가 봅니까? +
-→ 어제는 안전했던 이미지에 오늘 CVE가 공개되면요?
+*"But we scan images in CI!"* +
+→ Who looks at an image **after** it passes CI and gets deployed? +
+→ What if a CVE is published today for an image that was safe yesterday?
 ====
 
-== 09:00 AM — 피해 집계
+== 09:00 AM — Damage assessment
 
 ++++
 <div class="nrp-stats">
   <div class="nrp-stat">
-    <div class="nrp-stat-num">380<span class="nrp-stat-unit">만 건</span></div>
-    <div class="nrp-stat-label">유출된 고객 레코드</div>
+    <div class="nrp-stat-num">3.8<span class="nrp-stat-unit">M</span></div>
+    <div class="nrp-stat-label">Customer records leaked</div>
   </div>
   <div class="nrp-stat">
     <div class="nrp-stat-num">3<span class="nrp-stat-unit">%</span></div>
-    <div class="nrp-stat-label">과징금 — 매출액 기준<br>(개인정보보호법)</div>
+    <div class="nrp-stat-label">Fine — of revenue<br>(data protection law)</div>
   </div>
   <div class="nrp-stat">
-    <div class="nrp-stat-num">72<span class="nrp-stat-unit">시간</span></div>
-    <div class="nrp-stat-label">전면 서비스 중단</div>
+    <div class="nrp-stat-num">72<span class="nrp-stat-unit">hrs</span></div>
+    <div class="nrp-stat-label">Full service outage</div>
   </div>
   <div class="nrp-stat">
-    <div class="nrp-stat-num">수 년</div>
-    <div class="nrp-stat-label">대외 신뢰도 회복 기간</div>
+    <div class="nrp-stat-num">Years</div>
+    <div class="nrp-stat-label">To rebuild public trust</div>
   </div>
 </div>
 ++++
 
-기술적으로 보면 이 사건은 **꺼져 있던 설정 세 개**의 문제였습니다.
-MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
-셋 다 여러분의 백로그에서 "나중에 켜자"에 머물러 있던 항목이었습니다.
+Technically, this incident came down to **three settings that were switched off**:
+no MFA, IP-based trust, and an image policy left in detection-only mode.
+All three had been sitting in your backlog under "we'll turn it on later."
 
-== 여러분의 임무 — 이미 가진 보안을 제대로 켜기
+== Your mission — Properly turn on the security you already have
 
-경영진이 여러분에게 묻습니다. **"보안 솔루션은 이미 다 도입한 것 아니었습니까?"**
+The executives ask you: **"Didn't we already buy all the security solutions?"**
 
-맞습니다. RedPay에는 필요한 도구가 **이미 있었습니다.** 제대로 적용하지 않았을 뿐입니다.
-이제라도 그 보안을 제대로 적용해서, RedPay가 더 안전하게 결제 서비스를 할 수 있도록 만드는 것이
-이 트랙의 목표입니다.
+They are right. RedPay **already had** the tools it needed. It just never applied them properly.
+The goal of this track is to finally apply that security properly, so RedPay can run its payment service more safely.
 
-공격은 한 단계씩 진행됩니다. 그리고 **어느 한 곳에서든 막히면, 그 뒤는 일어나지 않습니다.**
+An attack proceeds one stage at a time. And **if it is stopped at any one point, what follows never happens.**
 
 ++++
 <div class="nrp-figure">
-<svg viewBox="0 0 840 200" role="img" aria-label="보안 통제 적용 다이어그램. 모듈 1(Keycloak), 2(ZTWIM), 3(RHACS)이 각각 공격 단계를 차단하여, 같은 공격을 사전에 방지할 수 있습니다.">
+<svg viewBox="0 0 840 200" role="img" aria-label="Security controls diagram. Modules 1 (Keycloak), 2 (ZTWIM) and 3 (RHACS) each block a stage of the attack, preventing the same attack in advance.">
   <defs>
     <marker id="nrp-ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
     </marker>
   </defs>
 
-  <!-- 모듈 라벨 -->
+  <!-- Module labels -->
   <g font-size="11" font-weight="700" fill="#3e8635" text-anchor="middle">
-    <text x="200" y="22">모듈 1 · Keycloak</text>
-    <text x="420" y="22">모듈 2 · ZTWIM</text>
-    <text x="640" y="22">모듈 3 · RHACS</text>
+    <text x="200" y="22">Module 1 · Keycloak</text>
+    <text x="420" y="22">Module 2 · ZTWIM</text>
+    <text x="640" y="22">Module 3 · RHACS</text>
   </g>
 
-  <!-- 적용된 보안 통제 -->
+  <!-- Applied security controls -->
   <g fill="#3e8635">
     <rect x="193" y="34" width="14" height="106" rx="4"/>
     <rect x="413" y="34" width="14" height="106" rx="4"/>
     <rect x="633" y="34" width="14" height="106" rx="4"/>
   </g>
 
-  <!-- 1단계에서 차단 -->
+  <!-- Blocked at stage 1 -->
   <line x1="168" y1="87" x2="186" y2="87" stroke="#ee0000" stroke-width="2.5" marker-end="url(#nrp-ar2)"/>
   <g transform="translate(200,158)">
-    <rect x="-30" y="-13" width="60" height="24" rx="12" fill="#ee0000"/>
-    <text x="0" y="4" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">차단</text>
+    <rect x="-34" y="-13" width="68" height="24" rx="12" fill="#ee0000"/>
+    <text x="0" y="4" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">Blocked</text>
   </g>
 
-  <!-- 노드: 공격자만 선명, 나머지는 도달하지 못함 -->
+  <!-- Nodes: only the attacker is solid, the rest are never reached -->
   <rect x="15" y="55" width="150" height="64" rx="6" fill="#151515"/>
-  <text x="90" y="82" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">공격자</text>
-  <text x="90" y="101" font-size="11.5" fill="#b8b8b8" text-anchor="middle">인터넷</text>
+  <text x="90" y="82" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">Attacker</text>
+  <text x="90" y="101" font-size="11.5" fill="#b8b8b8" text-anchor="middle">Internet</text>
 
   <g opacity="0.4">
     <rect x="235" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
-    <text x="310" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">운영자 계정</text>
-    <text x="310" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">로그인 불가</text>
+    <text x="310" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">Operator account</text>
+    <text x="310" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">Login denied</text>
 
     <rect x="455" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
-    <text x="530" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">회원 DB</text>
-    <text x="530" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">안전</text>
+    <text x="530" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">Customer DB</text>
+    <text x="530" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">Safe</text>
 
     <rect x="675" y="55" width="150" height="64" rx="6" fill="#f5f5f5" stroke="#d2d2d2"/>
     <text x="750" y="82" font-size="14" font-weight="700" fill="#6a6e73" text-anchor="middle">payment-api</text>
-    <text x="750" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">배포되지 않음</text>
+    <text x="750" y="101" font-size="11.5" fill="#6a6e73" text-anchor="middle">Never deployed</text>
   </g>
 
-  <!-- 방어 요약 -->
+  <!-- Defense summary -->
   <g font-size="11" fill="#3e8635" text-anchor="middle" font-weight="600">
-    <text x="420" y="160">신원 없는 연결 거부</text>
-    <text x="640" y="160">취약 이미지 배포 거부</text>
+    <text x="420" y="160">No identity, no connection</text>
+    <text x="640" y="160">Vulnerable image rejected</text>
   </g>
   <g font-size="11" fill="#6a6e73" text-anchor="middle">
-    <text x="420" y="176">2단계 차단</text>
-    <text x="640" y="176">3단계 차단</text>
+    <text x="420" y="176">Stage 2 blocked</text>
+    <text x="640" y="176">Stage 3 blocked</text>
   </g>
 </svg>
-<div class="nrp-figcaption">단계마다 보안 통제를 적용해 두면, 같은 공격을 <strong>사전에 방지</strong>할 수 있습니다.</div>
+<div class="nrp-figcaption">With a security control at every stage, the same attack can be <strong>prevented in advance</strong>.</div>
 </div>
 ++++
 
-이어지는 세 모듈이 각 단계에 대한 답입니다.
+The next three modules answer each stage.
 
 ++++
 <div class="nrp-defense">
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 1 · Red Hat build of Keycloak</div>
-    <div class="nrp-def-title">다중 인증으로 계정 보호</div>
-    <div class="nrp-def-blocks">1단계 — 비밀번호 하나로 뚫린 운영자 계정</div>
-    <div class="nrp-def-body">이미 있던 OTP 기능을 <strong>모든 사용자에게 강제</strong>합니다. 비밀번호가 유출돼도, 사용자의 스마트폰에서 30초마다 바뀌는 토큰이 없으면 로그인할 수 없습니다.</div>
+    <div class="nrp-def-num">Module 1 · Red Hat build of Keycloak</div>
+    <div class="nrp-def-title">Protect accounts with MFA</div>
+    <div class="nrp-def-blocks">Stage 1 — An operator account breached with a single password</div>
+    <div class="nrp-def-body"><strong>Enforce</strong> the OTP feature you already had <strong>for every user</strong>. Even if a password leaks, nobody can log in without the token that changes every 30 seconds on the user's phone.</div>
   </div>
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 2 · Zero Trust Workload Identity Manager</div>
-    <div class="nrp-def-title">믿을 수 없는 내부자 거부</div>
-    <div class="nrp-def-blocks">2단계 — 내부 요청을 무조건 신뢰</div>
-    <div class="nrp-def-body">워크로드가 암호학적 신원(<strong>SVID</strong>)을 갖고, 서로를 상호 TLS(mTLS)로 검증합니다. 내부에 들어와도 신원을 증명하지 못하면 통과하지 못합니다.</div>
+    <div class="nrp-def-num">Module 2 · Zero Trust Workload Identity Manager</div>
+    <div class="nrp-def-title">Reject untrusted insiders</div>
+    <div class="nrp-def-blocks">Stage 2 — Unconditional trust of internal requests</div>
+    <div class="nrp-def-body">Workloads get a cryptographic identity (<strong>SVID</strong>) and verify one another with mutual TLS (mTLS). Being inside is not enough — without proof of identity, nothing gets through.</div>
   </div>
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 3 · Red Hat Advanced Cluster Security</div>
-    <div class="nrp-def-title">수상한 컨테이너 막기</div>
-    <div class="nrp-def-blocks">3단계 — latest 이미지 속 RCE 취약 라이브러리</div>
-    <div class="nrp-def-body">탐지에만 머물던 정책을 <strong>배포 시점 차단</strong>으로 전환합니다. 취약한 컨테이너는 애초에 클러스터에 올라오지 못합니다.</div>
+    <div class="nrp-def-num">Module 3 · Red Hat Advanced Cluster Security</div>
+    <div class="nrp-def-title">Block suspicious containers</div>
+    <div class="nrp-def-blocks">Stage 3 — A latest image carrying an RCE-vulnerable library</div>
+    <div class="nrp-def-body">Switch a policy that only detected problems to <strong>blocking at deploy time</strong>. Vulnerable containers never make it onto the cluster.</div>
   </div>
 </div>
 ++++
 
-== 🧠 워밍업 퀴즈
+== 🧠 Warm-up quiz
 
-첫 번째 모듈에 들어가기 전에 세 모듈의 핵심을 가볍게 짚어 봅니다.
-보기를 고르고 *정답 확인* 을 누르면 바로 채점됩니다. 정답은 각 모듈을 마치면 자연스럽게 알게 되니,
-지금은 감으로 골라 보셔도 좋습니다.
+Before the first module, let's briefly touch on the key idea of each of the three modules.
+Pick an option and click *Check answer* to see the result right away. You will naturally learn the answers as you complete each module,
+so feel free to go with your gut for now.
 
 ++++
 <div class="nrp-quiz" data-answer="B">
-  <div class="nrp-quiz-q">Q0-1. <code>ops-admin</code> 계정은 16자 이상의 복잡한 비밀번호를 쓰고 있었습니다. 그런데도 뚫린 이유로 <strong>가장 적절한</strong> 것은?</div>
+  <div class="nrp-quiz-q">Q0-1. The <code>ops-admin</code> account used a complex password of 16+ characters. What is the <strong>most accurate</strong> reason it was still breached?</div>
 
-  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">비밀번호가 충분히 길지 않아서</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">인증 수단이 비밀번호 하나뿐이라, 그 비밀번호가 유출되자 공격자와 진짜 사용자를 구별할 방법이 없어서</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">Keycloak의 암호화 알고리즘이 약해서</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">운영자가 비밀번호를 자주 바꾸지 않아서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">The password was not long enough</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">The password was the only authentication factor, so once it leaked there was no way to tell the attacker from the real user</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">Keycloak's encryption algorithm is weak</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q01" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">The operator did not change the password often enough</span></label>
 
-  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <button type="button" class="nrp-quiz-check">Check answer</button>
   <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
   <div class="nrp-quiz-exp">
-    <p><strong>정답: (B)</strong></p>
-    <p>비밀번호의 강도는 "추측하기 어려운가"를 결정할 뿐, "유출되었을 때 막을 수 있는가"와는 무관합니다. 유출된 비밀번호를 그대로 넣는 공격(credential stuffing) 앞에서는 길이도 복잡도도 소용이 없습니다.</p>
-    <p>다중 인증(MFA)은 <strong>서로 다른 종류의 증거</strong>를 요구합니다 — "아는 것(비밀번호)" + "가진 것(스마트폰의 OTP 앱)". 비밀번호가 유출되어도 공격자 손에 사용자의 스마트폰이 없으면 로그인할 수 없습니다. 모듈 1에서 직접 설정합니다.</p>
+    <p><strong>Answer: (B)</strong></p>
+    <p>Password strength only determines how hard it is to guess — it has nothing to do with whether you can stop someone once it has leaked. Against attacks that replay leaked passwords (credential stuffing), length and complexity do not help.</p>
+    <p>Multi-factor authentication (MFA) requires <strong>different kinds of evidence</strong> — "something you know (password)" + "something you have (an OTP app on your phone)". Even if the password leaks, the attacker cannot log in without the user's phone. You will configure this yourself in Module 1.</p>
   </div>
 </div>
 
 <div class="nrp-quiz" data-answer="C">
-  <div class="nrp-quiz-q">Q0-2. OTP 앱에 표시되는 6자리 숫자에 대한 설명으로 <strong>맞는</strong> 것은?</div>
+  <div class="nrp-quiz-q">Q0-2. Which statement about the 6-digit number shown in an OTP app is <strong>correct</strong>?</div>
 
-  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">서버가 로그인할 때마다 문자 메시지로 보내 주는 값이다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">앱이 인터넷에 연결되어 있어야만 생성된다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">등록할 때 QR 코드로 한 번 공유한 비밀 키와 현재 시각으로 계산되며, 보통 30초마다 바뀐다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">한 번 등록하면 바뀌지 않는 고정 PIN이다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">The server sends it by text message every time you log in</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">It can only be generated while the app is connected to the internet</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">It is computed from a secret key shared once via QR code at registration and the current time, and usually changes every 30 seconds</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q02" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">It is a fixed PIN that never changes once registered</span></label>
 
-  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <button type="button" class="nrp-quiz-check">Check answer</button>
   <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
   <div class="nrp-quiz-exp">
-    <p><strong>정답: (C)</strong></p>
-    <p>등록할 때 QR 코드에 담긴 것은 <strong>비밀 키(seed)</strong>입니다. 이후 앱과 서버는 각자 "비밀 키 + 현재 시각(30초 단위)"으로 같은 6자리 숫자를 계산합니다. 그래서 앱은 오프라인에서도 동작하고, 숫자는 30초마다 바뀝니다.</p>
-    <p>공격자가 지금 숫자를 엿보더라도 30초 뒤에는 쓸모가 없습니다. 그래서 QR 코드(비밀 키)는 <strong>등록하는 순간 한 번만</strong> 보여 주고 다시는 노출하지 않습니다. 모듈 1에서 QR 코드를 직접 등록해 봅니다.</p>
+    <p><strong>Answer: (C)</strong></p>
+    <p>What the QR code carries at registration is a <strong>secret key (seed)</strong>. After that, the app and the server each compute the same 6-digit number from "secret key + current time (in 30-second steps)". That is why the app works offline and the number changes every 30 seconds.</p>
+    <p>Even if an attacker peeks at the current number, it is useless 30 seconds later. That is also why the QR code (the secret key) is shown <strong>only once, at registration</strong>, and never exposed again. You will register a QR code yourself in Module 1.</p>
   </div>
 </div>
 
 <div class="nrp-quiz" data-answer="B">
-  <div class="nrp-quiz-q">Q0-3. "같은 네트워크 대역 = 믿을 수 있는 서비스"라는 가정의 가장 큰 문제는?</div>
+  <div class="nrp-quiz-q">Q0-3. What is the biggest problem with the assumption "same network range = trusted service"?</div>
 
-  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">IP 대역이 부족해진다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">공격자가 한 번 내부에 들어오면 그 순간부터 모든 서비스가 그를 신뢰한다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">네트워크 성능이 느려진다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">IPv6에서는 동작하지 않는다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">You run out of IP addresses</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">Once an attacker gets inside, every service trusts them from that moment on</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">Network performance slows down</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q03" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">It does not work with IPv6</span></label>
 
-  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <button type="button" class="nrp-quiz-check">Check answer</button>
   <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
   <div class="nrp-quiz-exp">
-    <p><strong>정답: (B)</strong></p>
-    <p>이것을 흔히 "M&amp;M 보안"이라고 부릅니다. 껍질은 딱딱하지만 속은 말랑한 구조입니다.</p>
-    <p>경계 방어는 <strong>한 번만 뚫리면 끝나는</strong> 구조입니다. 침입 이후의 횡적 이동(lateral movement)을 막아 주는 것이 아무것도 없습니다. Zero Trust는 "내부"라는 개념 자체를 없애고, <strong>모든 연결이 매번 신원을 증명</strong>하게 만듭니다. 모듈 2의 주제입니다.</p>
+    <p><strong>Answer: (B)</strong></p>
+    <p>This is often called "M&amp;M security": a hard shell with a soft center.</p>
+    <p>Perimeter defense is a model where <strong>one breach is all it takes</strong>. Nothing stops lateral movement after the intrusion. Zero Trust removes the very notion of "inside" and makes <strong>every connection prove its identity every time</strong>. That is the topic of Module 2.</p>
   </div>
 </div>
 
 <div class="nrp-quiz" data-answer="B">
-  <div class="nrp-quiz-q">Q0-4. RedPay의 CI 파이프라인에는 이미지 스캔이 있었습니다. 그런데도 <code>latest</code> 이미지 속 RCE 취약점을 놓친 이유로 <strong>가장 적절한</strong> 것은?</div>
+  <div class="nrp-quiz-q">Q0-4. RedPay's CI pipeline included an image scan. What is the <strong>most accurate</strong> reason the RCE vulnerability in the <code>latest</code> image was still missed?</div>
 
-  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">스캔 도구의 탐지율이 낮아서</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">배포 이후에 공개된 CVE와, 클러스터에 실제로 떠 있는 것을 아무도 지속적으로 보지 않아서</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">개발자가 스캔 결과를 무시해서</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">이미지가 너무 커서 스캔이 타임아웃돼서</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">The scanner's detection rate was low</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">Nobody continuously watched CVEs published after deployment, or what was actually running in the cluster</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">Developers ignored the scan results</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-q04" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">The image was so large that the scan timed out</span></label>
 
-  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <button type="button" class="nrp-quiz-check">Check answer</button>
   <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
   <div class="nrp-quiz-exp">
-    <p><strong>정답: (B)</strong></p>
-    <p>CI 스캔은 <strong>그 시점의 스냅샷</strong>입니다. 통과한 순간 스캔의 임무는 끝나지만, 컨테이너는 그 뒤로 몇 달을 계속 돌아갑니다.</p>
-    <p>CVE는 매일 새로 공개됩니다. 어제 깨끗했던 이미지가 오늘 취약해집니다. 그래서 스캔은 파이프라인의 한 단계가 아니라 <strong>클러스터에서 계속 돌아가는 상태 점검</strong>이어야 합니다. 모듈 3에서 RHACS가 바로 이 역할을 하는 것을 보게 됩니다.</p>
+    <p><strong>Answer: (B)</strong></p>
+    <p>A CI scan is <strong>a snapshot in time</strong>. Its job is done the moment the image passes, but the container keeps running for months afterwards.</p>
+    <p>New CVEs are published every day. An image that was clean yesterday can be vulnerable today. That is why scanning must be <strong>an ongoing health check in the cluster</strong>, not just one step in the pipeline. In Module 3 you will see RHACS play exactly this role.</p>
   </div>
 </div>
 ++++
 
-== 다음 단계
+== Next steps
 
-준비가 되셨으면 **다음**을 눌러 첫 번째 모듈을 진행합니다.
+When you are ready, click **Next** to start the first module.

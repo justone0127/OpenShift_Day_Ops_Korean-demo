@@ -1,29 +1,29 @@
-= 설정 및 개요
+= Setup & Overview
 :page-toclevels: 1
 
-**소요 시간:** 10분 +
-**형식:** 환경 확인 + 워크숍 안내
+**Duration:** 10 minutes +
+**Format:** Environment check + workshop introduction
 
 include::partial$console-access.adoc[]
 
 image::ops-day-banner.png[OpenShift Ops Day, width=100%]
 
-== 시작하기
+== Getting started
 
-여러분에게는 **전용 OpenShift 클러스터**가 하나씩 제공되며, 터미널은 이미
-클러스터 관리자 권한으로 연결되어 있습니다. 별도의 로그인은 필요하지 않습니다.
+Each of you has a **dedicated OpenShift cluster**, and the terminal is already
+connected with cluster-admin privileges. No additional login is required.
 
-.실습 절차
-. 클러스터에 정상 연결되어 있는지 확인합니다:
+.Procedure
+. Confirm that you are connected to the cluster:
 +
 [source,bash,role="execute"]
 ----
 oc whoami
 ----
 +
-관리자 계정이 표시되면 정상입니다.
+If the admin account is displayed, you are good to go.
 +
-. 실습 환경이 준비되어 있는지 확인합니다:
+. Confirm that the lab environment is ready:
 +
 [source,bash,subs="+attributes",role="execute"]
 ----
@@ -31,152 +31,152 @@ oc get pod keycloak-0 -n rhbk
 oc get deployment -n {redpay_ns}
 ----
 +
-다음이 보이면 준비가 끝난 것입니다:
+The environment is ready when you see the following:
 +
 [source,text]
 ----
-keycloak-0           # Red Hat build of Keycloak — 모듈 1 (Running)
-payment-api          # 취약 버전 — 모듈 3
-payment-api-secure   # 강화 버전 — 모듈 3
+keycloak-0           # Red Hat build of Keycloak — Module 1 (Running)
+payment-api          # Vulnerable version — Module 3
+payment-api-secure   # Hardened version — Module 3
 ----
 +
-NOTE: 위 항목이 보이지 않거나 `rhbk`, `{redpay_ns}` 네임스페이스가 없다면
-  진행자에게 알려 주십시오. 실습 환경 준비는 진행자가 담당합니다.
+NOTE: If you do not see these items, or the `rhbk` or `{redpay_ns}` namespace does not exist,
+  please let the facilitator know. The facilitator is responsible for preparing the lab environment.
 
-== 워크숍 소개
+== About this workshop
 
-클러스터는 잘 돌아갑니다. 그런데 다음 질문에는 바로 답하기 어렵습니다:
+Your cluster is running fine. But these questions are hard to answer right away:
 
-- 비밀번호 하나만 알면 운영자 계정으로 로그인할 수 있지는 않습니까?
-- 내부망에서 들어온 요청은 **무엇을 근거로** 신뢰합니까?
-- 6개월 전 CI 스캔을 통과한 이미지가, **지금도** 안전합니까?
+- Could someone log in to an operator account knowing nothing but a single password?
+- On **what basis** do you trust requests coming from inside your network?
+- Is the image that passed a CI scan six months ago **still** safe today?
 
-본 워크숍은 하나의 침해사고를 따라가며 이 세 질문에 차례로 답합니다.
-공격이 어떻게 세 단계를 통과했는지 보고, 각 단계를 막는 보안 통제를
-직접 적용해 보게 됩니다.
+This workshop follows a single security breach and answers these three questions in turn.
+You will see how the attack got through three stages, and you will apply the security
+control that stops each stage yourself.
 
-실습은 관찰과 판단 중심입니다. 긴 YAML을 붙여넣을 일은 없습니다.
+The labs focus on observation and judgment. You will not need to paste long YAML files.
 
-=== 워크숍 인터페이스
+=== Workshop interface
 
-본 워크숍은 다음과 같은 영역으로 나뉜 분할 화면 인터페이스로 제공됩니다:
+The workshop is delivered in a split-screen interface:
 
-* **왼쪽 패널** - 가이드 문서 (현재 읽고 있는 화면)
-* **오른쪽 패널** - 클러스터 도구들이 탭 형태로 포함된 작업 영역
-* **크기 조절 드래그 바** - 패널 사이의 경계를 드래그하여 화면 크기를 조절할 수 있습니다.
+* **Left panel** - The lab guide (what you are reading now)
+* **Right panel** - A workspace with cluster tools in tabs
+* **Resize bar** - Drag the border between the panels to resize them.
 
-image::showroom-tabs.png[OCP Console, Terminal, RHACS, ArgoCD, Developer Hub 탭을 보여주는 Showroom 인터페이스, link=self, window=blank]
+image::showroom-tabs.png[Showroom interface showing the OCP Console, Terminal, RHACS, ArgoCD and Developer Hub tabs, link=self, window=blank]
 [cols="1,3"]
 |===
 |Tab |What it is
 
 |**OCP Console**
-|OpenShift 웹 콘솔 - 클러스터 관리, 모니터링 대시보드 및 트러블슈팅을 수행합니다.
+|The OpenShift web console - cluster management, monitoring dashboards and troubleshooting.
 
 |**Terminal**
-|클러스터에 사전 연결된 웹 기반 터미널입니다. 로컬 환경 설정 없이 `oc` 명령어를 직접 실행할 수 있습니다.
+|A web-based terminal pre-connected to the cluster. Run `oc` commands directly without any local setup.
 
 |**RHACS**
-|Red Hat Advanced Cluster Security - 취약점 스캔, 컴플라이언스 및 런타임 보안을 제공합니다.
+|Red Hat Advanced Cluster Security - vulnerability scanning, compliance and runtime security.
 
 |**ArgoCD**
-|OpenShift GitOps - GitOps 원칙을 사용한 지속적 배포(CD)를 지원합니다.
+|OpenShift GitOps - continuous delivery (CD) using GitOps principles.
 
 |**Developer Hub**
-|Red Hat Developer Hub - 소프트웨어 카탈로그와 셀프 서비스 템플릿을 제공하는 개발자 포털입니다.
+|Red Hat Developer Hub - a developer portal with a software catalog and self-service templates.
 |===
 
-NOTE: 이번 세션에서는 **OCP Console**, **Terminal**, **RHACS** 세 개의 탭을 사용합니다.
-모듈 1의 Keycloak 관리 콘솔은 **새 브라우저 탭**에서 엽니다.
-나머지 탭은 다른 트랙에서 쓰이며 이번 실습에는 필요하지 않습니다.
+NOTE: This session uses three tabs: **OCP Console**, **Terminal** and **RHACS**.
+The Keycloak admin console in Module 1 opens in a **new browser tab**.
+The other tabs are used by other tracks and are not needed for this lab.
 
-TIP: 음영 처리된 명령어 블록은 **클릭이 가능**하며, 클릭 시 자동으로 **Terminal (터미널)** 탭으로 전환되어 명령어가 실행됩니다.
+TIP: Shaded command blocks are **clickable**. Clicking one switches to the **Terminal** tab and runs the command automatically.
 
-=== 모듈 구성
+=== Modules
 
-이번 세션은 **하나의 침해사고 시나리오로 이어지는 세 개의 모듈**로 구성됩니다.
-각 모듈이 공격 단계 하나씩을 막습니다. 왼쪽 내비게이션 순서대로 진행하십시오.
+This session consists of **three modules that follow a single breach scenario**.
+Each module stops one stage of the attack. Work through them in the order shown in the left navigation.
 
 [cols="1,2,2",options="header"]
 |===
-| 모듈 | 막는 공격 단계 | 무엇을 하는가
+| Module | Attack stage it stops | What you do
 
-| **인트로 — 침해사고**
+| **Intro — The breach**
 | —
-| 사건의 전말과 3단계 공격 경로를 확인합니다. 워밍업 퀴즈 4문항.
+| Review what happened and the three-stage attack path. Four warm-up quiz questions.
 
-| **모듈 1 — Red Hat build of Keycloak**
-| 1단계: 비밀번호 하나로 뚫린 운영자 계정
-| 이미 켜져 있던 OTP 기능을 **모든 사용자에게 강제**하고, 새 사용자로 QR 코드를 등록해
-  OTP 토큰과 함께 OpenShift에 로그인합니다.
+| **Module 1 — Red Hat build of Keycloak**
+| Stage 1: An operator account breached with a single password
+| **Enforce** the OTP feature that was already available **for every user**, register a QR code
+  as a new user, and log in to OpenShift with an OTP token.
 
-| **모듈 2 — ZTWIM**
-| 2단계: 내부 요청을 무조건 신뢰
-| 워크로드에 발급된 암호학적 신원(SVID)을 확인하고, 비밀번호 없이 연결되는 것과
-  신원 없는 접속이 거부되는 것을 봅니다.
+| **Module 2 — ZTWIM**
+| Stage 2: Unconditional trust of internal requests
+| Inspect the cryptographic identity (SVID) issued to a workload, and see a passwordless connection
+  succeed while a connection without an identity is rejected.
 
-| **모듈 3 — RHACS**
-| 3단계: `latest` 이미지 속 RCE 취약 라이브러리
-| 취약/강화 워크로드를 콘솔에서 비교하고, 정책을 탐지에서 **차단**으로 전환해
-  취약한 배포가 실제로 거부되는 것을 확인합니다.
+| **Module 3 — RHACS**
+| Stage 3: A `latest` image carrying a library with an RCE vulnerability
+| Compare the vulnerable and hardened workloads in the console, switch a policy from detection
+  to **enforcement**, and confirm that the vulnerable deployment is actually rejected.
 |===
 
-== 플랫폼 살펴보기
+== Exploring the platform
 
-image::diagrams/01_platform_architecture.png[OpenShift 플랫폼 아키텍처, align=center, link=self, window=blank]
-클러스터에는 이미 모니터링, 컨테이너 레지스트리, 인그레스 라우팅, 웹 콘솔 등이 기본적으로 내장되어 실행 중입니다. 어떤 것들이 구성되어 있는지 함께 확인해 보겠습니다.
+image::diagrams/01_platform_architecture.png[OpenShift platform architecture, align=center, link=self, window=blank]
+The cluster already comes with monitoring, a container registry, ingress routing, the web console and more built in and running. Let's take a quick look at what is there.
 
-=== 1단계: 어드민 콘솔 접속
+=== Step 1: Open the administrator console
 
-OpenShift 웹 콘솔은 클러스터 전체에 대한 통합된 뷰를 제공합니다.
+The OpenShift web console gives you a unified view of the entire cluster.
 
-image::ocp-console-overview.png[OpenShift Administrator 콘솔 개요, link=self, window=blank]
-콘솔에 접속하는 방법은 두 가지가 있습니다:
+image::ocp-console-overview.png[OpenShift administrator console overview, link=self, window=blank]
+There are two ways to open the console:
 
-* **OCP Console 탭** - 본 워크숍 화면 상단의 **OCP Console** 탭을 클릭하십시오. 콘솔이 워크숍 인터페이스에 직접 내장되어 있어 창을 전환하지 않고도 편리하게 실습을 따라 할 수 있습니다.
-* **별도의 브라우저 탭** - 전체 화면으로 실습하기를 원하신다면, 다음 URL을 클릭하여 새 브라우저 탭에서 콘솔을 열 수 있습니다:
+* **OCP Console tab** - Click the **OCP Console** tab at the top of the workshop. The console is embedded in the workshop interface, so you can follow along without switching windows.
+* **Separate browser tab** - If you prefer working full screen, click the following URL to open the console in a new browser tab:
 {openshift_cluster_console_url}[window=blank]
 
-NOTE: URL을 새 탭에서 열려면 `ctrl + 클릭` 하십시오.
+NOTE: Use `ctrl + click` to open the URL in a new tab.
 
-TIP: 인증 오류가 발생하는 경우 **Try Again (다시 시도)**을 클릭하거나 상단 탭을 새로고침하십시오.
+TIP: If you see an authentication error, click **Try Again** or refresh the tab at the top.
 
-어드민 로그인 자격 증명:
+Administrator login credentials:
 
 [cols="1,1"]
 |===
-| *사용자 이름:* | {openshift_cluster_admin_username}
-| *비밀번호:* | {openshift_cluster_admin_password}
+| *Username:* | {openshift_cluster_admin_username}
+| *Password:* | {openshift_cluster_admin_password}
 |===
 
-=== 2단계: 대시보드 개요
+=== Step 2: Dashboard overview
 
-**Home (홈) → Overview (개요)** 메뉴에서 **Overview (개요)** 대시보드를 확인할 수 있습니다.
+Open the **Overview** dashboard from **Home → Overview**.
 
-image::ocp-dashboard-overview.png[OpenShift Administrator 대시보드 개요, link=self, window=blank]
-**확인해야 할 주요 영역:**
+image::ocp-dashboard-overview.png[OpenShift administrator dashboard overview, link=self, window=blank]
+**Key areas to review:**
 
-1. **Cluster Status (클러스터 상태)** - 전반적인 헬스 상태를 한눈에 볼 수 있습니다.
-2. **Cluster Utilization (클러스터 사용량)** - CPU, 메모리, 스토리지 메트릭을 보여줍니다.
-3. **Cluster Inventory (클러스터 인벤토리)** - 노드 수, Pod 수 등을 표시합니다.
-4. **Activity (활동)** - 최근 이벤트 및 경고(alert)를 확인할 수 있습니다.
+1. **Cluster Status** - Overall health at a glance.
+2. **Cluster Utilization** - CPU, memory and storage metrics.
+3. **Cluster Inventory** - Number of nodes, pods and more.
+4. **Activity** - Recent events and alerts.
 
-이 하나의 대시보드에서 클러스터 상태, 사용량, 인벤토리, 최근 이벤트를 별도의 설정 없이 모두 한눈에 확인할 수 있습니다.
+This single dashboard shows cluster health, utilization, inventory and recent events at a glance, with no extra configuration.
 
-== 다음 단계
+== Next steps
 
-여기까지가 준비 과정입니다. 확인하신 내용을 정리하면 다음과 같습니다.
+That completes the setup. To recap:
 
-* 클러스터 접속과 실습 워크로드가 준비된 것을 확인했습니다
-* 왼쪽은 가이드, 오른쪽은 작업 영역이며 명령어 블록은 클릭하면 터미널에서 실행됩니다
-* 이번 세션은 하나의 침해사고를 따라가는 세 개의 모듈로 이어집니다
-* OpenShift 콘솔 대시보드에서 클러스터 전반을 한눈에 볼 수 있습니다
+* You confirmed cluster access and that the lab workloads are ready
+* The guide is on the left and the workspace on the right; clicking a command block runs it in the terminal
+* This session continues with three modules that follow a single breach
+* The OpenShift console dashboard gives you an overview of the whole cluster
 
 [IMPORTANT]
 ====
-**환경 확인이 되셨으면 시작하겠습니다.**
+**Once your environment checks out, let's begin.**
 
-지금부터 해킹 사고의 재발을 방지하기 위해, **여러분의 클러스터의 보안을 강화하는 여정**이 시작됩니다.
+From here, you start a journey to **strengthen the security of your cluster** so that the breach never happens again.
 ====
 
-준비되셨으면 xref:15-00-security-story.adoc[보안 트랙 시작]으로 이동하십시오.
+When you are ready, move on to xref:15-00-security-story.adoc[Security track start].

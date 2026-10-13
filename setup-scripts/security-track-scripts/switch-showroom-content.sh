@@ -4,7 +4,7 @@
 #
 # RHDP 로 클러스터를 처음 프로비저닝하면 Showroom 은 원본 저장소
 # (rhpds/openshift-days-ops-showroom)를 바라보고 있습니다.
-# 이 스크립트는 Showroom 이 이 한국어 저장소의 ops-sc 브랜치를 보도록 바꾸고,
+# 이 스크립트는 Showroom 이 이 저장소의 ops-sc-en(영어) 브랜치를 보도록 바꾸고,
 # pod 를 다시 띄워 clone → Antora 빌드를 처음부터 다시 수행합니다.
 #
 #   ./switch-showroom-content.sh                 # showroom 네임스페이스 자동 탐색
@@ -14,7 +14,7 @@
 #
 # 환경 변수:
 #   SHOWROOM_REPO_URL  기본값 https://github.com/justone0127/OpenShift_Day_Ops_Korean-demo.git
-#   SHOWROOM_REPO_REF  기본값 ops-sc
+#   SHOWROOM_REPO_REF  기본값 ops-sc-en (한국어 매뉴얼은 SHOWROOM_REPO_REF=ops-sc)
 #
 # 이미 같은 저장소·브랜치를 보고 있으면 설정은 그대로 두고 pod 만 재시작합니다.
 # (매뉴얼을 고쳐 푸시한 뒤 최신 커밋을 반영할 때도 이 스크립트를 다시 실행하면 됩니다.)
@@ -24,7 +24,7 @@
 set -euo pipefail
 
 REPO_URL="${SHOWROOM_REPO_URL:-https://github.com/justone0127/OpenShift_Day_Ops_Korean-demo.git}"
-REPO_REF="${SHOWROOM_REPO_REF:-ops-sc}"
+REPO_REF="${SHOWROOM_REPO_REF:-ops-sc-en}"
 DEPLOY="showroom"
 
 MODE="apply"
@@ -138,4 +138,4 @@ if ! oc rollout status deploy/"${DEPLOY}" -n "${NS}" --timeout=420s; then
 fi
 
 show_status
-log "완료. 브라우저에서 Showroom 을 새로고침하십시오 (왼쪽 목차: 보안 트랙 시작 — RedPay 침해사고 → 모듈 1/2/3)."
+log "완료. 브라우저에서 Showroom 을 새로고침하십시오 (왼쪽 목차: Security Track Start — The RedPay Breach → Module 1/2/3)."

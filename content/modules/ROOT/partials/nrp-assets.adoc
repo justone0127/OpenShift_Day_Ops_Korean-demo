@@ -1,10 +1,10 @@
-// 보안 트랙 전용 스타일 + 인터랙티브 퀴즈.
+// Security track styles + interactive quiz + copy buttons.
 //
-// 보안 트랙 페이지 상단에서 include 하십시오:
+// Include this at the top of each security track page:
 //   include::partial$nrp-assets.adoc[]
 //
-// UI 번들(supplemental-ui)이 아니라 콘텐츠 쪽에 두는 이유는
-// examples/nrp-security.css 파일 상단 주석을 참고하십시오.
+// For why this lives with the content rather than the UI bundle (supplemental-ui),
+// see the comment at the top of examples/nrp-security.css.
 ++++
 <style>
 include::example$nrp-security.css[]

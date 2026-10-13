@@ -1,82 +1,82 @@
-= Red Hat build of Keycloak — 다중 인증(MFA)
+= Red Hat build of Keycloak — Multi-Factor Authentication (MFA)
 :page-toclevels: 1
 
-== 모듈 개요
+== Module overview
 
-**소요 시간:** 15분 +
-**형식:** 핸즈온 실습 (콘솔 + 스마트폰 앱 또는 Chrome 확장 프로그램) +
-**대상 참석자:** Security Engineers, Platform Engineers, IT Operations
+**Duration:** 15 minutes +
+**Format:** Hands-on lab (console + smartphone app or Chrome extension) +
+**Audience:** Security Engineers, Platform Engineers, IT Operations
 
 include::partial$console-access.adoc[]
 
 include::partial$nrp-assets.adoc[]
 
 [IMPORTANT]
-.RedPay 침해사고 — 1단계 공격
+.The RedPay breach — Stage 1
 ====
-새벽에 결제 데이터를 쓸어 간 것은 **정상적으로 로그인한 운영자 계정 `ops-admin`** 이었습니다.
-비밀번호는 다른 곳에서 유출된 그대로였고, 여러분의 Keycloak에는 MFA 기능이 있었지만
-**아무에게도 강제되지 않았습니다.**
+The one that swept up payment data in the middle of the night was **the operator account `ops-admin`, logged in with valid credentials**.
+The password was exactly the one leaked elsewhere. Your Keycloak had MFA available,
+but **it was not enforced for anyone.**
 
-이 모듈에서 여러분이 적용할 첫 번째 보안 통제입니다.
-배경은 xref:15-00-security-story.adoc[보안 트랙 시작] 페이지에 있습니다.
+This is the first security control you will apply in this track.
+For background, see the xref:15-00-security-story.adoc[Security track start] page.
 ====
 
-**Red Hat build of Keycloak (RHBK)** 은 Red Hat이 지원하는 Keycloak 배포판으로,
-OpenID Connect(OIDC)·SAML 기반의 통합 인증(SSO)과 다중 인증(MFA)을 제공합니다.
+**Red Hat build of Keycloak (RHBK)** is the Red Hat-supported distribution of Keycloak.
+It provides single sign-on (SSO) based on OpenID Connect (OIDC) and SAML, as well as multi-factor authentication (MFA).
 
-여러분의 클러스터에는 RHBK가 이미 설치되어 있고, OpenShift의 Identity Provider(`rhbk`)로 연동되어 있습니다.
-RedPay의 상황과 똑같습니다 — **도구는 있습니다. 켜지 않았을 뿐입니다.**
+RHBK is already installed on your cluster and connected to OpenShift as an identity provider (`rhbk`).
+This is exactly RedPay's situation — **the tool is there. It just was never turned on.**
 
-== 학습 목표
+== Learning objectives
 
-이 모듈을 마칠 때쯤 여러분은 다음을 수행할 수 있게 됩니다:
+By the end of this module, you will be able to:
 
-* Keycloak 관리 콘솔에서 *Configure OTP* 설정을 확인하고, 새 사용자에게 OTP 등록을 **강제**합니다
-* OpenShift 로그인 화면에서 `rhbk` 를 선택해 새 사용자를 직접 등록합니다
-* QR 코드를 OTP 앱(또는 Chrome 확장 프로그램)에 등록하고, 토큰 값을 입력해 OpenShift에 로그인합니다
+* Check the *Configure OTP* setting in the Keycloak admin console and **enforce** OTP registration for new users
+* Register a new user yourself by choosing `rhbk` on the OpenShift login page
+* Register the QR code in an OTP app (or Chrome extension) and log in to OpenShift with the token value
 
-== 사전 준비 — OTP 앱
+== Before you begin — OTP app
 
-TOTP(시간 기반 일회용 비밀번호)를 만들어 주는 도구가 하나 필요합니다. 아래 두 방법 중 하나를 고르십시오.
+You need a tool that generates TOTP (time-based one-time passwords). Choose one of the two options below.
 
 [cols="1,2,2",options="header"]
 |===
-| 방법 | 준비할 것 | 이런 경우에
+| Option | What you need | When to use it
 
-| *방법 A — 스마트폰 앱* (권장)
-| 스마트폰에 아래 앱 중 하나 설치 +
+| *Option A — Smartphone app* (recommended)
+| Install one of these apps on your smartphone: +
   · Google Authenticator +
   · Microsoft Authenticator +
-  · FreeOTP (Red Hat이 후원하는 오픈소스 앱)
-| 스마트폰이 있는 경우. 실제 운영 환경과 같은 방식입니다.
+  · FreeOTP (an open source app sponsored by Red Hat)
+| If you have a smartphone. This is how it works in real production environments.
 
-| *방법 B — Chrome 확장 프로그램*
-| Chrome에 *Authenticator* 확장 프로그램 설치 (아래 절차)
-| 스마트폰이 없거나, 앱을 설치할 수 없는 경우
+| *Option B — Chrome extension*
+| Install the *Authenticator* extension in Chrome (see below)
+| If you do not have a smartphone or cannot install apps on it
 |===
 
-이미 쓰고 있는 OTP 앱이 있다면 그대로 사용하셔도 됩니다.
+If you already use an OTP app, feel free to use it.
 
-=== 방법 B를 쓸 경우 — Chrome 확장 프로그램 설치
+=== If you choose Option B — Install the Chrome extension
 
-.실습 절차
-. Chrome에서 Chrome 웹 스토어의 link:https://chrome.google.com/webstore/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai[Authenticator, window=blank] 페이지를 엽니다.
-  (제작: authenticator.cc · 홈페이지 link:https://authenticator.cc[authenticator.cc, window=blank])
-. *Chrome에 추가* → *확장 프로그램 추가* 를 클릭합니다.
-. 주소창 오른쪽의 퍼즐 모양 아이콘(*확장 프로그램*)을 클릭하고, *Authenticator* 옆의 핀 아이콘을 눌러 **도구 모음에 고정**합니다.
-  4단계에서 이 아이콘을 바로 눌러야 하므로 꼭 고정해 두십시오.
+.Procedure
+. In Chrome, open the link:https://chrome.google.com/webstore/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai[Authenticator, window=blank] page in the Chrome Web Store.
+  (Publisher: authenticator.cc · Website: link:https://authenticator.cc[authenticator.cc, window=blank])
+. Click *Add to Chrome* → *Add extension*.
+. Click the puzzle-piece icon (*Extensions*) to the right of the address bar, then click the pin icon next to *Authenticator* to **pin it to the toolbar**.
+  You will need to click this icon in Step 4, so make sure it is pinned.
 
 [NOTE]
 ====
-확장 프로그램은 OTP 비밀 키를 **브라우저 안에** 보관합니다. 비밀번호와 같은 기기에 두 번째 인증 수단이 있는 셈이라,
-실제 운영 환경에서는 별도 기기(스마트폰)의 앱을 쓰는 것이 더 안전합니다. 이 실습에서는 동작 원리를 확인하는 용도로 충분합니다.
+The extension stores the OTP secret key **inside the browser**. That puts the second factor on the same device as the password,
+so in real production environments an app on a separate device (a smartphone) is safer. For this lab, it is perfectly fine for seeing how it works.
 ====
 
-== 1단계 — Keycloak 관리 콘솔 접속
+== Step 1 — Open the Keycloak admin console
 
-.실습 절차
-. 터미널에서 Keycloak 관리 콘솔 주소와 관리자 계정을 확인합니다:
+.Procedure
+. In the terminal, get the Keycloak admin console URL and admin credentials:
 +
 [source,bash,role="execute"]
 ----
@@ -85,271 +85,271 @@ echo "Username:     $(oc get secret keycloak-initial-admin -n rhbk -o jsonpath='
 echo "Password:     $(oc get secret keycloak-initial-admin -n rhbk -o jsonpath='{.data.password}' | base64 -d)"
 ----
 +
-. 출력된 URL을 **새 브라우저 탭**에서 열고, 위의 Username / Password로 로그인합니다.
-. 왼쪽 사이드바 맨 위의 *Current realm* 이 **`redpay`** 인지 확인합니다.
-  다른 realm(`master`)이 보이면 *Manage realms* 를 눌러 `redpay` 를 선택하십시오.
+. Open the URL in a **new browser tab** and log in with the Username / Password above.
+. Make sure the *Current realm* at the top of the left sidebar is **`redpay`**.
+  If you see a different realm (`master`), click *Manage realms* and select `redpay`.
 +
 [IMPORTANT]
 ====
-반드시 `redpay` realm에서 작업하십시오. `master` realm은 Keycloak 자체를 관리하는 realm이라,
-여기서 설정을 바꿔도 RedPay 사용자에게는 아무 효과가 없습니다.
+Always work in the `redpay` realm. The `master` realm is for managing Keycloak itself,
+so changing settings there has no effect on RedPay users.
 ====
 
-== 2단계 — OTP 등록을 모든 사용자에게 강제
+== Step 2 — Enforce OTP registration for every user
 
-Keycloak에서 OTP 등록은 **Required action**(사용자가 로그인 과정에서 반드시 거쳐야 하는 작업)으로 동작합니다.
+In Keycloak, OTP registration works as a **Required action** (something the user must complete during login).
 
-.실습 절차
-. 왼쪽 메뉴에서 *Authentication* 을 클릭합니다.
-. 상단의 *Required actions* 탭을 클릭합니다.
-. *Configure OTP* 행(아래 그림의 빨간 상자)을 찾습니다. 지금은 다음과 같은 상태입니다:
+.Procedure
+. Click *Authentication* in the left menu.
+. Click the *Required actions* tab at the top.
+. Find the *Configure OTP* row (the red box in the image below). It is currently in this state:
 +
-image::rhbk-mfa-required-actions.png[RedPay realm 의 Authentication → Required actions 탭 — 빨간 상자로 표시한 Configure OTP 행. Enabled On, Set as default action Off 상태, link=self, window=blank, width=100%]
+image::rhbk-mfa-required-actions.png[Authentication → Required actions tab of the RedPay realm — the Configure OTP row in a red box. Enabled On, Set as default action Off, link=self, window=blank, width=100%]
 +
 [cols="1,1,3",options="header"]
 |===
-| 항목 | 현재 상태 | 의미
+| Setting | Current state | Meaning
 
 | *Enabled*
 | On
-| 이 realm에서 OTP 등록 기능을 **쓸 수 있습니다**.
+| OTP registration **is available** in this realm.
 
 | *Set as default action*
 | **Off**
-| 새로 만들어지는 사용자에게 OTP 등록을 **요구하지 않습니다**.
+| Newly created users are **not required** to register OTP.
 |===
 +
-. *Configure OTP* 행의 *Enabled* 가 **On** 인지 확인합니다. Off라면 먼저 On으로 켭니다.
-. 같은 행의 *Set as default action* 토글을 **On** 으로 켭니다.
-  화면 위쪽에 `Updated required action successfully` 메시지가 잠깐 표시됩니다.
+. Confirm that *Enabled* is **On** in the *Configure OTP* row. If it is Off, turn it On first.
+. Turn the *Set as default action* toggle in the same row **On**.
+  The message `Updated required action successfully` briefly appears at the top of the screen.
 +
-image::rhbk-mfa-default-action-on.png[Configure OTP 행의 Set as default action 토글을 On 으로 켠 화면 — 빨간 상자로 표시, link=self, window=blank, width=100%]
+image::rhbk-mfa-default-action-on.png[The Set as default action toggle in the Configure OTP row turned On — shown in a red box, link=self, window=blank, width=100%]
 +
-*Enabled* 와 *Set as default action* 이 모두 **On** 이면 완료입니다.
+You are done when both *Enabled* and *Set as default action* are **On**.
 
 [NOTE]
 ====
-*Enabled* 만 켜져 있는 상태는 "OTP를 등록할 **수 있는**" 상태일 뿐입니다.
-RedPay가 바로 이 상태였습니다 — 기능은 있었지만, 등록한 사람은 아무도 없었습니다.
+With only *Enabled* turned on, users **can** register OTP — nothing more.
+That is exactly where RedPay was: the feature existed, but nobody had registered.
 
-*Set as default action* 까지 켜야 "OTP를 등록하지 않으면 로그인할 **수 없는**" 상태가 됩니다.
-한 번 OTP를 등록한 사용자는 이후 모든 로그인에서 비밀번호와 함께 OTP를 요구받습니다.
+Only when *Set as default action* is on as well do users **have to** register OTP before they can log in.
+Once a user has registered OTP, every subsequent login asks for the OTP along with the password.
 ====
 
 ++++
 <div class="nrp-quiz" data-answer="B">
-  <div class="nrp-quiz-q">🧠 퀴즈 1. <em>Configure OTP</em> 의 <em>Enabled</em> 는 On인데 <em>Set as default action</em> 은 Off인 상태라면, 새로 가입한 사용자는 어떻게 됩니까?</div>
+  <div class="nrp-quiz-q">🧠 Quiz 1. If <em>Configure OTP</em> has <em>Enabled</em> On but <em>Set as default action</em> Off, what happens to a newly registered user?</div>
 
-  <label class="nrp-opt"><input type="radio" name="nrp-kc1" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">첫 로그인 때 OTP 등록 화면이 반드시 나타난다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-kc1" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">비밀번호만으로 로그인할 수 있고, 본인이 원할 때만 OTP를 등록한다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-kc1" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">OTP를 등록하기 전까지 로그인이 차단된다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-kc1" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">관리자가 승인해야만 로그인할 수 있다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-kc1" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">The OTP registration screen always appears on first login</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-kc1" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">They can log in with just a password, and register OTP only if they choose to</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-kc1" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">Login is blocked until they register OTP</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-kc1" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">They can only log in after an administrator approves them</span></label>
 
-  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <button type="button" class="nrp-quiz-check">Check answer</button>
   <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
   <div class="nrp-quiz-exp">
-    <p><strong>정답: (B)</strong></p>
-    <p><em>Enabled</em> 는 "이 기능을 쓸 수 있다"는 뜻입니다. 사용자가 계정 설정에서 직접 OTP를 추가하거나, 관리자가 특정 사용자에게 개별로 OTP 등록을 요구할 수 있게 됩니다.</p>
-    <p>하지만 <strong>강제하지 않으면 대부분은 등록하지 않습니다.</strong> 불편하니까요. RedPay의 <code>ops-admin</code> 이 바로 그런 계정이었습니다.</p>
-    <p><em>Set as default action</em> 을 켜면 새 사용자 모두에게 OTP 등록이 <strong>기본으로 요구</strong>됩니다. "보안 기능을 가지고 있는 것"과 "보안 기능을 적용한 것"의 차이입니다.</p>
+    <p><strong>Answer: (B)</strong></p>
+    <p><em>Enabled</em> means "this feature can be used". Users can add OTP themselves in their account settings, or an administrator can require OTP registration for individual users.</p>
+    <p>But <strong>if it is not enforced, most people never register.</strong> It is inconvenient. RedPay's <code>ops-admin</code> was exactly that kind of account.</p>
+    <p>Turning on <em>Set as default action</em> makes OTP registration <strong>required by default</strong> for every new user. That is the difference between "having a security feature" and "applying it".</p>
   </div>
 </div>
 ++++
 
-== 3단계 — OpenShift 로그인 화면에서 새 사용자 등록
+== Step 3 — Register a new user from the OpenShift login page
 
-이제 RedPay에 새로 합류한 운영자가 되어 OpenShift에 처음 로그인해 봅니다.
+Now, as an operator who just joined RedPay, you will log in to OpenShift for the first time.
 
-.실습 절차
-. **OCP Console** 탭에서 오른쪽 위의 사용자 이름을 클릭하고 *Log out* 을 선택합니다.
-. 로그인 화면에 Identity Provider 목록이 나타납니다. 지금까지 쓰던 `htpasswd` 가 아니라 **`rhbk`** 를 클릭합니다.
+.Procedure
+. In the **OCP Console** tab, click your user name in the top-right corner and select *Log out*.
+. The login page shows a list of identity providers. Instead of `htpasswd`, which you have been using, click **`rhbk`**.
 +
-image::rhbk-mfa-login-select-rhbk.png[OpenShift 로그인 화면 — htpasswd 와 rhbk 중 rhbk 를 빨간 상자로 표시, link=self, window=blank, width=70%]
+image::rhbk-mfa-login-select-rhbk.png[OpenShift login page — of htpasswd and rhbk, rhbk is shown in a red box, link=self, window=blank, width=70%]
 +
-`rhbk` 는 Keycloak의 `redpay` realm으로 인증을 넘기는 Identity Provider입니다.
-여기서 로그인하면 OpenShift가 아니라 **Keycloak이 사용자를 확인**하고, 그 결과를 OpenShift에 알려 줍니다.
+`rhbk` is an identity provider that hands authentication over to the `redpay` realm in Keycloak.
+When you log in here, **Keycloak verifies the user** instead of OpenShift, and then tells OpenShift the result.
 +
-TIP: 목록 없이 이전 세션으로 바로 로그인된다면, OCP Console 탭 옆의 **새로 고침 버튼**(원형 화살표)을 클릭하십시오.
+TIP: If you are logged straight back in with your previous session without seeing the list, click the **refresh button** (circular arrow) next to the OCP Console tab.
 +
-. **REDPAY** 로그인 화면(OpenShift console)으로 이동합니다. 아직 계정이 없으므로 로그인 폼 아래의 *New user?* **Register** 링크를 클릭합니다.
+. You are taken to the **REDPAY** login page (OpenShift console). You do not have an account yet, so click the **Register** link under *New user?* below the login form.
 +
-image::rhbk-mfa-register-link.png[REDPAY 로그인 화면 — 아래쪽 New user? Register 링크를 빨간 상자로 표시, link=self, window=blank, width=60%]
+image::rhbk-mfa-register-link.png[REDPAY login page — the New user? Register link at the bottom in a red box, link=self, window=blank, width=60%]
 +
-. 사용자 정보를 입력합니다. **모든 항목을 채워야 합니다.**
-  각 값 오른쪽의 **복사** 버튼을 누른 뒤, Register 화면의 같은 항목에 붙여 넣으십시오.
+. Enter the user details. **All fields are required.**
+  Click the **Copy** button to the right of each value, then paste it into the same field on the Register page.
 +
 ++++
 <div class="nrp-copy-list">
-  <div class="nrp-copy-row"><span class="nrp-copy-label">Username</span><code class="nrp-copy-value">redpay-ops</code><button type="button" class="nrp-copy-btn" data-copy="redpay-ops" aria-label="Username 값 복사">복사</button></div>
-  <div class="nrp-copy-row"><span class="nrp-copy-label">Password</span><code class="nrp-copy-value">RedPay2026!</code><button type="button" class="nrp-copy-btn" data-copy="RedPay2026!" aria-label="Password 값 복사">복사</button></div>
-  <div class="nrp-copy-row"><span class="nrp-copy-label">Confirm password</span><code class="nrp-copy-value">RedPay2026!</code><button type="button" class="nrp-copy-btn" data-copy="RedPay2026!" aria-label="Confirm password 값 복사">복사</button></div>
-  <div class="nrp-copy-row"><span class="nrp-copy-label">Email</span><code class="nrp-copy-value">redpay-ops@example.com</code><button type="button" class="nrp-copy-btn" data-copy="redpay-ops@example.com" aria-label="Email 값 복사">복사</button></div>
-  <div class="nrp-copy-row"><span class="nrp-copy-label">First name</span><code class="nrp-copy-value">RedPay</code><button type="button" class="nrp-copy-btn" data-copy="RedPay" aria-label="First name 값 복사">복사</button></div>
-  <div class="nrp-copy-row"><span class="nrp-copy-label">Last name</span><code class="nrp-copy-value">Operator</code><button type="button" class="nrp-copy-btn" data-copy="Operator" aria-label="Last name 값 복사">복사</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Username</span><code class="nrp-copy-value">redpay-ops</code><button type="button" class="nrp-copy-btn" data-copy="redpay-ops" aria-label="Copy Username value">Copy</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Password</span><code class="nrp-copy-value">RedPay2026!</code><button type="button" class="nrp-copy-btn" data-copy="RedPay2026!" aria-label="Copy Password value">Copy</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Confirm password</span><code class="nrp-copy-value">RedPay2026!</code><button type="button" class="nrp-copy-btn" data-copy="RedPay2026!" aria-label="Copy Confirm password value">Copy</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Email</span><code class="nrp-copy-value">redpay-ops@example.com</code><button type="button" class="nrp-copy-btn" data-copy="redpay-ops@example.com" aria-label="Copy Email value">Copy</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">First name</span><code class="nrp-copy-value">RedPay</code><button type="button" class="nrp-copy-btn" data-copy="RedPay" aria-label="Copy First name value">Copy</button></div>
+  <div class="nrp-copy-row"><span class="nrp-copy-label">Last name</span><code class="nrp-copy-value">Operator</code><button type="button" class="nrp-copy-btn" data-copy="Operator" aria-label="Copy Last name value">Copy</button></div>
 </div>
 ++++
 +
-. 아래 화면처럼 모든 항목을 입력한 뒤 *Register* 를 클릭합니다.
+. Once every field is filled in as shown below, click *Register*.
 +
-image::rhbk-mfa-register-form.png[Register 화면 — 예시 값(redpay-ops, redpay-ops@example.com, RedPay, Operator)을 입력하고 Register 버튼을 누르는 화면, link=self, window=blank, width=50%]
+image::rhbk-mfa-register-form.png[Register page — filled in with the example values (redpay-ops, redpay-ops@example.com, RedPay, Operator) before clicking the Register button, link=self, window=blank, width=50%]
 
-== 4단계 — QR 코드로 OTP 등록
+== Step 4 — Register OTP with the QR code
 
-*Register* 를 눌러도 곧바로 로그인되지 않고 **Mobile Authenticator Setup** 화면이 나타납니다.
-2단계에서 켠 *Set as default action* 이 동작한 것입니다.
+Clicking *Register* does not log you in right away. Instead, the **Mobile Authenticator Setup** page appears.
+This is the *Set as default action* you turned on in Step 2 at work.
 
-화면에는 **QR 코드**와 함께 *One-time code*, *Device Name* 입력 칸이 있습니다.
+The page shows a **QR code** along with *One-time code* and *Device Name* fields.
 
-image::rhbk-mfa-otp-setup.png[Mobile Authenticator Setup 화면 — QR 코드를 스캔한 뒤 One-time code 와 Device Name 을 입력하고 Submit (예시 이미지의 QR 코드는 가림), link=self, window=blank, width=50%]
+image::rhbk-mfa-otp-setup.png[Mobile Authenticator Setup page — scan the QR code, then enter the One-time code and Device Name and click Submit (the QR code in the example image is masked), link=self, window=blank, width=50%]
 
-NOTE: 위 그림의 QR 코드는 예시라 일부러 가려 두었습니다. 여러분 화면에 표시되는 QR 코드를 스캔하십시오.
-QR 코드에는 이 계정의 OTP 비밀 키가 들어 있으므로, 실제 환경에서는 다른 사람에게 보여 주거나 캡처해 공유하지 마십시오.
+NOTE: The QR code in the image above is an example and has been masked on purpose. Scan the QR code shown on your own screen.
+The QR code contains this account's OTP secret key, so in real environments never show it to anyone or share a screenshot of it.
 
-사전 준비에서 고른 방법에 따라 아래 A 또는 B 중 하나만 진행하십시오.
+Follow either Option A or Option B below, depending on what you chose in "Before you begin".
 
-=== 방법 A — 스마트폰 앱으로 등록
+=== Option A — Register with a smartphone app
 
-.실습 절차
-. 스마트폰에서 OTP 앱을 열고 계정을 추가합니다.
+.Procedure
+. Open the OTP app on your smartphone and add an account.
 +
 [cols="1,3",options="header"]
 |===
-| 앱 | 메뉴
+| App | Menu
 
 | Google Authenticator
-| 오른쪽 아래 *+* → *QR 코드 스캔*
+| *+* at the bottom right → *Scan a QR code*
 
 | Microsoft Authenticator
-| 오른쪽 위 *+* → *기타 계정(Google, Facebook 등)* → QR 코드 스캔
+| *+* at the top right → *Other account (Google, Facebook, etc.)* → scan the QR code
 
 | FreeOTP
-| 위쪽 QR 코드 아이콘
+| The QR code icon at the top
 |===
 +
-// 스마트폰 캡처 자리 — 파일을 content/modules/ROOT/images/ 에 넣고 아래 주석을 해제하십시오.
-// image::rhbk-mfa-phone-01-add.png[OTP 앱에서 계정 추가 → QR 코드 스캔을 선택하는 화면, width=280]
+// Placeholder for a smartphone screenshot — put the file in content/modules/ROOT/images/ and uncomment the line below.
+// image::rhbk-mfa-phone-01-add.png[Adding an account in the OTP app → choosing Scan a QR code, width=280]
 +
-. 카메라로 컴퓨터 화면의 **QR 코드**를 스캔합니다.
+. Point the camera at the **QR code** on your computer screen.
 +
-앱에 `RedPay: <사용자 이름>` 항목과 함께 **6자리 숫자**가 나타납니다. 이 숫자는 30초마다 바뀝니다.
+The app shows a `RedPay: <user name>` entry together with a **6-digit number**. The number changes every 30 seconds.
 +
-image::rhbk-mfa-phone-02-code.png[Google Authenticator 앱에 RedPay: redpay-ops 항목과 6자리 숫자가 표시된 화면, link=self, window=blank, width=60%]
+image::rhbk-mfa-phone-02-code.png[Google Authenticator showing the RedPay: redpay-ops entry and a 6-digit number, link=self, window=blank, width=60%]
 +
-TIP: 카메라로 스캔이 잘 되지 않으면 화면의 *Unable to scan?* 을 클릭하십시오. 앱에서 *설정 키 입력* (Google) 또는 *코드를 수동으로 입력* 을 골라 표시된 키 문자열을 입력하면 됩니다.
+TIP: If the camera cannot scan the code, click *Unable to scan?* on the page. In the app, choose *Enter a setup key* (Google) or *Enter code manually* and type in the key string that is displayed.
 
-=== 방법 B — Chrome 확장 프로그램으로 등록
+=== Option B — Register with the Chrome extension
 
-.실습 절차
-. QR 코드가 보이는 상태에서, 도구 모음의 *Authenticator* 아이콘을 클릭합니다.
-. 확장 프로그램 창 **오른쪽 위의 스캔 아이콘**(네모 안의 QR 모양)을 클릭합니다.
-. 화면이 어두워지면 마우스로 **QR 코드 전체를 덮도록 사각형을 드래그**합니다.
-. 확장 프로그램 창에 `RedPay` 항목과 **6자리 숫자**가 나타납니다. 오른쪽 아래 원은 숫자가 바뀌기까지 남은 시간입니다.
-. 숫자를 클릭하면 클립보드에 복사됩니다.
+.Procedure
+. With the QR code visible, click the *Authenticator* icon in the toolbar.
+. Click the **scan icon** (a QR shape inside a square) **at the top right** of the extension window.
+. When the screen dims, **drag a rectangle that fully covers the QR code**.
+. The extension window shows a `RedPay` entry with a **6-digit number**. The circle at the bottom right shows the time left before the number changes.
+. Click the number to copy it to the clipboard.
 +
 [TIP]
 ====
-스캔이 실패하면(예: Showroom 화면 안의 작은 탭이라 QR 코드가 잘리는 경우) 직접 입력하십시오.
+If scanning fails (for example, the QR code is cut off because the tab inside Showroom is small), enter it manually.
 
-. Keycloak 화면에서 *Unable to scan?* 을 클릭해 키 문자열을 복사합니다.
-. *Authenticator* 창 오른쪽 위의 **연필 아이콘** → **+** → *Manual Entry* 를 선택합니다.
-. *Issuer* 에 `RedPay`, *Secret* 에 복사한 키 문자열을 붙여 넣고 *Ok* 를 클릭합니다.
+. On the Keycloak page, click *Unable to scan?* and copy the key string.
+. In the *Authenticator* window, click the **pencil icon** at the top right → **+** → *Manual Entry*.
+. Enter `RedPay` for *Issuer*, paste the copied key string into *Secret*, and click *Ok*.
 
-또는 OCP Console을 **새 브라우저 탭**으로 열어 QR 코드를 크게 띄운 뒤 다시 스캔해 보십시오.
+Alternatively, open the OCP Console in a **new browser tab** so the QR code is larger, and try scanning again.
 ====
 
-=== 코드 입력 (A·B 공통)
+=== Enter the code (Options A and B)
 
-.실습 절차
-. 앱(또는 확장 프로그램)에 표시된 6자리 숫자를 *One-time code* 칸에 입력합니다.
-. *Device Name* 에 기기를 구분할 이름을 입력합니다(예: `my-phone`, `chrome`). 선택 사항입니다.
-. *Submit* 을 클릭합니다.
+.Procedure
+. Enter the 6-digit number shown in the app (or extension) in the *One-time code* field.
+. Enter a name to identify the device in *Device Name* (for example, `my-phone` or `chrome`). This is optional.
+. Click *Submit*.
 +
 [NOTE]
 ====
-`Invalid authenticator code` 오류가 나오면 숫자가 바뀐 직후의 **새 값**을 입력해 다시 시도하십시오.
-계속 실패한다면 스마트폰(또는 PC)의 시간 설정이 **자동**으로 되어 있는지 확인하십시오. TOTP는 시각을 기준으로 계산됩니다.
+If you see an `Invalid authenticator code` error, wait for the number to change and enter the **new value**.
+If it keeps failing, make sure the time on your smartphone (or PC) is set **automatically**. TOTP is computed from the current time.
 ====
 +
-. OpenShift 콘솔로 돌아오고, 오른쪽 위에 방금 등록한 사용자 이름이 표시됩니다.
+. You are returned to the OpenShift console, and the user name you just registered is shown at the top right.
 +
-image::rhbk-mfa-login-success.png[OTP 입력 후 OpenShift 콘솔에 로그인된 화면 — 오른쪽 위에 RedPay Operator 사용자 이름이 표시됨, link=self, window=blank, width=100%]
+image::rhbk-mfa-login-success.png[OpenShift console after entering the OTP — the user name RedPay Operator is shown at the top right, link=self, window=blank, width=100%]
 +
-비밀번호와 OTP 6자리를 모두 통과해 **`rhbk`(Keycloak) 계정으로 OpenShift에 로그인**한 것입니다.
+You passed both the password and the 6-digit OTP and **logged in to OpenShift with an `rhbk` (Keycloak) account**.
 
 [NOTE]
 ====
-새로 등록한 사용자에게는 아직 아무 프로젝트 권한도 없으므로 콘솔이 비어 있는 것이 정상입니다.
-이 모듈은 **"누가 로그인할 수 있는가"** 를 통제합니다. 권한(RBAC) 부여는 그다음 단계의 일입니다.
+The newly registered user does not have any project permissions yet, so an empty console is expected.
+This module controls **"who can log in"**. Granting permissions (RBAC) is a separate step.
 ====
 
 ++++
 <div class="nrp-quiz" data-answer="B">
-  <div class="nrp-quiz-q">🧠 퀴즈 2. 공격자가 피싱 사이트로 사용자의 비밀번호와 <strong>그 순간의 OTP 6자리</strong>를 함께 가로챘습니다. 다음 중 <strong>맞는</strong> 설명은?</div>
+  <div class="nrp-quiz-q">🧠 Quiz 2. Using a phishing site, an attacker captured both a user's password and <strong>the 6-digit OTP at that moment</strong>. Which statement is <strong>correct</strong>?</div>
 
-  <label class="nrp-opt"><input type="radio" name="nrp-kc2" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">OTP는 한 번 쓰면 끝이므로 어떤 경우에도 안전하다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-kc2" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">가로챈 OTP는 30초 안팎의 짧은 시간에만 유효하므로, 그 안에 실시간으로 악용하지 않으면 쓸모가 없다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-kc2" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">비밀번호와 OTP를 모두 가로챘으므로 공격자는 앞으로 언제든 로그인할 수 있다</span></label>
-  <label class="nrp-opt"><input type="radio" name="nrp-kc2" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">OTP 앱의 QR 코드도 함께 유출된 것이다</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-kc2" value="A"><span class="nrp-opt-key">A</span><span class="nrp-opt-text">An OTP can only be used once, so the account is safe no matter what</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-kc2" value="B"><span class="nrp-opt-key">B</span><span class="nrp-opt-text">The captured OTP is only valid for about 30 seconds, so it is useless unless abused in real time within that window</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-kc2" value="C"><span class="nrp-opt-key">C</span><span class="nrp-opt-text">With both the password and an OTP, the attacker can log in any time from now on</span></label>
+  <label class="nrp-opt"><input type="radio" name="nrp-kc2" value="D"><span class="nrp-opt-key">D</span><span class="nrp-opt-text">The OTP app's QR code was leaked as well</span></label>
 
-  <button type="button" class="nrp-quiz-check">정답 확인</button>
+  <button type="button" class="nrp-quiz-check">Check answer</button>
   <div class="nrp-quiz-result" role="status" aria-live="polite"></div>
   <div class="nrp-quiz-exp">
-    <p><strong>정답: (B)</strong></p>
-    <p>TOTP 값은 짧은 시간 동안만 유효하고, 한 번 쓴 값은 다시 쓸 수 없습니다. 그래서 공격자는 <strong>그 30초 안에 실시간으로</strong> 로그인해야 하고, 다음 로그인에는 또 새 숫자가 필요합니다. (C)처럼 "앞으로 언제든"은 불가능합니다. 다음 숫자를 만들 비밀 키는 사용자의 스마트폰에만 있으니까요.</p>
-    <p>그렇다고 (A)처럼 "어떤 경우에도 안전"한 것은 아닙니다. 실시간 중계형 피싱(AitM)은 바로 그 짧은 시간을 노립니다. 그래서 더 높은 보안이 필요한 계정에는 피싱에 강한 인증(WebAuthn / Passkey)을 함께 검토합니다. RHBK는 같은 <em>Required actions</em> 화면에서 <em>Webauthn Register</em> 같은 방식도 지원합니다.</p>
-    <p>MFA가 만능은 아니지만, <strong>유출된 비밀번호만으로 들어오는 공격</strong> — RedPay 사고의 1단계 — 는 확실히 막습니다.</p>
+    <p><strong>Answer: (B)</strong></p>
+    <p>A TOTP value is valid only for a short time, and a value that has been used cannot be used again. So the attacker has to log in <strong>in real time, within those 30 seconds</strong>, and needs yet another new number for the next login. "Any time from now on", as in (C), is impossible — the secret key that produces the next number exists only on the user's phone.</p>
+    <p>That does not make it "safe no matter what", as in (A). Real-time relay phishing (AitM) targets exactly that short window. That is why accounts that need stronger protection should also consider phishing-resistant authentication (WebAuthn / Passkey). RHBK supports options such as <em>Webauthn Register</em> on the same <em>Required actions</em> page.</p>
+    <p>MFA is not a silver bullet, but it reliably stops <strong>attacks that get in with nothing but a leaked password</strong> — Stage 1 of the RedPay breach.</p>
   </div>
 </div>
 ++++
 
-== 5단계 — 관리 콘솔에서 결과 확인 (선택)
+== Step 5 — Check the result in the admin console (optional)
 
-.실습 절차
-. Keycloak 관리 콘솔(`redpay` realm)에서 왼쪽 메뉴의 *Users* 를 클릭합니다.
-. 3단계에서 만든 사용자를 클릭하고 *Credentials* 탭을 엽니다.
-. `password` 와 함께 **`otp`** 자격 증명이 등록되어 있는지 확인합니다. *Device Name* 에 입력한 이름도 보입니다.
+.Procedure
+. In the Keycloak admin console (`redpay` realm), click *Users* in the left menu.
+. Click the user you created in Step 3 and open the *Credentials* tab.
+. Confirm that an **`otp`** credential is registered alongside `password`. The name you entered in *Device Name* is shown as well.
 +
-TIP: 사용자가 스마트폰을 잃어버렸다면 관리자는 이 화면에서 `otp` 자격 증명을 **삭제**하면 됩니다. 사용자는 다음 로그인 때 새 기기로 OTP를 다시 등록합니다.
+TIP: If a user loses their phone, an administrator can simply **delete** the `otp` credential on this page. The user registers OTP again with a new device at the next login.
 
-== 관리자 계정으로 돌아가기
+== Return to the administrator account
 
-다음 모듈부터는 클러스터 관리자 권한이 필요합니다.
+The next modules require cluster-admin privileges.
 
-.실습 절차
-. **OCP Console** 탭에서 *Log out* 한 뒤, 관리자 계정의 Identity Provider(예: `htpasswd`)를 선택해 아래 자격 증명으로 로그인합니다.
+.Procedure
+. In the **OCP Console** tab, *Log out*, then choose the identity provider of the administrator account (for example, `htpasswd`) and log in with the credentials below.
 +
 [cols="1,1"]
 |===
-| *사용자 이름:* | {openshift_cluster_admin_username}
-| *비밀번호:* | {openshift_cluster_admin_password}
+| *Username:* | {openshift_cluster_admin_username}
+| *Password:* | {openshift_cluster_admin_password}
 |===
 +
-. 터미널은 처음부터 관리자로 연결되어 있습니다. 확인만 해 둡니다:
+. The terminal has been connected as the administrator from the start. Just confirm it:
 +
 [source,bash,role="execute"]
 ----
 oc whoami
 ----
 
-== 학습 내용 요약
+== Summary
 
-* **비밀번호는 "아는 것" 하나뿐입니다.** 아무리 복잡해도 유출되면 공격자와 사용자를 구별할 수 없습니다.
-* **MFA는 서로 다른 종류의 증거를 요구합니다.** 비밀번호(아는 것) + OTP 앱(가진 것).
-* *Configure OTP* 의 **Enabled** 는 "쓸 수 있다", **Set as default action** 은 "반드시 쓴다"입니다. 기능을 갖고 있는 것과 적용한 것은 다릅니다.
-* TOTP는 QR 코드로 한 번 공유한 비밀 키와 현재 시각으로 계산되며, 30초마다 바뀝니다.
-* OpenShift는 OIDC로 Keycloak에 인증을 맡기므로, **Keycloak에서 켠 MFA가 OpenShift 로그인에 그대로 적용**됩니다. OpenShift 쪽에서 따로 바꿀 설정은 없습니다.
+* **A password is only "something you know".** No matter how complex, once it leaks there is no way to tell the attacker from the user.
+* **MFA requires different kinds of evidence.** A password (something you know) + an OTP app (something you have).
+* For *Configure OTP*, **Enabled** means "can use" and **Set as default action** means "must use". Having a feature is not the same as applying it.
+* TOTP is computed from a secret key shared once via QR code and the current time, and changes every 30 seconds.
+* OpenShift delegates authentication to Keycloak over OIDC, so **MFA turned on in Keycloak applies directly to OpenShift logins**. Nothing needs to change on the OpenShift side.
 
-== 다음 단계
+== Next steps
 
-1단계 공격은 막았습니다. 이제 유출된 비밀번호만으로는 운영자 계정에 들어올 수 없습니다.
+You have stopped Stage 1 of the attack. A leaked password alone can no longer get anyone into an operator account.
 
-하지만 RedPay 사고에서 피해를 회원 DB까지 넓힌 것은 **"내부에서 온 요청이면 믿는다"** 는 가정이었습니다.
-공격자가 다른 경로로 한 번이라도 내부에 들어오면, 그 가정은 또다시 무너집니다.
+But what spread the damage in the RedPay breach all the way to the customer DB was the assumption **"if the request comes from inside, trust it"**.
+The moment an attacker gets inside by any other route, that assumption falls apart again.
 
-xref:16-ztwim.adoc[다음 모듈]에서 2단계 공격 — 내부 요청을 무조건 신뢰한 문제 — 을 다룹니다.
+The xref:16-ztwim.adoc[next module] covers Stage 2 of the attack — unconditional trust of internal requests.
 
-=== 추가 리소스
+=== Additional resources
 
 * **Red Hat build of Keycloak:** link:https://docs.redhat.com/en/documentation/red_hat_build_of_keycloak/[RHBK Documentation, window=blank]
-* **OTP 정책과 Required actions:** link:https://docs.redhat.com/en/documentation/red_hat_build_of_keycloak/26.0/html/server_administration_guide/index[Server Administration Guide, window=blank]
-* **OpenShift OIDC Identity Provider:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/configuring-oidc-identity-provider[Configuring an OpenID Connect identity provider, window=blank]
+* **OTP policies and Required actions:** link:https://docs.redhat.com/en/documentation/red_hat_build_of_keycloak/26.0/html/server_administration_guide/index[Server Administration Guide, window=blank]
+* **OpenShift OIDC identity provider:** link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/authentication_and_authorization/configuring-oidc-identity-provider[Configuring an OpenID Connect identity provider, window=blank]

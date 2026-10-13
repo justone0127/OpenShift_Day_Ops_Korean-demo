@@ -1,21 +1,21 @@
 /*
- * 보안 트랙 "복사" 버튼
+ * "Copy" buttons for the security track
  *
- * partials/nrp-assets.adoc 이 <script> 블록 안으로 이 파일을 include 합니다.
- * 페이지의 .nrp-copy-btn 버튼을 누르면 data-copy 속성 값을 클립보드에 복사합니다.
+ * partials/nrp-assets.adoc includes this file inside a <script> block.
+ * Clicking a .nrp-copy-btn button copies its data-copy attribute value to the clipboard.
  *
- * 점진적 향상: 버튼은 html.nrp-js 일 때만 보이며(nrp-quiz.js 가 클래스를 붙임),
- * JS 가 실패해도 값은 화면에 그대로 있어 직접 선택해 복사할 수 있습니다.
+ * Progressive enhancement: buttons are shown only when html.nrp-js is set (nrp-quiz.js adds the class),
+ * and if JS fails the values remain on screen so they can be selected and copied by hand.
  */
 (function () {
   'use strict';
 
   document.documentElement.classList.add('nrp-js');
 
-  var DONE = '복사됨 ✓';
-  var FAIL = '복사 실패';
+  var DONE = 'Copied ✓';
+  var FAIL = 'Copy failed';
 
-  // navigator.clipboard 를 쓸 수 없는 환경(비보안 컨텍스트, iframe 권한 등)을 위한 대체 경로
+  // Fallback for environments where navigator.clipboard is unavailable (insecure context, iframe permissions, etc.)
   function fallbackCopy(text) {
     var area = document.createElement('textarea');
     area.value = text;
