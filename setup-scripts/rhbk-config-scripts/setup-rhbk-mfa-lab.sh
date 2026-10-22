@@ -36,8 +36,10 @@
 #       false → 참가자가 실습에서 "Set as default action" 을 직접 켭니다 (가이드 기준).
 #       true  → 진행자가 미리 켜 둡니다 (실습 시간을 줄이고 싶을 때).
 #
-# 실행 위치: bastion (cluster-admin 으로 oc login 된 상태)
-# 필요 도구: oc, curl, python3
+# 실행 위치: cluster-admin 으로 oc login 된 곳이면 어디든 (bastion, Showroom 터미널 등)
+# 필요 도구: oc (curl 은 있으면 인증서 확인에만 사용, 없어도 동작)
+#   Keycloak 설정은 keycloak-0 pod 안의 관리 CLI(kcadm.sh)를 oc exec 로 호출하므로
+#   python3, jq 등이 필요 없습니다.
 # 소요 시간: 약 4~6분 (Operator 설치 + OAuth pod 재시작 대기)
 
 set -euo pipefail
@@ -60,9 +62,7 @@ hr()   { echo "-----------------------------------------------------------------
 
 require_tools() {
   local t
-  for t in oc curl python3; do
-    command -v "${t}" >/dev/null 2>&1 || err "${t} 를 PATH 에서 찾을 수 없습니다"
-  done
+  command -v oc >/dev/null 2>&1 || err "oc 를 PATH 에서 찾을 수 없습니다"
   oc whoami >/dev/null 2>&1 || err "OpenShift 에 로그인되어 있지 않습니다 (oc login)"
   oc auth can-i patch oauths.config.openshift.io >/dev/null 2>&1 \
     || err "cluster-admin 권한이 필요합니다 (OAuth 리소스 수정 권한 없음)"
@@ -176,55 +176,36 @@ keycloak_url() {
 
 # ─────────────────────────────────────────────────────────────────────
 # 3. Realm / Client / OTP
+#
+# keycloak-0 pod 안의 kcadm.sh 를 oc exec 로 호출합니다. JSON 을 직접 다루지 않으므로
+# 실행하는 쪽에 python3 / jq 가 없어도 됩니다.
 # ─────────────────────────────────────────────────────────────────────
 
-KC_URL=""
-KC_TOKEN=""
+KCADM_CONFIG="/tmp/kcadm-redpay.config"
+
+# kcx <kcadm 인자...>  → keycloak-0 안에서 kcadm.sh 실행 (CR LF 정리)
+kcx() {
+  oc exec -n "${RHBK_NS}" keycloak-0 -- /opt/keycloak/bin/kcadm.sh "$@" --config "${KCADM_CONFIG}" \
+    | tr -d '\r'
+}
 
 kc_login() {
-  KC_URL="$(keycloak_url)"
-  local user pass
+  local user pass i
   user="$(oc get secret keycloak-initial-admin -n "${RHBK_NS}" -o jsonpath='{.data.username}' | base64 -d)"
   pass="$(oc get secret keycloak-initial-admin -n "${RHBK_NS}" -o jsonpath='{.data.password}' | base64 -d)"
-
-  # Route 가 막 생성된 직후에는 잠시 503 이 날 수 있으므로 재시도합니다.
-  local i
+  # Keycloak 이 막 뜬 직후에는 잠시 실패할 수 있으므로 재시도합니다.
   for i in $(seq 1 24); do
-    KC_TOKEN="$(curl -sk "${KC_URL}/realms/master/protocol/openid-connect/token" \
-      --data-urlencode "grant_type=password" \
-      --data-urlencode "client_id=admin-cli" \
-      --data-urlencode "username=${user}" \
-      --data-urlencode "password=${pass}" \
-      | python3 -c 'import sys,json
-try: print(json.load(sys.stdin).get("access_token",""))
-except Exception: print("")' || true)"
-    [[ -n "${KC_TOKEN}" ]] && return 0
+    if kcx config credentials --server http://localhost:8080 --realm master \
+         --user "${user}" --password "${pass}" >/dev/null 2>&1; then
+      return 0
+    fi
     sleep 5
   done
-  err "Keycloak admin token 을 얻지 못했습니다 (${KC_URL})"
+  err "Keycloak 관리자 로그인 실패 (oc exec keycloak-0 → kcadm.sh)"
 }
 
-# kc <METHOD> <path> [json-body]  → 응답 본문 출력, HTTP 오류 시 실패
-kc() {
-  local method="$1" path="$2" body="${3:-}"
-  local args=(-sk -X "${method}" "${KC_URL}/admin${path}"
-              -H "Authorization: Bearer ${KC_TOKEN}"
-              -H "Content-Type: application/json"
-              -w '\n%{http_code}')
-  [[ -n "${body}" ]] && args+=(-d "${body}")
-  local out code
-  out="$(curl "${args[@]}")"
-  code="${out##*$'\n'}"
-  out="${out%$'\n'*}"
-  if [[ "${code}" -ge 400 ]]; then
-    echo "${out}" >&2
-    return 1
-  fi
-  printf '%s' "${out}"
-}
-
-kc_status() {
-  curl -sk -o /dev/null -w '%{http_code}' "${KC_URL}/admin$1" -H "Authorization: Bearer ${KC_TOKEN}"
+realm_exists() {
+  kcx get "realms/${RHBK_REALM}" --fields realm >/dev/null 2>&1
 }
 
 configure_realm() {
@@ -232,111 +213,84 @@ configure_realm() {
   log "Realm '${RHBK_REALM}' 구성..."
   kc_login
 
-  local realm_settings
-  realm_settings="$(cat <<EOF
-{
-  "realm": "${RHBK_REALM}",
-  "displayName": "RedPay",
-  "enabled": true,
-  "registrationAllowed": true,
-  "registrationEmailAsUsername": false,
-  "loginWithEmailAllowed": true,
-  "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
-  "verifyEmail": false,
-  "rememberMe": false,
-  "bruteForceProtected": true,
-  "permanentLockout": false,
-  "failureFactor": 10,
-  "otpPolicyType": "totp",
-  "otpPolicyAlgorithm": "HmacSHA1",
-  "otpPolicyDigits": 6,
-  "otpPolicyPeriod": 30,
-  "otpPolicyLookAheadWindow": 1,
-  "ssoSessionIdleTimeout": 60,
-  "ssoSessionMaxLifespan": 600,
-  "accessCodeLifespanUserAction": 900,
-  "accessCodeLifespanLogin": 1800
-}
-EOF
-)"
-
-  if [[ "$(kc_status "/realms/${RHBK_REALM}")" == "200" ]]; then
-    log "  realm 이 이미 존재합니다 — 설정만 갱신합니다"
-    kc PUT "/realms/${RHBK_REALM}" "${realm_settings}" >/dev/null
-  else
-    kc POST "/realms" "${realm_settings}" >/dev/null
-    log "  realm 생성 완료"
-  fi
   # SSO 세션을 60초로 짧게 둔 이유:
   #   OpenShift 콘솔에서 로그아웃해도 Keycloak 세션은 남아 있습니다.
-  #   세션이 짧아야 참가자가 "다시 로그인 → OTP 입력" 을 바로 확인할 수 있습니다.
+  #   세션이 짧아야 참가자가 다시 로그인할 때 OTP 입력 화면을 바로 확인할 수 있습니다.
+  local settings=(
+    -s displayName=RedPay -s enabled=true
+    -s registrationAllowed=true -s registrationEmailAsUsername=false
+    -s loginWithEmailAllowed=true -s duplicateEmailsAllowed=false
+    -s resetPasswordAllowed=false -s verifyEmail=false -s rememberMe=false
+    -s bruteForceProtected=true -s permanentLockout=false -s failureFactor=10
+    -s otpPolicyType=totp -s otpPolicyAlgorithm=HmacSHA1 -s otpPolicyDigits=6
+    -s otpPolicyPeriod=30 -s otpPolicyLookAheadWindow=1
+    -s ssoSessionIdleTimeout=60 -s ssoSessionMaxLifespan=600
+    -s accessCodeLifespanUserAction=900 -s accessCodeLifespanLogin=1800
+  )
+
+  if realm_exists; then
+    log "  realm 이 이미 존재합니다 — 설정만 갱신합니다"
+    kcx update "realms/${RHBK_REALM}" "${settings[@]}" >/dev/null
+  else
+    kcx create realms -s "realm=${RHBK_REALM}" "${settings[@]}" >/dev/null
+    log "  realm 생성 완료"
+  fi
 
   configure_otp_required_action
   configure_client
 }
 
 configure_otp_required_action() {
-  log "Required action 'Configure OTP' 설정 (Enabled=On, Default action=${RHBK_OTP_DEFAULT_ACTION})..."
-  local ra
-  ra="$(kc GET "/realms/${RHBK_REALM}/authentication/required-actions/CONFIGURE_TOTP")"
-  ra="$(printf '%s' "${ra}" | DEFAULT_ACTION="${RHBK_OTP_DEFAULT_ACTION}" python3 -c '
-import sys, json, os
-ra = json.load(sys.stdin)
-ra["enabled"] = True
-ra["defaultAction"] = os.environ["DEFAULT_ACTION"].lower() == "true"
-print(json.dumps(ra))')"
-  kc PUT "/realms/${RHBK_REALM}/authentication/required-actions/CONFIGURE_TOTP" "${ra}" >/dev/null
+  local da="false"
+  [[ "$(echo "${RHBK_OTP_DEFAULT_ACTION}" | tr '[:upper:]' '[:lower:]')" == "true" ]] && da="true"
+  log "Required action 'Configure OTP' 설정 (Enabled=On, Default action=${da})..."
+  kcx update authentication/required-actions/CONFIGURE_TOTP -r "${RHBK_REALM}" \
+    -s enabled=true -s "defaultAction=${da}" >/dev/null
+}
+
+client_uuid() {
+  kcx get clients -r "${RHBK_REALM}" -q "clientId=${CLIENT_ID}" --fields id --format csv --noquotes \
+    2>/dev/null | head -1
 }
 
 configure_client() {
-  local domain callback
+  local domain callback uuid
   domain="$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}')"
   callback="https://oauth-openshift.${domain}/oauth2callback/${RHBK_IDP_NAME}"
 
-  local client_uuid
-  client_uuid="$(kc GET "/realms/${RHBK_REALM}/clients?clientId=${CLIENT_ID}" \
-    | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d[0]["id"] if d else "")')"
+  local client=(
+    -s "clientId=${CLIENT_ID}" -s name=OpenShift -s enabled=true
+    -s protocol=openid-connect -s publicClient=false
+    -s clientAuthenticatorType=client-secret
+    -s standardFlowEnabled=true -s directAccessGrantsEnabled=false
+    -s "redirectUris=[\"${callback}\"]" -s 'webOrigins=["+"]'
+  )
 
-  local client_body
-  client_body="$(cat <<EOF
-{
-  "clientId": "${CLIENT_ID}",
-  "name": "OpenShift",
-  "enabled": true,
-  "protocol": "openid-connect",
-  "publicClient": false,
-  "clientAuthenticatorType": "client-secret",
-  "standardFlowEnabled": true,
-  "directAccessGrantsEnabled": false,
-  "redirectUris": ["${callback}"],
-  "webOrigins": ["+"]
-}
-EOF
-)"
-
-  if [[ -z "${client_uuid}" ]]; then
+  uuid="$(client_uuid)"
+  if [[ -z "${uuid}" ]]; then
     log "OIDC client '${CLIENT_ID}' 생성 (redirect: ${callback})..."
-    kc POST "/realms/${RHBK_REALM}/clients" "${client_body}" >/dev/null
-    client_uuid="$(kc GET "/realms/${RHBK_REALM}/clients?clientId=${CLIENT_ID}" \
-      | python3 -c 'import sys,json; print(json.load(sys.stdin)[0]["id"])')"
+    kcx create clients -r "${RHBK_REALM}" "${client[@]}" >/dev/null
+    uuid="$(client_uuid)"
+    [[ -n "${uuid}" ]] || err "OIDC client 생성 후 ID 를 찾지 못했습니다"
   else
     log "OIDC client '${CLIENT_ID}' 가 이미 존재합니다 — redirect URI 갱신"
-    kc PUT "/realms/${RHBK_REALM}/clients/${client_uuid}" "${client_body}" >/dev/null
+    kcx update "clients/${uuid}" -r "${RHBK_REALM}" "${client[@]}" >/dev/null
   fi
 
-  local has_mapper
-  has_mapper="$(kc GET "/realms/${RHBK_REALM}/clients/${client_uuid}/protocol-mappers/models" \
-    | python3 -c 'import sys,json; print(any(m.get("name")=="groups" for m in json.load(sys.stdin)))')"
-  if [[ "${has_mapper}" != "True" ]]; then
+  if ! kcx get "clients/${uuid}/protocol-mappers/models" -r "${RHBK_REALM}" \
+         --fields name --format csv --noquotes 2>/dev/null | grep -qx groups; then
     log "groups claim mapper 추가..."
-    kc POST "/realms/${RHBK_REALM}/clients/${client_uuid}/protocol-mappers/models" \
-      '{"name":"groups","protocol":"openid-connect","protocolMapper":"oidc-group-membership-mapper","config":{"full.path":"false","id.token.claim":"true","access.token.claim":"true","claim.name":"groups","userinfo.token.claim":"true"}}' >/dev/null
+    # config 값은 문자열이어야 하므로 '"..."' 로 감쌉니다.
+    kcx create "clients/${uuid}/protocol-mappers/models" -r "${RHBK_REALM}" \
+      -s name=groups -s protocol=openid-connect -s protocolMapper=oidc-group-membership-mapper \
+      -s 'config."full.path"="false"' -s 'config."id.token.claim"="true"' \
+      -s 'config."access.token.claim"="true"' -s 'config."claim.name"="groups"' \
+      -s 'config."userinfo.token.claim"="true"' >/dev/null
   fi
 
   local secret
-  secret="$(kc GET "/realms/${RHBK_REALM}/clients/${client_uuid}/client-secret" \
-    | python3 -c 'import sys,json; print(json.load(sys.stdin)["value"])')"
+  secret="$(kcx get "clients/${uuid}/client-secret" -r "${RHBK_REALM}" --fields value --format csv --noquotes | head -1)"
+  [[ -n "${secret}" ]] || err "client secret 을 가져오지 못했습니다"
 
   log "openshift-config/${CLIENT_SECRET_NAME} 갱신..."
   oc create secret generic "${CLIENT_SECRET_NAME}" -n openshift-config \
@@ -348,6 +302,15 @@ EOF
 # 4. OpenShift OAuth 연동
 # ─────────────────────────────────────────────────────────────────────
 
+# OAuth identityProviders 목록에서 이름이 같은 항목의 인덱스(0부터). 없으면 빈 문자열.
+idp_index() {
+  local line
+  line="$(oc get oauth cluster -o jsonpath='{range .spec.identityProviders[*]}{.name}{"\n"}{end}' 2>/dev/null \
+    | grep -nx "${RHBK_IDP_NAME}" | head -1 | cut -d: -f1)"
+  [[ -n "${line}" ]] && echo $((line - 1))
+  return 0
+}
+
 configure_oauth() {
   hr
   log "OpenShift OAuth 에 '${RHBK_IDP_NAME}' Identity Provider 추가..."
@@ -357,48 +320,38 @@ configure_oauth() {
   issuer="https://${host}/realms/${RHBK_REALM}"
 
   # OAuth 서버가 Keycloak 인증서를 신뢰하지 못하는 환경(자체 서명 ingress 인증서)이면
-  # ingress CA 를 ConfigMap 으로 넣어 줍니다.
-  local ca_name=""
-  if ! curl -s -o /dev/null --max-time 10 "${issuer}/.well-known/openid-configuration"; then
-    log "  Keycloak 인증서가 공인 CA 가 아닙니다 — ingress CA 를 ${CA_CONFIGMAP_NAME} 로 등록"
-    local ca_file
-    ca_file="$(mktemp)"
-    oc get configmap default-ingress-cert -n openshift-config-managed \
-      -o jsonpath='{.data.ca-bundle\.crt}' > "${ca_file}"
-    oc create configmap "${CA_CONFIGMAP_NAME}" -n openshift-config \
-      --from-file=ca.crt="${ca_file}" --dry-run=client -o yaml | oc apply -f - >/dev/null
-    rm -f "${ca_file}"
-    ca_name="${CA_CONFIGMAP_NAME}"
+  # ingress CA 를 ConfigMap 으로 넣어 줍니다. curl 이 없으면 확인을 건너뜁니다.
+  local ca_json=""
+  if command -v curl >/dev/null 2>&1; then
+    if ! curl -s -o /dev/null --max-time 10 "${issuer}/.well-known/openid-configuration"; then
+      log "  Keycloak 인증서가 공인 CA 가 아닙니다 — ingress CA 를 ${CA_CONFIGMAP_NAME} 로 등록"
+      oc get configmap default-ingress-cert -n openshift-config-managed \
+        -o jsonpath='{.data.ca-bundle\.crt}' \
+        | oc create configmap "${CA_CONFIGMAP_NAME}" -n openshift-config --from-file=ca.crt=/dev/stdin \
+            --dry-run=client -o yaml | oc apply -f - >/dev/null
+      ca_json=",\"ca\":{\"name\":\"${CA_CONFIGMAP_NAME}\"}"
+    fi
+  else
+    warn "curl 이 없어 Keycloak 인증서 확인을 건너뜁니다 (공인 인증서인 RHDP 환경이면 문제없습니다)"
   fi
 
-  local gen
+  local idp
+  idp="{\"name\":\"${RHBK_IDP_NAME}\",\"mappingMethod\":\"claim\",\"type\":\"OpenID\",\"openID\":{\"clientID\":\"${CLIENT_ID}\",\"clientSecret\":{\"name\":\"${CLIENT_SECRET_NAME}\"},\"issuer\":\"${issuer}\",\"claims\":{\"preferredUsername\":[\"preferred_username\"],\"name\":[\"name\"],\"email\":[\"email\"],\"groups\":[\"groups\"]},\"extraScopes\":[\"email\",\"profile\"]${ca_json}}}"
+
+  local gen idx count patch
   gen="$(oc get deployment oauth-openshift -n openshift-authentication -o jsonpath='{.metadata.generation}')"
 
-  # 기존 Identity Provider 는 유지하고, 같은 이름의 항목만 교체합니다.
-  local patch
-  patch="$(oc get oauth cluster -o json | IDP="${RHBK_IDP_NAME}" ISSUER="${issuer}" \
-    CLIENT_ID="${CLIENT_ID}" SECRET="${CLIENT_SECRET_NAME}" CA="${ca_name}" python3 -c '
-import sys, json, os
-oauth = json.load(sys.stdin)
-idps = [i for i in (oauth.get("spec", {}).get("identityProviders") or []) if i.get("name") != os.environ["IDP"]]
-openid = {
-    "clientID": os.environ["CLIENT_ID"],
-    "clientSecret": {"name": os.environ["SECRET"]},
-    "issuer": os.environ["ISSUER"],
-    "claims": {
-        "preferredUsername": ["preferred_username"],
-        "name": ["name"],
-        "email": ["email"],
-        "groups": ["groups"],
-    },
-    "extraScopes": ["email", "profile"],
-}
-if os.environ["CA"]:
-    openid["ca"] = {"name": os.environ["CA"]}
-idps.append({"name": os.environ["IDP"], "mappingMethod": "claim", "type": "OpenID", "openID": openid})
-print(json.dumps({"spec": {"identityProviders": idps}}))')"
-
-  oc patch oauth cluster --type=merge -p "${patch}" >/dev/null
+  # 기존 Identity Provider 는 유지하고, 같은 이름의 항목만 교체합니다 (JSON patch).
+  idx="$(idp_index)"
+  count="$(oc get oauth cluster -o jsonpath='{range .spec.identityProviders[*]}{.name}{"\n"}{end}' 2>/dev/null | grep -c . || true)"
+  if [[ -n "${idx}" ]]; then
+    patch="[{\"op\":\"remove\",\"path\":\"/spec/identityProviders/${idx}\"},{\"op\":\"add\",\"path\":\"/spec/identityProviders/-\",\"value\":${idp}}]"
+  elif [[ "${count}" -gt 0 ]]; then
+    patch="[{\"op\":\"add\",\"path\":\"/spec/identityProviders/-\",\"value\":${idp}}]"
+  else
+    patch="[{\"op\":\"add\",\"path\":\"/spec/identityProviders\",\"value\":[${idp}]}]"
+  fi
+  oc patch oauth cluster --type=json -p "${patch}" >/dev/null
 
   log "OAuth pod 재시작 대기 (1~3분)..."
   local elapsed=0
@@ -461,31 +414,27 @@ status() {
 
   if oc get pod keycloak-0 -n "${RHBK_NS}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q True; then
     echo "  ✓ Keycloak pod Ready"
-  else
-    echo "  ✗ Keycloak pod"; ok=false
-  fi
-
-  if oc get route keycloak -n "${RHBK_NS}" >/dev/null 2>&1; then
-    echo "  ✓ Route: $(keycloak_url)"
+    if oc get route keycloak -n "${RHBK_NS}" >/dev/null 2>&1; then
+      echo "  ✓ Route: $(keycloak_url)"
+    else
+      echo "  ✗ Route"; ok=false
+    fi
     kc_login
-    if [[ "$(kc_status "/realms/${RHBK_REALM}")" == "200" ]]; then
-      local info
-      info="$(kc GET "/realms/${RHBK_REALM}" | python3 -c '
-import sys,json; r=json.load(sys.stdin)
-print("registration=%s otp=%s/%sdigits/%ss" % (r.get("registrationAllowed"), r.get("otpPolicyType"), r.get("otpPolicyDigits"), r.get("otpPolicyPeriod")))')"
-      echo "  ✓ Realm ${RHBK_REALM} (${info})"
-      local ra
-      ra="$(kc GET "/realms/${RHBK_REALM}/authentication/required-actions/CONFIGURE_TOTP" | python3 -c '
-import sys,json; r=json.load(sys.stdin); print("Enabled=%s, Set as default action=%s" % (r["enabled"], r["defaultAction"]))')"
-      echo "  ✓ Configure OTP: ${ra}"
-      local users
-      users="$(kc GET "/realms/${RHBK_REALM}/users/count")"
+    if realm_exists; then
+      local info ra users
+      info="$(kcx get "realms/${RHBK_REALM}" --fields registrationAllowed,otpPolicyType,otpPolicyDigits,otpPolicyPeriod \
+                --format csv --noquotes | head -1)"
+      echo "  ✓ Realm ${RHBK_REALM} (registration,otp,digits,period = ${info})"
+      ra="$(kcx get authentication/required-actions/CONFIGURE_TOTP -r "${RHBK_REALM}" \
+              --fields enabled,defaultAction --format csv --noquotes | head -1)"
+      echo "  ✓ Configure OTP: Enabled=${ra%%,*}, Set as default action=${ra##*,}"
+      users="$(kcx get users/count -r "${RHBK_REALM}" | head -1)"
       echo "    등록된 사용자 수: ${users}"
     else
       echo "  ✗ Realm ${RHBK_REALM}"; ok=false
     fi
   else
-    echo "  ✗ Route"; ok=false
+    echo "  ✗ Keycloak pod"; ok=false
   fi
 
   if oc get secret "${CLIENT_SECRET_NAME}" -n openshift-config >/dev/null 2>&1; then
@@ -494,7 +443,7 @@ import sys,json; r=json.load(sys.stdin); print("Enabled=%s, Set as default actio
     echo "  ✗ openshift-config/${CLIENT_SECRET_NAME}"; ok=false
   fi
 
-  if oc get oauth cluster -o jsonpath='{.spec.identityProviders[*].name}' | tr ' ' '\n' | grep -qx "${RHBK_IDP_NAME}"; then
+  if [[ -n "$(idp_index)" ]]; then
     echo "  ✓ OAuth identity provider '${RHBK_IDP_NAME}'"
     if oauth_settled; then
       echo "  ✓ OAuth pod 모두 새 설정으로 안정됨"
@@ -519,52 +468,46 @@ info() {
   echo "  OpenShift 로그인 화면의 IdP 이름: ${RHBK_IDP_NAME}"
   echo
   echo "  참가자는 가이드의 명령으로 위 정보를 직접 조회할 수 있습니다."
-  echo "  참가자 OTP 앱: Google Authenticator / Microsoft Authenticator / FreeOTP / Red Hat 2FA 등 TOTP 앱"
+  echo "  참가자 OTP 앱: Google Authenticator / Microsoft Authenticator / FreeOTP 등 TOTP 앱"
   hr
+}
+
+delete_rhbk_identities() {
+  # Keycloak 에서 지운 사용자에 대응하는 OpenShift User/Identity 도 정리합니다.
+  local name user
+  for name in $(oc get identity -o jsonpath="{range .items[?(@.providerName==\"${RHBK_IDP_NAME}\")]}{.metadata.name}{\"\n\"}{end}" 2>/dev/null); do
+    user="$(oc get identity "${name}" -o jsonpath='{.user.name}' 2>/dev/null || true)"
+    oc delete identity "${name}" --ignore-not-found >/dev/null
+    [[ -n "${user}" ]] && oc delete user "${user}" --ignore-not-found >/dev/null
+  done
+  return 0
 }
 
 reset_lab() {
   hr
   log "실습 리셋 — realm '${RHBK_REALM}' 의 사용자 전체 삭제 + Configure OTP 기본 동작 복원"
   kc_login
-  local ids id
-  ids="$(kc GET "/realms/${RHBK_REALM}/users?max=1000&briefRepresentation=true" \
-    | python3 -c 'import sys,json; print("\n".join(u["id"] for u in json.load(sys.stdin)))')"
-  for id in ${ids}; do
-    kc DELETE "/realms/${RHBK_REALM}/users/${id}" >/dev/null
+  local id
+  for id in $(kcx get users -r "${RHBK_REALM}" --limit 1000 --fields id --format csv --noquotes); do
+    kcx delete "users/${id}" -r "${RHBK_REALM}" >/dev/null
   done
   configure_otp_required_action
-
-  # Keycloak 에서 지운 사용자에 대응하는 OpenShift User/Identity 도 정리합니다.
-  local name
-  for name in $(oc get identity -o jsonpath="{range .items[?(@.providerName==\"${RHBK_IDP_NAME}\")]}{.metadata.name}{\"\n\"}{end}" 2>/dev/null); do
-    local user
-    user="$(oc get identity "${name}" -o jsonpath='{.user.name}' 2>/dev/null || true)"
-    oc delete identity "${name}" --ignore-not-found >/dev/null
-    [[ -n "${user}" ]] && oc delete user "${user}" --ignore-not-found >/dev/null
-  done
+  delete_rhbk_identities
   log "리셋 완료"
 }
 
 cleanup() {
   hr
   log "RHBK MFA 실습 환경 정리..."
-  local patch
-  patch="$(oc get oauth cluster -o json | IDP="${RHBK_IDP_NAME}" python3 -c '
-import sys, json, os
-oauth = json.load(sys.stdin)
-idps = [i for i in (oauth.get("spec", {}).get("identityProviders") or []) if i.get("name") != os.environ["IDP"]]
-print(json.dumps({"spec": {"identityProviders": idps}}))')"
-  oc patch oauth cluster --type=merge -p "${patch}" >/dev/null
-  log "  OAuth 에서 '${RHBK_IDP_NAME}' 제거"
+  local idx
+  idx="$(idp_index)"
+  if [[ -n "${idx}" ]]; then
+    oc patch oauth cluster --type=json \
+      -p "[{\"op\":\"remove\",\"path\":\"/spec/identityProviders/${idx}\"}]" >/dev/null
+    log "  OAuth 에서 '${RHBK_IDP_NAME}' 제거"
+  fi
 
-  local name
-  for name in $(oc get identity -o jsonpath="{range .items[?(@.providerName==\"${RHBK_IDP_NAME}\")]}{.metadata.name}{\"\n\"}{end}" 2>/dev/null); do
-    local user
-    user="$(oc get identity "${name}" -o jsonpath='{.user.name}' 2>/dev/null || true)"
-    oc delete identity "${name}" --ignore-not-found >/dev/null
-    [[ -n "${user}" ]] && oc delete user "${user}" --ignore-not-found >/dev/null
-  done
+  delete_rhbk_identities
 
   oc delete secret "${CLIENT_SECRET_NAME}" -n openshift-config --ignore-not-found >/dev/null
   oc delete configmap "${CA_CONFIGMAP_NAME}" -n openshift-config --ignore-not-found >/dev/null

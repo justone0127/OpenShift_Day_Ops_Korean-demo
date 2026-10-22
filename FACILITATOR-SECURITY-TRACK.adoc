@@ -98,7 +98,7 @@ NOTE: 파일명의 `15/16/17` 은 전체 로드쇼(01~14번 모듈)와 번호가
 === 필수 조건
 
 * OpenShift 4.14+ 클러스터, `cluster-admin` 권한
-* bastion에 `oc`, `git`, `curl`, `python3`
+* 스크립트를 실행할 터미널(bastion 또는 Showroom 터미널)에 `oc`, `git` — `python3` 는 필요 없습니다 (`curl` 은 있으면 사용)
 * 참가자 스마트폰에 TOTP 앱(Google Authenticator / Microsoft Authenticator / FreeOTP 등) —
   **워크샵 공지 때 미리 설치를 안내**하십시오.
   스마트폰이 없는 참가자는 Chrome 확장 프로그램 *Authenticator*(authenticator.cc)로 진행할 수 있으며,
