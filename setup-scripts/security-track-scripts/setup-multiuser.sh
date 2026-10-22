@@ -390,9 +390,34 @@ wait_all_ready() {
   return 1
 }
 
+# 직전에 cleanup / cleanup-all 을 돌려 네임스페이스가 아직 삭제 중(Terminating)이면,
+# 그 안에 리소스를 만들 수 없으므로 삭제가 끝날 때까지 기다립니다.
+wait_not_terminating() {
+  local nss=("${RHBK_NS}") u pfx i term
+  while read -r u; do
+    [[ -n "${u}" ]] || continue
+    pfx="$(ns_prefix "${u}")"
+    nss+=("${pfx}redpay" "${pfx}postgresql-spiffe" "${pfx}postgresql-spiffe-client")
+  done < <(all_users)
+  for ((i = 0; i < 60; i++)); do
+    term="$(oc get ns "${nss[@]}" --no-headers 2>/dev/null | awk '$2=="Terminating"{print $1}' || true)"
+    [[ -z "${term}" ]] && return 0
+    (( i == 0 )) && log "이전 정리 작업으로 삭제 중인 네임스페이스가 있어 끝날 때까지 기다립니다: $(echo ${term})"
+    if (( i == 24 )); then
+      local ns
+      for ns in ${term}; do
+        oc delete pods --all -n "${ns}" --grace-period=0 --force >/dev/null 2>&1 || true
+      done
+    fi
+    sleep 5
+  done
+  err "네임스페이스가 5분 넘게 삭제 중입니다: $(echo ${term}) — oc get ns 로 확인한 뒤 다시 실행하십시오"
+}
+
 do_deploy() {
   hr
   log "환경 생성 — $(describe_target)"
+  wait_not_terminating
   prepare_cluster
 
   hr
@@ -541,11 +566,39 @@ do_cleanup() {
 
 # 사용자 환경 + 공유 플랫폼(SPIRE, Keycloak)까지 전부 정리합니다.
 # 클러스터를 처음부터 다시 구성할 때 씁니다.
+# 실습 네임스페이스가 완전히 지워질 때까지 기다립니다.
+# SPIRE / SPIFFE CSI 드라이버를 먼저 지우면, 아직 남아 있는 PostgreSQL pod 가 CSI 볼륨을
+# 해제하지 못해 Terminating 에 걸리고 네임스페이스도 지워지지 않습니다.
+# 2분이 지나도 남아 있는 pod 는 강제로 지웁니다 (이미 삭제 요청된 pod 라 잃는 것은 없습니다).
+wait_user_namespaces_gone() {
+  local nss=() u pfx i remaining
+  while read -r u; do
+    [[ -n "${u}" ]] || continue
+    pfx="$(ns_prefix "${u}")"
+    nss+=("${pfx}redpay" "${pfx}postgresql-spiffe" "${pfx}postgresql-spiffe-client")
+  done < <(all_users)
+  log "실습 네임스페이스 삭제 완료 대기 (최대 5분)..."
+  for ((i = 0; i < 60; i++)); do
+    remaining="$(oc get ns "${nss[@]}" --no-headers 2>/dev/null | awk '{print $1}' || true)"
+    [[ -z "${remaining}" ]] && { log "  실습 네임스페이스 삭제 완료"; return 0; }
+    if (( i == 24 )); then
+      local ns
+      for ns in ${remaining}; do
+        oc delete pods --all -n "${ns}" --grace-period=0 --force >/dev/null 2>&1 || true
+      done
+      log "  2분 넘게 남은 pod 를 강제 삭제했습니다: $(echo ${remaining})"
+    fi
+    sleep 5
+  done
+  warn "아직 삭제 중인 네임스페이스가 있습니다: $(echo ${remaining}) — oc get ns 로 확인하십시오"
+}
+
 do_cleanup_all() {
   hr
   log "전체 정리 — $(describe_target) + 공유 플랫폼"
   hr
   each_user cleanup_user
+  wait_user_namespaces_gone
   cleanup_platform
   hr
   log "정리 완료. 이제 $0 deploy <인원수> 로 새로 구성할 수 있습니다."

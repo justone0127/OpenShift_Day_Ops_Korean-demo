@@ -423,12 +423,12 @@ status() {
     if realm_exists; then
       local info ra users
       info="$(kcx get "realms/${RHBK_REALM}" --fields registrationAllowed,otpPolicyType,otpPolicyDigits,otpPolicyPeriod \
-                --format csv --noquotes | head -1)"
+                --format csv --noquotes 2>/dev/null | head -1)"
       echo "  ✓ Realm ${RHBK_REALM} (registration,otp,digits,period = ${info})"
       ra="$(kcx get authentication/required-actions/CONFIGURE_TOTP -r "${RHBK_REALM}" \
-              --fields enabled,defaultAction --format csv --noquotes | head -1)"
+              --fields enabled,defaultAction --format csv --noquotes 2>/dev/null | head -1)"
       echo "  ✓ Configure OTP: Enabled=${ra%%,*}, Set as default action=${ra##*,}"
-      users="$(kcx get users/count -r "${RHBK_REALM}" | head -1)"
+      users="$(kcx get users/count -r "${RHBK_REALM}" 2>/dev/null | head -1)"
       echo "    등록된 사용자 수: ${users}"
     else
       echo "  ✗ Realm ${RHBK_REALM}"; ok=false
