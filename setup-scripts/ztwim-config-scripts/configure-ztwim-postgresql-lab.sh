@@ -51,17 +51,20 @@ client_deployed() {
   oc get deployment postgresql-spiffe-client -n "${CLIENT_NS}" >/dev/null 2>&1
 }
 
+# Deployment 의 사용 가능(available) replica 로 판단합니다.
+# pod 목록을 문자열로 검사하면 이전 실행에서 남은 옛 pod(종료 중·실패)나 순간적인 재시작에
+# 영향을 받아, 새 pod 가 정상인데도 "준비 안 됨"으로 판정되는 경우가 있었습니다.
 pod_ready() {
-  local ns="$1" label="$2"
-  oc get pods -n "${ns}" -l "app=${label}" --no-headers 2>/dev/null \
-    | grep -qE '2/2[[:space:]]+Running'
+  local ns="$1" deploy="$2" available
+  available="$(oc get deployment "${deploy}" -n "${ns}" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || true)"
+  [[ "${available:-0}" -ge 1 ]]
 }
 
 survey_lab() {
   log "=== Deployed state (PostgreSQL SPIFFE lab) ==="
   if server_deployed; then
     if pod_ready "${SERVER_NS}" postgresql-spiffe; then
-      log "  PostgreSQL server: deployed and ready (2/2)"
+      log "  PostgreSQL server: deployed and ready"
     else
       log "  PostgreSQL server: deployed, not ready yet"
     fi
@@ -71,7 +74,7 @@ survey_lab() {
 
   if client_deployed; then
     if pod_ready "${CLIENT_NS}" postgresql-spiffe-client; then
-      log "  PostgreSQL client: deployed and ready (2/2)"
+      log "  PostgreSQL client: deployed and ready"
     else
       log "  PostgreSQL client: deployed, not ready yet"
     fi
@@ -86,16 +89,16 @@ check_lab_ready() {
   log "=== Readiness check ==="
 
   if server_deployed && pod_ready "${SERVER_NS}" postgresql-spiffe; then
-    log "  [OK] PostgreSQL server pod ready (2/2)"
+    log "  [OK] PostgreSQL server ready"
   else
-    log "  [FAIL] PostgreSQL server pod not ready"
+    log "  [FAIL] PostgreSQL server not ready"
     failures=$((failures + 1))
   fi
 
   if client_deployed && pod_ready "${CLIENT_NS}" postgresql-spiffe-client; then
-    log "  [OK] PostgreSQL client pod ready (2/2)"
+    log "  [OK] PostgreSQL client ready"
   else
-    log "  [FAIL] PostgreSQL client pod not ready"
+    log "  [FAIL] PostgreSQL client not ready"
     failures=$((failures + 1))
   fi
 
@@ -131,9 +134,11 @@ deploy_lab() {
   oc scale deployment postgresql-spiffe -n "${SERVER_NS}" --replicas=1 >/dev/null 2>&1 || true
   oc scale deployment postgresql-spiffe-client -n "${CLIENT_NS}" --replicas=1 >/dev/null 2>&1 || true
 
-  log "Waiting for pods to become Ready..."
-  oc wait --for=condition=Ready pod -l app=postgresql-spiffe -n "${SERVER_NS}" --timeout=300s
-  oc wait --for=condition=Ready pod -l app=postgresql-spiffe-client -n "${CLIENT_NS}" --timeout=300s
+  # 라벨로 모든 pod 를 기다리는 'oc wait pod -l ...' 는 이전 실행의 옛 pod 가 남아 있으면
+  # 새 pod 가 정상이어도 끝까지 기다리다 실패합니다. Deployment 롤아웃 완료를 기다립니다.
+  log "Waiting for deployments to become available..."
+  oc rollout status deployment/postgresql-spiffe -n "${SERVER_NS}" --timeout=300s || true
+  oc rollout status deployment/postgresql-spiffe-client -n "${CLIENT_NS}" --timeout=300s || true
 
   if ! check_lab_ready; then
     oc get pods -n "${SERVER_NS}" || true
