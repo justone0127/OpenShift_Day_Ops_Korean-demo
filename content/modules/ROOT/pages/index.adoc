@@ -128,8 +128,8 @@ image::showroom-tabs.png[OCP Console, Terminal, RHACS, ArgoCD, Developer Hub 탭
 |===
 
 NOTE: 이번 세션에서는 **OCP Console**, **Terminal** 탭을 계속 사용하고,
-06에서는 **ArgoCD** 탭을, 08에서는 OCP Console 오른쪽 아래의 **Lightspeed** 아이콘을, 10에서는 **RHACS** 탭을 사용합니다.
-08의 Keycloak 관리 콘솔은 **새 브라우저 탭**에서 엽니다.
+06에서는 **ArgoCD** 탭을, 08에서는 OCP Console 오른쪽 아래의 **Lightspeed** 아이콘을, 12에서는 **RHACS** 탭을 사용합니다.
+10의 Keycloak 관리 콘솔은 **새 브라우저 탭**에서 엽니다.
 **Developer Hub** 탭은 이번 실습에서 사용하지 않습니다.
 
 TIP: 음영 처리된 명령어 블록은 **클릭이 가능**하며, 클릭 시 자동으로 **Terminal (터미널)** 탭으로 전환되어 명령어가 실행됩니다.
