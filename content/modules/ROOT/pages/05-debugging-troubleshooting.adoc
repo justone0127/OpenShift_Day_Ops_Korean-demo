@@ -1,4 +1,4 @@
-= Debugging & Troubleshooting
+= 05. 디버깅 및 트러블슈팅 (Debugging & Troubleshooting)
 :page-toclevels: 1
 
 == 시작하기

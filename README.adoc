@@ -1,5 +1,30 @@
 = OpenShift Ops Day Roadshow
 
+[IMPORTANT]
+.pnu-ws 브랜치 — PNU 워크숍 구성
+====
+이 브랜치는 `ops-sc`(보안 트랙) 앞에 `main` 의 모듈 01~06 을 붙인 구성입니다.
+
+* *설정 및 개요*
+* *1부 · OpenShift 운영 기본* — 01 설치 및 검증 / 02 애플리케이션 관리 / 03 Ingress 및 로드 밸런싱 /
+  04 네트워크 보안 / 05 디버깅 및 트러블슈팅 / 06 OpenShift GitOps (약 80~100분)
+* *2부 · 보안 트랙 (RedPay 침해사고)* — 인트로 / 모듈 1 RHBK / 모듈 2 ZTWIM / 모듈 3 RHACS (약 50분)
+* *Wrap Up*
+
+진행자 준비 (bastion, cluster-admin 으로 `oc login` 된 상태에서 한 줄 실행):
+
+[source,bash]
+----
+# 실습 환경(1부 GitOps + 2부 보안 트랙) 준비 + Showroom 매뉴얼을 pnu-ws 로 전환
+bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts/setup-pnu-ws.sh)
+
+# Showroom 매뉴얼만 pnu-ws 로 전환 (매뉴얼 수정 후 최신 커밋 반영할 때도 동일)
+bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts/switch-showroom-pnu-ws.sh)
+----
+
+자세한 내용: link:FACILITATOR-PNU-WS.adoc[FACILITATOR-PNU-WS.adoc]
+====
+
 Showroom content for the OpenShift Ops Day Roadshow, covering Day 2 operations for OpenShift administrators.
 
 == Workshop Overview

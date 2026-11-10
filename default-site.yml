@@ -26,13 +26,13 @@ asciidoc:
     # (MODULE_ENABLE_* 환경변수)가 최종 결정을 합니다. 보안 트랙만 노출하려면
     # 카탈로그에서 security / ztwim 을 제외한 나머지를 false 로 지정하십시오.
     # 아래 값은 inject-env-vars.sh 가 실행되지 않는 경우의 기본값입니다.
-    module_enable_install: 'false'
-    module_enable_appmgmt: 'false'
-    module_enable_ingress: 'false'
-    module_enable_netsec: 'false'
+    module_enable_install: 'true'
+    module_enable_appmgmt: 'true'
+    module_enable_ingress: 'true'
+    module_enable_netsec: 'true'
     module_enable_waf: 'false'
-    module_enable_debugging: 'false'
-    module_enable_gitops: 'false'
+    module_enable_debugging: 'true'
+    module_enable_gitops: 'true'
     module_enable_ldap: 'false'
     module_enable_oidc: 'false'
     module_enable_observability: 'false'

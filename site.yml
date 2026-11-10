@@ -42,13 +42,13 @@ asciidoc:
     toclevels: 2
     # Module flags - matches catalog parameter names (module_enable_*)
     # Getting Started
-    module_enable_install: 'false'
+    module_enable_install: 'true'
     # Core Operations
-    module_enable_appmgmt: 'false'
-    module_enable_ingress: 'false'
-    module_enable_netsec: 'false'
-    module_enable_debugging: 'false'
-    module_enable_gitops: 'false'
+    module_enable_appmgmt: 'true'
+    module_enable_ingress: 'true'
+    module_enable_netsec: 'true'
+    module_enable_debugging: 'true'
+    module_enable_gitops: 'true'
     # Identity & Access
     module_enable_ldap: 'false'
     module_enable_oidc: 'false'

@@ -1,4 +1,4 @@
-= Ingress 및 로드 밸런싱
+= 03. Ingress 및 로드 밸런싱
 :page-toclevels: 1
 
 **소요 시간:** 25분 +

@@ -1,7 +1,8 @@
 // OpenShift Ops Day Roadshow
 // Navigation with catalog parameter conditionals
 //
-// Flow: Setup → Core Ops → Identity → Day 2 Ops → Advanced
+// Flow: Setup → 1부 Core Ops(01~06) → 2부 Security Track(15~17)
+// (pnu-ws 브랜치: ops-sc 보안 트랙 앞에 main 의 01~06 모듈을 붙인 구성)
 //
 // Catalog parameters (from agnosticv):
 //   module_enable_install,
@@ -15,25 +16,29 @@
 
 // Setup & Overview — 환경 확인 + 워크숍 안내 (항상 노출, 시작 페이지)
 * xref:index.adoc[설정 및 개요]
-ifeval::["{module_enable_install}" == "true"]
-* xref:01-installation.adoc[Installation & Verification]
-endif::[]
 
-// Core Operations - deploy, expose, secure, debug
+// ── 1부: OpenShift 운영 기본 (pnu-ws) ──────────────────────────────
+// 설치 확인 → 배포 → 노출 → 네트워크 보안 → 장애 대응 → GitOps
+// 소제목(1부)은 01~06 중 하나 이상이 켜져 있을 때만 의미가 있으므로
+// pnu-ws 구성(01~06 모두 true)을 기준으로 항상 노출합니다.
+* 1부 · OpenShift 운영 기본
+ifeval::["{module_enable_install}" == "true"]
+** xref:01-installation.adoc[01. 설치 및 검증]
+endif::[]
 ifeval::["{module_enable_appmgmt}" == "true"]
-* xref:02-app-mgmt.adoc[Application Management]
+** xref:02-app-mgmt.adoc[02. 애플리케이션 관리]
 endif::[]
 ifeval::["{module_enable_ingress}" == "true"]
-* xref:03-ingress-loadbalancing.adoc[Ingress & Load Balancing]
+** xref:03-ingress-loadbalancing.adoc[03. Ingress 및 로드 밸런싱]
 endif::[]
 ifeval::["{module_enable_netsec}" == "true"]
-* xref:04-network-security.adoc[Network Security]
+** xref:04-network-security.adoc[04. 네트워크 보안]
 endif::[]
 ifeval::["{module_enable_debugging}" == "true"]
-* xref:05-debugging-troubleshooting.adoc[Debugging & Troubleshooting]
+** xref:05-debugging-troubleshooting.adoc[05. 디버깅 및 트러블슈팅]
 endif::[]
 ifeval::["{module_enable_gitops}" == "true"]
-* xref:06-gitops.adoc[GitOps]
+** xref:06-gitops.adoc[06. OpenShift GitOps]
 endif::[]
 
 // Identity & Access
@@ -65,19 +70,20 @@ endif::[]
 ifeval::["{module_enable_acm}" == "true"]
 * xref:14-acm.adoc[ACM Multi-Cluster Management]
 endif::[]
-// Security Track — RedPay 침해사고 시나리오
+// ── 2부: 보안 트랙 — RedPay 침해사고 시나리오 ────────────────────────
 // 진행 순서: 인트로 → 모듈 1 RHBK(MFA) → 모듈 2 ZTWIM → 모듈 3 RHACS
 // 파일명의 15/16/17 은 전체 로드쇼(01~14)와 번호가 겹치지 않도록 붙인 것이며,
 // 진행 순서와 같습니다 (15-rhbk-mfa → 16-ztwim → 17-acs).
+* 2부 · 보안 트랙 — RedPay 침해사고
 ifeval::["{module_enable_security}" == "true"]
-* xref:15-00-security-story.adoc[보안 트랙 시작 — RedPay 침해사고]
-* xref:15-rhbk-mfa.adoc[모듈 1 — Red Hat build of Keycloak]
+** xref:15-00-security-story.adoc[인트로 — RedPay 침해사고]
+** xref:15-rhbk-mfa.adoc[모듈 1 — Red Hat build of Keycloak]
 endif::[]
 ifeval::["{module_enable_ztwim}" == "true"]
-* xref:16-ztwim.adoc[모듈 2 — Zero Trust Workload Identity Manager]
+** xref:16-ztwim.adoc[모듈 2 — Zero Trust Workload Identity Manager]
 endif::[]
 ifeval::["{module_enable_security}" == "true"]
-* xref:17-acs.adoc[모듈 3 — Red Hat Advanced Cluster Security]
+** xref:17-acs.adoc[모듈 3 — Red Hat Advanced Cluster Security]
 endif::[]
 
 // Conclusion (always shown)

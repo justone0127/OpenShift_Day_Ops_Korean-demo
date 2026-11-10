@@ -1,4 +1,4 @@
-= 보안 트랙 시작 — RedPay 침해사고
+= 2부 · 보안 트랙 시작 — RedPay 침해사고
 :page-toclevels: 1
 
 == 모듈 개요
@@ -25,6 +25,9 @@ include::partial$nrp-assets.adoc[]
 
 [NOTE]
 ====
+1부에서 익힌 운영 기본기(배포·노출·네트워크 정책·디버깅·GitOps)는 클러스터를 **잘 돌아가게** 합니다.
+2부는 그렇게 잘 돌아가던 클러스터가 **어떻게 뚫렸는지**에서 시작합니다.
+
 이 페이지는 이어지는 세 모듈(*Red Hat build of Keycloak* → *Zero Trust Workload Identity Manager* → *Red Hat Advanced Cluster Security*)을
 하나의 사건으로 묶는 도입부입니다. 각 모듈은 이 사건의 **공격 단계를 하나씩** 막습니다.
 ====

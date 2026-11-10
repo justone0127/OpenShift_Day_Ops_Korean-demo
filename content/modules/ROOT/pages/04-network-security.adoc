@@ -1,4 +1,4 @@
-= Network Security
+= 04. 네트워크 보안 (Network Security)
 :page-toclevels: 1
 
 **소요 시간:** 10-15분 +

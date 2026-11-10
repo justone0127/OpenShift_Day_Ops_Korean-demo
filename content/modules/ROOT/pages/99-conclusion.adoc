@@ -2,7 +2,34 @@
 
 include::partial$nrp-assets.adoc[]
 
-== 세 가지 보안 통제 적용 — 되짚어 보기
+== 1부 · OpenShift 운영 기본 — 되짚어 보기
+
+[cols="1,3",options="header"]
+|===
+| 모듈 | 핵심 정리
+
+| 01. 설치 및 검증
+| ClusterOperator·노드·etcd·스토리지·업데이트 채널로 클러스터 건강 상태를 확인했습니다.
+
+| 02. 애플리케이션 관리
+| 배포·노출·스케일링부터 Probe, 롤백, PodDisruptionBudget까지 — 장애에도 살아남는 애플리케이션을 만들었습니다.
+
+| 03. Ingress 및 로드 밸런싱
+| Ingress Controller와 Route로 TLS 종단, HSTS, 속도 제한, IP allowlist를 적용했습니다.
+
+| 04. 네트워크 보안
+| NetworkPolicy·AdminNetworkPolicy·EgressFirewall로 pod 간, 클러스터 전체, 외부로 나가는 트래픽을 통제했습니다.
+
+| 05. 디버깅 및 트러블슈팅
+| Observe → Diagnose → Fix → Verify 흐름으로 여섯 가지 실제 장애 유형을 해결했습니다.
+
+| 06. OpenShift GitOps
+| Git을 단일 진실 공급원으로 삼아 drift를 감지하고 자동 복구되게 했습니다.
+|===
+
+이 기본기가 클러스터를 **잘 돌아가게** 했다면, 2부는 그 클러스터를 **안전하게** 만드는 과정이었습니다.
+
+== 2부 · 세 가지 보안 통제 적용 — 되짚어 보기
 
 세 가지 보안 통제를 모두 적용했습니다. 트랙을 시작할 때 봤던 그 공격 경로를 다시 봅니다 —
 이번에는 세 지점 모두 여러분이 무엇으로 막았는지가 함께 표시되어 있습니다.
