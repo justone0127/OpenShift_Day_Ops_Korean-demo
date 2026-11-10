@@ -6,11 +6,11 @@
 #   bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts/setup-pnu-ws.sh) [액션]
 #
 # 액션:
-#   all          01~08 준비(GitOps·Lightspeed) → 10~12 보안 실습 배포 → Showroom 을 pnu-ws 로 전환 (기본값)
-#   env          실습 환경만 준비 (01~08 + 10~12), Showroom 은 그대로
+#   all          01~09 준비(GitOps·Lightspeed) → 10~12 보안 실습 배포 → Showroom 을 pnu-ws 로 전환 (기본값)
+#   env          실습 환경만 준비 (01~09 + 10~12), Showroom 은 그대로
 #   showroom     Showroom 매뉴얼만 pnu-ws 로 전환
-#   status       01~08 점검 + 10~12 준비 상태 + Showroom 설정 확인
-#   cleanup      참가자 실습 리소스 정리 (01~08 네임스페이스 + 10~12 사용자 환경)
+#   status       01~09 점검 + 10~12 준비 상태 + Showroom 설정 확인
+#   cleanup      참가자 실습 리소스 정리 (01~09 네임스페이스 + 10~12 사용자 환경)
 #   cleanup-all  cleanup + 보안 트랙 공통 구성요소(SPIRE/Keycloak 등)까지 정리
 #
 # 보안 실습(10~12) 스크립트는 같은 디렉터리의 파일들을 함께 쓰므로,
@@ -38,11 +38,11 @@ usage() {
   cat <<'USAGE'
 사용법: setup-pnu-ws.sh [all|env|showroom|status|cleanup|cleanup-all]
 
-  all          01~08 준비(GitOps·Lightspeed) → 10~12 보안 실습 배포 → Showroom 을 pnu-ws 로 전환 (기본값)
-  env          실습 환경만 준비 (01~08 + 10~12)
+  all          01~09 준비(GitOps·Lightspeed) → 10~12 보안 실습 배포 → Showroom 을 pnu-ws 로 전환 (기본값)
+  env          실습 환경만 준비 (01~09 + 10~12)
   showroom     Showroom 매뉴얼만 pnu-ws 로 전환
-  status       01~08 점검 + 10~12 준비 상태 + Showroom 설정 확인
-  cleanup      참가자 실습 리소스 정리 (01~08 + 10~12 사용자 환경)
+  status       01~09 점검 + 10~12 준비 상태 + Showroom 설정 확인
+  cleanup      참가자 실습 리소스 정리 (01~09 + 10~12 사용자 환경)
   cleanup-all  cleanup + 보안 트랙 공통 구성요소까지 정리
 USAGE
 }
@@ -84,8 +84,8 @@ for f in "${CORE}" "${SWITCH}" "${SECURITY}"; do
 done
 chmod +x "${CORE}" "${SWITCH}" "${SECURITY}" "${ROOT}/setup-scripts/security-track-scripts/setup-multiuser.sh" 2>/dev/null || true
 
-run_core()     { hr; log "01~08 · OpenShift 운영 기본: $1"; "${CORE}" "$1"; }
-run_security() { hr; log "09~12 · 보안 시나리오 (RedPay): $1"; "${SECURITY}" "$1"; }
+run_core()     { hr; log "01~09 · OpenShift 운영 기본: $1"; "${CORE}" "$1"; }
+run_security() { hr; log "10~12 · 보안 모듈 (RedPay): $1"; "${SECURITY}" "$1"; }
 run_switch()   { hr; log "Showroom 매뉴얼 → ${REPO_REF}";        "${SWITCH}" ${SHOWROOM_NS:+"${SHOWROOM_NS}"} "$@"; }
 
 case "${ACTION}" in
@@ -94,13 +94,13 @@ case "${ACTION}" in
     run_core lightspeed
     run_security all
     run_switch
-    run_core check || log "01~08 점검에 FAIL 항목이 있습니다. 위 내용을 확인하십시오."
+    run_core check || log "01~09 점검에 FAIL 항목이 있습니다. 위 내용을 확인하십시오."
     ;;
   env)
     run_core gitops
     run_core lightspeed
     run_security all
-    run_core check || log "01~08 점검에 FAIL 항목이 있습니다. 위 내용을 확인하십시오."
+    run_core check || log "01~09 점검에 FAIL 항목이 있습니다. 위 내용을 확인하십시오."
     ;;
   showroom)    run_switch ;;
   status)

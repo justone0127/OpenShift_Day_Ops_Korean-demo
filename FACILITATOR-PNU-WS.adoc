@@ -3,8 +3,8 @@
 
 == 구성
 
-`pnu-ws` 브랜치는 `ops-sc`(한국어 보안 모듈)를 기준으로, `main` 의 운영 모듈(01~06, Observability, Lightspeed)을 앞에 붙여 하나로 통합한 매뉴얼입니다.
-화면 번호는 01~12 이며, Observability·Lightspeed(09/13)와 보안 모듈(15-00/15/16/17)의 파일명은 원본과 맞추기 위해 그대로 둡니다.
+`pnu-ws` 브랜치는 `ops-sc`(한국어 보안 모듈)를 기준으로, `main` 의 운영 모듈(01~06, Observability, Performance Tuning, Lightspeed)을 앞에 붙여 하나로 통합한 매뉴얼입니다.
+화면 번호는 01~12 이며(보안 시나리오 인트로는 번호 없음), Observability·Performance·Lightspeed(09/10/13)와 보안 모듈(15-00/15/16/17)의 파일명은 원본과 맞추기 위해 그대로 둡니다.
 
 [cols="1,3,1",options="header"]
 |===
@@ -18,8 +18,9 @@
 | 05 | 디버깅 및 트러블슈팅 (`05-debugging-troubleshooting.adoc`) | 10-15분
 | 06 | OpenShift GitOps (`06-gitops.adoc`) | 10-15분
 | 07 | Observability 및 로깅 (`09-observability.adoc`) | 35-40분
-| 08 | OpenShift Lightspeed (`13-openshift-lightspeed.adoc`) | 15-20분
-| 09 | 보안 시나리오 — RedPay 침해사고 (`15-00-security-story.adoc`) | 10분
+| 08 | Performance Tuning (`10-performance-tuning.adoc`) | 15-20분
+| 09 | OpenShift Lightspeed (`13-openshift-lightspeed.adoc`) | 15-20분
+| — | 보안 시나리오 인트로 — RedPay 침해사고 (`15-00-security-story.adoc`) | 10분
 | 10 | Red Hat build of Keycloak (`15-rhbk-mfa.adoc`) | 15분
 | 11 | Zero Trust Workload Identity Manager (`16-ztwim.adoc`) | 10분
 | 12 | Red Hat Advanced Cluster Security (`17-acs.adoc`) | 15분
@@ -27,7 +28,7 @@
 |===
 
 목차 노출은 `default-site.yml` / `site.yml` 의 `module_enable_*` 로 결정됩니다.
-pnu-ws 에서는 `install, appmgmt, ingress, netsec, debugging, gitops, observability, ols, security, ztwim` 이 `true` 입니다.
+pnu-ws 에서는 `install, appmgmt, ingress, netsec, debugging, gitops, observability, performance, ols, security, ztwim` 이 `true` 입니다.
 
 == 사전 준비 (한 줄 실행)
 
@@ -42,11 +43,11 @@ bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_
 
 `setup-pnu-ws.sh` 는 저장소를 `$HOME/OpenShift_Day_Ops_Korean-demo` (pnu-ws) 에 clone/갱신한 뒤 다음을 차례로 수행합니다.
 
-. *01~08 준비* — `setup-core-ops.sh gitops`: OpenShift GitOps Operator 가 없으면 설치하고 ArgoCD 준비를 기다립니다.
+. *01~09 준비* — `setup-core-ops.sh gitops`: OpenShift GitOps Operator 가 없으면 설치하고 ArgoCD 준비를 기다립니다.
   이어서 `setup-core-ops.sh lightspeed`: Lightspeed Operator 설치, `azure-api-keys` Secret 생성, `lightspeed-demo/broken-pod` 배포.
 . *10~12 준비* — `setup-security-track.sh all`: 보안 실습(RHBK / ZTWIM / RHACS) 환경 배포.
 . *매뉴얼 전환* — `switch-showroom-pnu-ws.sh`: Showroom 이 pnu-ws 브랜치를 보도록 바꾸고 재빌드.
-. *점검* — `setup-core-ops.sh check`: 01~08 실습 조건 점검.
+. *점검* — `setup-core-ops.sh check`: 01~09 실습 조건 점검.
 
 액션별 실행:
 
@@ -55,7 +56,7 @@ bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_
 URL=https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts
 
 bash <(curl -sL $URL/setup-pnu-ws.sh) all          # 전체 (기본값)
-bash <(curl -sL $URL/setup-pnu-ws.sh) env          # 실습 환경만 (01~08 + 10~12)
+bash <(curl -sL $URL/setup-pnu-ws.sh) env          # 실습 환경만 (01~09 + 10~12)
 bash <(curl -sL $URL/setup-pnu-ws.sh) showroom     # 매뉴얼만 pnu-ws 로 전환
 bash <(curl -sL $URL/setup-pnu-ws.sh) status       # 점검 + 상태 확인
 bash <(curl -sL $URL/setup-pnu-ws.sh) cleanup      # 참가자 실습 리소스 정리
@@ -64,7 +65,7 @@ bash <(curl -sL $URL/setup-pnu-ws.sh) cleanup-all  # + 보안 트랙 공통 구�
 # 개별 스크립트
 bash <(curl -sL $URL/switch-showroom-pnu-ws.sh)            # 매뉴얼 전환 (네임스페이스 자동 탐색)
 bash <(curl -sL $URL/switch-showroom-pnu-ws.sh) --status   # 현재 Showroom 설정 확인
-bash <(curl -sL $URL/setup-core-ops.sh) check              # 01~08 조건 점검
+bash <(curl -sL $URL/setup-core-ops.sh) check              # 01~09 조건 점검
 ----
 
 == 매뉴얼 전환 스크립트가 하는 일
@@ -74,14 +75,14 @@ bash <(curl -sL $URL/setup-core-ops.sh) check              # 01~08 조건 점검
 . showroom Deployment 의 `git-cloner`(initContainer) / `content` 컨테이너의
   `GIT_REPO_URL` / `GIT_REPO_REF` 를 이 저장소의 `pnu-ws` 로 바꿉니다.
 . `workshop-vars` ConfigMap 이 있으면 `MODULE_ENABLE_*` 를 pnu-ws 구성으로 맞춥니다
-  (RHDP 카탈로그에서 01~08 을 끈 채 프로비저닝했더라도, 나중에 `inject-env-vars.sh` 가 다시 돌 때 목차가 바뀌지 않도록).
+  (RHDP 카탈로그에서 01~09 을 끈 채 프로비저닝했더라도, 나중에 `inject-env-vars.sh` 가 다시 돌 때 목차가 바뀌지 않도록).
 . pod 를 다시 띄워 clone → Antora 빌드를 다시 수행합니다. 이미 pnu-ws 를 보고 있으면 재시작만 합니다.
 
 포크를 쓴다면 `SHOWROOM_REPO_URL=<포크 주소>` 를 앞에 붙입니다.
 
-== 01~08 진행 시 주의점
+== 01~09 진행 시 주의점
 
-* *참가자 1인 1클러스터 기준*입니다. 01~08 모듈은 고정 네임스페이스(`app-management`, `debug-lab` 등)와
+* *참가자 1인 1클러스터 기준*입니다. 01~09 모듈은 고정 네임스페이스(`app-management`, `debug-lab` 등)와
   클러스터 범위 리소스(AdminNetworkPolicy)를 쓰므로, 클러스터 하나를 여러 명이 공유하면 서로 충돌합니다.
 * *04/05 의 스크립트*는 Showroom 터미널에서 `raw.githubusercontent.com`(rhpds/openshift-days-ops-showroom)을 받아 실행합니다.
   외부 접근이 막힌 환경이면 `setup-core-ops.sh check` 에서 WARN 으로 표시됩니다.
@@ -91,12 +92,14 @@ bash <(curl -sL $URL/setup-core-ops.sh) check              # 01~08 조건 점검
 * *07 Observability* 는 Loki 저장소로 *ODF(NooBaa) S3* (`openshift-storage.noobaa.io`)를 씁니다. ODF 가 없는 클러스터면
   로깅 실습이 진행되지 않으므로 `check` 의 FAIL 을 확인하십시오. 오퍼레이터(Loki/Logging/Tempo/OTel)는 참가자가 매뉴얼에서 직접 설치합니다.
   Alertmanager 이메일 실습은 클러스터 안에 Mailpit 을 띄우므로 외부 메일 서버는 필요 없습니다.
-* *08 Lightspeed* 의 OLSConfig 는 매뉴얼 속성 `ols_azure_url`(기본 `https://llm-gpt4-lightspeed.openai.azure.com/`)과
+* *08 Performance Tuning* 은 참가자가 매뉴얼에서 VPA Operator 를 직접 설치하고(`performance-demo` 네임스페이스),
+  HPA 는 클러스터 기본 메트릭을 씁니다. 진행자가 미리 준비할 것은 없으며 `check` 가 카탈로그의 VPA 를 확인합니다.
+* *09 Lightspeed* 의 OLSConfig 는 매뉴얼 속성 `ols_azure_url`(기본 `https://llm-gpt4-lightspeed.openai.azure.com/`)과
   배포 이름 `gpt-4` 를 씁니다. 다른 Azure OpenAI 엔드포인트를 쓰면 `content/antora.yml` 의 `ols_azure_url` 을 바꾸고,
   배포 이름이 다르면 `13-openshift-lightspeed.adoc` 의 `deploymentName` / `models` 를 맞춰 주십시오.
-* 01~08 각 모듈 끝의 *정리* 명령을 참가자가 건너뛰었다면 `setup-pnu-ws.sh cleanup` 으로 한꺼번에 지울 수 있습니다.
+* 01~09 각 모듈 끝의 *정리* 명령을 참가자가 건너뛰었다면 `setup-pnu-ws.sh cleanup` 으로 한꺼번에 지울 수 있습니다.
 
-== 09~12 진행
+== 보안 시나리오 인트로 + 10~12 진행
 
-09~12(보안 시나리오)의 시나리오, 퀴즈 정답, 진행 시 주의점은 link:FACILITATOR-SECURITY-TRACK.adoc[FACILITATOR-SECURITY-TRACK.adoc] 을 참고하십시오.
+보안 시나리오(인트로 + 10~12)의 시나리오, 퀴즈 정답, 진행 시 주의점은 link:FACILITATOR-SECURITY-TRACK.adoc[FACILITATOR-SECURITY-TRACK.adoc] 을 참고하십시오.
 (그 문서의 "모듈 1/2/3" 은 이 매뉴얼의 10/11/12 입니다. 그 문서의 `switch-showroom-ops-sc.sh` 는 ops-sc 브랜치로 전환하므로, pnu-ws 워크숍에서는 쓰지 마십시오.)

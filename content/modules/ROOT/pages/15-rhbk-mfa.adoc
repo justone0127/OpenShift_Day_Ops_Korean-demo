@@ -19,7 +19,7 @@ include::partial$nrp-assets.adoc[]
 **아무에게도 강제되지 않았습니다.**
 
 이 모듈에서 여러분이 적용할 첫 번째 보안 통제입니다.
-배경은 xref:15-00-security-story.adoc[09. 보안 시나리오] 페이지에 있습니다.
+배경은 xref:15-00-security-story.adoc[보안 시나리오 인트로] 페이지에 있습니다.
 ====
 
 **Red Hat build of Keycloak (RHBK)** 은 Red Hat이 지원하는 Keycloak 배포판으로,

@@ -54,7 +54,7 @@ asciidoc:
     module_enable_oidc: 'false'
     # Day 2 Operations
     module_enable_observability: 'true'
-    module_enable_performance: 'false'
+    module_enable_performance: 'true'
     # Advanced Topics
     module_enable_virt: 'false'
     module_enable_devhub: 'false'

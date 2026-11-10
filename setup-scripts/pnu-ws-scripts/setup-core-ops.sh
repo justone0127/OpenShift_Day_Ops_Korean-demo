@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# PNU 워크숍 모듈 01~08(OpenShift 운영) — 환경 준비·점검·정리 (진행자용)
+# PNU 워크숍 모듈 01~09(OpenShift 운영) — 환경 준비·점검·정리 (진행자용)
 #
 # 한 줄 실행 (bastion, cluster-admin 으로 oc login 된 상태):
 #   bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts/setup-core-ops.sh) [액션]
@@ -9,8 +9,8 @@
 #   all        GitOps·Lightspeed 준비(없을 때만) + 사전 점검   (기본값)
 #   gitops     OpenShift GitOps Operator 설치 + ArgoCD 준비 대기 (06)
 #   lightspeed OpenShift Lightspeed Operator 설치 + LLM Secret + 데모 pod (Lightspeed 모듈)
-#   check     01~08 실습에 필요한 조건 점검 (변경 없음)
-#   cleanup   참가자가 01~08 에서 만든 실습 리소스 정리
+#   check     01~09 실습에 필요한 조건 점검 (변경 없음)
+#   cleanup   참가자가 01~09 에서 만든 실습 리소스 정리
 #             (네임스페이스, ArgoCD Application/AppProject, AdminNetworkPolicy,
 #              Observability 구성, OLSConfig)
 #
@@ -23,6 +23,7 @@
 #   06 GitOps            OpenShift GitOps (openshift-gitops 네임스페이스의 ArgoCD)
 #   Observability        ODF(NooBaa) S3 StorageClass(openshift-storage.noobaa.io) — Loki 저장소
 #                        기본 StorageClass — Tempo PV. 오퍼레이터는 참가자가 매뉴얼에서 직접 설치
+#   Performance Tuning   카탈로그의 vertical-pod-autoscaler (VPA Operator 는 참가자가 매뉴얼에서 설치)
 #   Lightspeed           openshift-lightspeed 의 Operator, LLM 자격 증명 Secret(azure-api-keys),
 #                        lightspeed-demo/broken-pod (일부러 Pending 인 데모 pod)
 #
@@ -59,8 +60,8 @@ usage() {
   all        GitOps·Lightspeed 준비(없을 때만) + 사전 점검 (기본값)
   gitops     OpenShift GitOps Operator 설치 + ArgoCD 준비 대기
   lightspeed Lightspeed Operator 설치 + LLM Secret(OLS_API_TOKEN) + 데모 pod
-  check    01~08 실습 조건 점검 (변경 없음)
-  cleanup  참가자가 01~08 에서 만든 실습 리소스 정리
+  check    01~09 실습 조건 점검 (변경 없음)
+  cleanup  참가자가 01~09 에서 만든 실습 리소스 정리
 USAGE
 }
 
@@ -229,7 +230,7 @@ EOF
 # ── 사전 점검 ─────────────────────────────────────────────────────────
 check() {
   hr
-  log "01~08 사전 점검"
+  log "01~09 사전 점검"
 
   echo "01 설치 및 검증"
   local total ready
@@ -298,6 +299,16 @@ check() {
       && ok "카탈로그에 loki-operator 존재" || wn "카탈로그에서 loki-operator 를 찾지 못했습니다"
   fi
 
+  echo "Performance Tuning"
+  if oc get csv -n openshift-vertical-pod-autoscaler --no-headers 2>/dev/null | grep -q Succeeded; then
+    ok "VPA Operator 이미 설치됨"
+  elif oc get packagemanifest vertical-pod-autoscaler -n openshift-marketplace >/dev/null 2>&1; then
+    ok "카탈로그에 vertical-pod-autoscaler 존재 (참가자가 매뉴얼에서 설치)"
+  else
+    ng "카탈로그에서 vertical-pod-autoscaler 를 찾지 못했습니다 (VPA 실습 불가)"
+  fi
+  oc adm top nodes >/dev/null 2>&1 && ok "oc adm top 동작 (메트릭 수집 정상)" || wn "oc adm top 이 동작하지 않습니다 (HPA 실습 영향)"
+
   echo "Lightspeed"
   ols_csv_ok && ok "Lightspeed Operator Succeeded" || ng "Lightspeed Operator 가 없습니다 → '$0 lightspeed'"
   oc get secret azure-api-keys -n openshift-lightspeed >/dev/null 2>&1 \
@@ -313,7 +324,7 @@ check() {
 # ── 정리 ─────────────────────────────────────────────────────────────
 cleanup() {
   hr
-  log "01~08 실습 리소스 정리"
+  log "01~09 실습 리소스 정리"
   oc delete application.argoproj.io managed-project -n openshift-gitops --ignore-not-found 2>/dev/null || true
   oc delete appproject.argoproj.io workshop -n openshift-gitops --ignore-not-found 2>/dev/null || true
   oc delete adminnetworkpolicy cluster-deny-external-dns --ignore-not-found 2>/dev/null || true
@@ -325,7 +336,7 @@ cleanup() {
   fi
   oc delete project \
     install-test storage-test app-management ingress-demo \
-    netpol-frontend netpol-backend debug-lab gitops-managed-project lightspeed-demo \
+    netpol-frontend netpol-backend debug-lab gitops-managed-project performance-demo lightspeed-demo \
     --ignore-not-found --wait=false
   log "네임스페이스 삭제를 요청했습니다 (백그라운드에서 정리됩니다)."
 }

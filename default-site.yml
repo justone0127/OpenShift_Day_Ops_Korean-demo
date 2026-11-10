@@ -37,7 +37,7 @@ asciidoc:
     module_enable_oidc: 'false'
     module_enable_observability: 'true'
     module_enable_backup: 'false'
-    module_enable_performance: 'false'
+    module_enable_performance: 'true'
     module_enable_virt: 'false'
     module_enable_devhub: 'false'
     module_enable_ols: 'true'

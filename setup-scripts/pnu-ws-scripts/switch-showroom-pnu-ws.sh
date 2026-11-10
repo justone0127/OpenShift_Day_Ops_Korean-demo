@@ -5,8 +5,8 @@
 # pnu-ws 매뉴얼 구성:
 #   설정 및 개요
 #   01 설치 및 검증 / 02 애플리케이션 관리 / 03 Ingress / 04 네트워크 보안 /
-#   05 디버깅 / 06 GitOps / 07 Observability / 08 Lightspeed /
-#   09 보안 시나리오(RedPay) / 10 RHBK / 11 ZTWIM / 12 RHACS
+#   05 디버깅 / 06 GitOps / 07 Observability / 08 Performance Tuning / 09 Lightspeed /
+#   보안 시나리오 인트로(RedPay) / 10 RHBK / 11 ZTWIM / 12 RHACS
 #   Wrap Up
 #
 # 한 줄 실행 (bastion, cluster-admin 으로 oc login 된 상태):
@@ -22,7 +22,7 @@
 #   1. showroom Deployment 의 git-cloner / content 컨테이너가
 #      이 저장소의 pnu-ws 브랜치를 보도록 GIT_REPO_URL / GIT_REPO_REF 를 바꿉니다.
 #   2. workshop-vars ConfigMap 이 있으면 MODULE_ENABLE_* 값을 pnu-ws 구성
-#      (01~06·Observability·Lightspeed + 보안 모듈 = true, 나머지 = false)으로 맞춥니다.
+#      (01~06·Observability·Performance·Lightspeed + 보안 모듈 = true, 나머지 = false)으로 맞춥니다.
 #      → 나중에 inject-env-vars.sh 가 다시 실행되어도 목차가 바뀌지 않습니다.
 #   3. pod 를 다시 띄워 clone → Antora 빌드를 처음부터 다시 수행합니다.
 #
@@ -62,7 +62,7 @@ MODULE_FLAGS=(
   MODULE_ENABLE_LDAP=false
   MODULE_ENABLE_OIDC=false
   MODULE_ENABLE_OBSERVABILITY=true
-  MODULE_ENABLE_PERFORMANCE=false
+  MODULE_ENABLE_PERFORMANCE=true
   MODULE_ENABLE_VIRT=false
   MODULE_ENABLE_DEVHUB=false
   MODULE_ENABLE_OLS=true

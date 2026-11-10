@@ -2,7 +2,7 @@
 
 include::partial$nrp-assets.adoc[]
 
-== 01~08 · OpenShift 운영 — 되짚어 보기
+== 01~09 · OpenShift 운영 — 되짚어 보기
 
 [cols="1,3",options="header"]
 |===
@@ -29,13 +29,16 @@ include::partial$nrp-assets.adoc[]
 | 07. Observability 및 로깅
 | Prometheus 메트릭과 경고, Loki 기반 로깅, Tempo·OpenTelemetry 분산 추적으로 "어디서 무엇이 잘못됐는지"를 30초 안에 찾는 체계를 구성했습니다.
 
-| 08. OpenShift Lightspeed
+| 08. Performance Tuning
+| VPA로 실제 사용량에 맞게 리소스를 적정화하고, HPA로 부하에 따라 pod를 자동 확장했습니다.
+
+| 09. OpenShift Lightspeed
 | 콘솔에 통합된 AI 어시스턴트로 개념을 묻고, YAML을 생성하고, 고장 난 pod의 원인을 진단했습니다.
 |===
 
-이 기본기가 클러스터를 **잘 돌아가게** 했다면, 09~12는 그 클러스터를 **안전하게** 만드는 과정이었습니다.
+이 기본기가 클러스터를 **잘 돌아가게** 했다면, 10~12는 그 클러스터를 **안전하게** 만드는 과정이었습니다.
 
-== 09~12 · 세 가지 보안 통제 적용 — 되짚어 보기
+== 10~12 · 세 가지 보안 통제 적용 — 되짚어 보기
 
 세 가지 보안 통제를 모두 적용했습니다. 트랙을 시작할 때 봤던 그 공격 경로를 다시 봅니다 —
 이번에는 세 지점 모두 여러분이 무엇으로 막았는지가 함께 표시되어 있습니다.
