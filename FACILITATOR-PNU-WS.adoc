@@ -56,6 +56,7 @@ bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_
 URL=https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts
 
 bash <(curl -sL $URL/setup-pnu-ws.sh) all          # 전체 (기본값)
+bash <(curl -sL $URL/setup-pnu-ws.sh) ops          # 01~09 준비 + 매뉴얼 전환 + 점검 (보안 배포는 따로)
 bash <(curl -sL $URL/setup-pnu-ws.sh) env          # 실습 환경만 (01~09 + 10~12)
 bash <(curl -sL $URL/setup-pnu-ws.sh) showroom     # 매뉴얼만 pnu-ws 로 전환
 bash <(curl -sL $URL/setup-pnu-ws.sh) status       # 점검 + 상태 확인

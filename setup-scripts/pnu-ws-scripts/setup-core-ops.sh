@@ -202,8 +202,13 @@ EOF
   fi
 
   # 트러블슈팅 실습용 데모 pod — 존재하지 않는 node selector 로 일부러 Pending
-  oc create namespace lightspeed-demo --dry-run=client -o yaml | oc apply -f - >/dev/null
-  cat <<'EOF' | oc apply -f - >/dev/null
+  # 환경에 미리 배포된 pod 가 있으면 그대로 둡니다 (pod 는 apply 로 갱신할 수 없음)
+  oc get namespace lightspeed-demo >/dev/null 2>&1 || oc create namespace lightspeed-demo >/dev/null
+  if oc get pod broken-pod -n lightspeed-demo >/dev/null 2>&1; then
+    log "lightspeed-demo/broken-pod 가 이미 있습니다 (그대로 사용)."
+    return 0
+  fi
+  cat <<'EOF' | oc create -f - >/dev/null
 apiVersion: v1
 kind: Pod
 metadata:
