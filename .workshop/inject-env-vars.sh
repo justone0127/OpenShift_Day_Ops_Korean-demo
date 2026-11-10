@@ -122,7 +122,7 @@ ATTRS="${ATTRS}    acs_portal_username: 'admin'"$'\n'
 ATTRS="${ATTRS}    acs_portal_password: '${ADMIN_PASSWORD:-}'"$'\n'
 ATTRS="${ATTRS}    argocd_url: 'https://openshift-gitops-server-openshift-gitops.${ROUTE_SUBDOMAIN:-}'"$'\n'
 ATTRS="${ATTRS}    devhub_url: 'https://backstage-developer-hub-backstage.${ROUTE_SUBDOMAIN:-}'"$'\n'
-ATTRS="${ATTRS}    ols_azure_url: '${OLS_AZURE_URL:-}'"$'\n'
+ATTRS="${ATTRS}    ols_azure_url: '${OLS_AZURE_URL:-https://llm-gpt4-lightspeed.openai.azure.com/}'"$'\n'
 
 echo "Attributes to inject:"
 echo "$ATTRS"
@@ -152,7 +152,7 @@ echo -n "$ATTRS" >> "$SITE_FILE"
 ANTORA_YML="${REPO_DIR}/content/antora.yml"
 if [ -f "$ANTORA_YML" ] && ! grep -q 'ols_azure_url' "$ANTORA_YML"; then
   echo "Injecting ols_azure_url into antora.yml..."
-  echo "    ols_azure_url: '${OLS_AZURE_URL:-}'" >> "$ANTORA_YML"
+  echo "    ols_azure_url: '${OLS_AZURE_URL:-https://llm-gpt4-lightspeed.openai.azure.com/}'" >> "$ANTORA_YML"
 fi
 
 # 네임스페이스 속성은 반드시 antora.yml 에도 반영해야 합니다.

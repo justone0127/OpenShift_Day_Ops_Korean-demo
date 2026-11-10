@@ -5,7 +5,8 @@
 # pnu-ws 매뉴얼 구성:
 #   설정 및 개요
 #   01 설치 및 검증 / 02 애플리케이션 관리 / 03 Ingress / 04 네트워크 보안 /
-#   05 디버깅 / 06 GitOps / 07 보안 시나리오(RedPay) / 08 RHBK / 09 ZTWIM / 10 RHACS
+#   05 디버깅 / 06 GitOps / 07 Observability / 08 Lightspeed /
+#   09 보안 시나리오(RedPay) / 10 RHBK / 11 ZTWIM / 12 RHACS
 #   Wrap Up
 #
 # 한 줄 실행 (bastion, cluster-admin 으로 oc login 된 상태):
@@ -21,7 +22,7 @@
 #   1. showroom Deployment 의 git-cloner / content 컨테이너가
 #      이 저장소의 pnu-ws 브랜치를 보도록 GIT_REPO_URL / GIT_REPO_REF 를 바꿉니다.
 #   2. workshop-vars ConfigMap 이 있으면 MODULE_ENABLE_* 값을 pnu-ws 구성
-#      (01~06 + 보안 모듈 = true, 나머지 = false)으로 맞춥니다.
+#      (01~06·Observability·Lightspeed + 보안 모듈 = true, 나머지 = false)으로 맞춥니다.
 #      → 나중에 inject-env-vars.sh 가 다시 실행되어도 목차가 바뀌지 않습니다.
 #   3. pod 를 다시 띄워 clone → Antora 빌드를 처음부터 다시 수행합니다.
 #
@@ -42,7 +43,7 @@ usage() {
   cat <<'USAGE'
 사용법: switch-showroom-pnu-ws.sh [showroom-네임스페이스] [--dry-run|--status]
 
-  Showroom 이 pnu-ws 브랜치(01~10 통합 매뉴얼)를 보도록 전환하고
+  Showroom 이 pnu-ws 브랜치(01~12 통합 매뉴얼)를 보도록 전환하고
   pod 를 재시작해 매뉴얼을 다시 빌드합니다.
 
   한 줄 실행:
@@ -60,11 +61,11 @@ MODULE_FLAGS=(
   MODULE_ENABLE_GITOPS=true
   MODULE_ENABLE_LDAP=false
   MODULE_ENABLE_OIDC=false
-  MODULE_ENABLE_OBSERVABILITY=false
+  MODULE_ENABLE_OBSERVABILITY=true
   MODULE_ENABLE_PERFORMANCE=false
   MODULE_ENABLE_VIRT=false
   MODULE_ENABLE_DEVHUB=false
-  MODULE_ENABLE_OLS=false
+  MODULE_ENABLE_OLS=true
   MODULE_ENABLE_ACM=false
   MODULE_ENABLE_SECURITY=true
   MODULE_ENABLE_ZTWIM=true
@@ -172,7 +173,7 @@ if oc get configmap workshop-vars -n "${NS}" >/dev/null 2>&1; then
     cm_data="${cm_data:+${cm_data},}\"${kv%%=*}\":\"${kv#*=}\""
   done
   oc patch configmap workshop-vars -n "${NS}" --type=merge -p "{\"data\":{${cm_data}}}" >/dev/null
-  log "workshop-vars ConfigMap 의 MODULE_ENABLE_* 를 pnu-ws 구성으로 맞췄습니다 (01~10)."
+  log "workshop-vars ConfigMap 의 MODULE_ENABLE_* 를 pnu-ws 구성으로 맞췄습니다 (01~12)."
 else
   log "workshop-vars ConfigMap 이 없습니다 — 저장소의 default-site.yml 모듈 설정을 그대로 씁니다."
 fi
@@ -199,4 +200,4 @@ fi
 
 show_status
 log "완료. 브라우저에서 Showroom 을 새로고침하십시오."
-log "왼쪽 목차: 설정 및 개요 → 01~10 → Wrap Up"
+log "왼쪽 목차: 설정 및 개요 → 01~12 → Wrap Up"

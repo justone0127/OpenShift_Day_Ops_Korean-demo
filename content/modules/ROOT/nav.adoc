@@ -1,8 +1,8 @@
 // OpenShift Ops Day Roadshow
 // Navigation with catalog parameter conditionals
 //
-// Flow: Setup → 01~06 Core Ops → 07~10 Security Scenario → Wrap Up
-// (pnu-ws 브랜치: ops-sc 보안 모듈 앞에 main 의 01~06 모듈을 붙여 하나로 통합)
+// Flow: Setup → 01~08 Core Ops → 09~12 Security Scenario → Wrap Up
+// (pnu-ws 브랜치: ops-sc 보안 모듈 앞에 main 의 01~06·09·13 모듈을 붙여 하나로 통합)
 //
 // Catalog parameters (from agnosticv):
 //   module_enable_install,
@@ -17,7 +17,7 @@
 // Setup & Overview — 환경 확인 + 워크숍 안내 (항상 노출, 시작 페이지)
 * xref:index.adoc[설정 및 개요]
 
-// 01~06: OpenShift 운영 기본 (main 브랜치 모듈)
+// 01~08: OpenShift 운영 (main 브랜치 모듈)
 ifeval::["{module_enable_install}" == "true"]
 * xref:01-installation.adoc[01. 설치 및 검증]
 endif::[]
@@ -36,18 +36,25 @@ endif::[]
 ifeval::["{module_enable_gitops}" == "true"]
 * xref:06-gitops.adoc[06. OpenShift GitOps]
 endif::[]
+// 07/08 은 원본 로드쇼의 09(Observability) / 13(Lightspeed) 페이지입니다 (파일명 유지).
+ifeval::["{module_enable_observability}" == "true"]
+* xref:09-observability.adoc[07. Observability 및 로깅]
+endif::[]
+ifeval::["{module_enable_ols}" == "true"]
+* xref:13-openshift-lightspeed.adoc[08. OpenShift Lightspeed]
+endif::[]
 
-// 07~10: 보안 시나리오 — RedPay 침해사고 (ops-sc 브랜치 모듈)
-// 화면 번호는 07~10 이고, 파일명(15-00 / 15 / 16 / 17)은 원본 로드쇼와 맞추기 위해 그대로 둡니다.
+// 09~12: 보안 시나리오 — RedPay 침해사고 (ops-sc 브랜치 모듈)
+// 화면 번호는 09~12 이고, 파일명(15-00 / 15 / 16 / 17)은 원본 로드쇼와 맞추기 위해 그대로 둡니다.
 ifeval::["{module_enable_security}" == "true"]
-* xref:15-00-security-story.adoc[07. 보안 시나리오 — RedPay 침해사고]
-* xref:15-rhbk-mfa.adoc[08. Red Hat build of Keycloak]
+* xref:15-00-security-story.adoc[09. 보안 시나리오 — RedPay 침해사고]
+* xref:15-rhbk-mfa.adoc[10. Red Hat build of Keycloak]
 endif::[]
 ifeval::["{module_enable_ztwim}" == "true"]
-* xref:16-ztwim.adoc[09. Zero Trust Workload Identity Manager]
+* xref:16-ztwim.adoc[11. Zero Trust Workload Identity Manager]
 endif::[]
 ifeval::["{module_enable_security}" == "true"]
-* xref:17-acs.adoc[10. Red Hat Advanced Cluster Security]
+* xref:17-acs.adoc[12. Red Hat Advanced Cluster Security]
 endif::[]
 
 // Conclusion (always shown)

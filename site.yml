@@ -53,12 +53,12 @@ asciidoc:
     module_enable_ldap: 'false'
     module_enable_oidc: 'false'
     # Day 2 Operations
-    module_enable_observability: 'false'
+    module_enable_observability: 'true'
     module_enable_performance: 'false'
     # Advanced Topics
     module_enable_virt: 'false'
     module_enable_devhub: 'false'
-    module_enable_ols: 'false'
+    module_enable_ols: 'true'
     module_enable_acm: 'false'
     # Security Track — RedPay 침해사고 (활성)
     module_enable_security: 'true'
