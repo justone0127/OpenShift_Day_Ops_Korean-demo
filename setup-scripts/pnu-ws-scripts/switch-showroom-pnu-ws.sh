@@ -4,9 +4,9 @@
 #
 # pnu-ws 매뉴얼 구성:
 #   설정 및 개요
-#   1부 · OpenShift 운영 기본   01 설치 및 검증 / 02 애플리케이션 관리 /
-#                               03 Ingress / 04 네트워크 보안 / 05 디버깅 / 06 GitOps
-#   2부 · 보안 트랙(RedPay)     인트로 / 모듈 1 RHBK / 모듈 2 ZTWIM / 모듈 3 RHACS
+#   01 설치 및 검증 / 02 애플리케이션 관리 / 03 Ingress / 04 네트워크 보안 /
+#   05 디버깅 / 06 GitOps / 07 보안 시나리오(RedPay) / 08 RHBK / 09 ZTWIM / 10 RHACS
+#   Wrap Up
 #
 # 한 줄 실행 (bastion, cluster-admin 으로 oc login 된 상태):
 #   bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts/switch-showroom-pnu-ws.sh)
@@ -21,7 +21,7 @@
 #   1. showroom Deployment 의 git-cloner / content 컨테이너가
 #      이 저장소의 pnu-ws 브랜치를 보도록 GIT_REPO_URL / GIT_REPO_REF 를 바꿉니다.
 #   2. workshop-vars ConfigMap 이 있으면 MODULE_ENABLE_* 값을 pnu-ws 구성
-#      (01~06 + 보안 트랙 = true, 나머지 = false)으로 맞춥니다.
+#      (01~06 + 보안 모듈 = true, 나머지 = false)으로 맞춥니다.
 #      → 나중에 inject-env-vars.sh 가 다시 실행되어도 목차가 바뀌지 않습니다.
 #   3. pod 를 다시 띄워 clone → Antora 빌드를 처음부터 다시 수행합니다.
 #
@@ -42,7 +42,7 @@ usage() {
   cat <<'USAGE'
 사용법: switch-showroom-pnu-ws.sh [showroom-네임스페이스] [--dry-run|--status]
 
-  Showroom 이 pnu-ws 브랜치(1부 01~06 + 2부 보안 트랙)를 보도록 전환하고
+  Showroom 이 pnu-ws 브랜치(01~10 통합 매뉴얼)를 보도록 전환하고
   pod 를 재시작해 매뉴얼을 다시 빌드합니다.
 
   한 줄 실행:
@@ -172,7 +172,7 @@ if oc get configmap workshop-vars -n "${NS}" >/dev/null 2>&1; then
     cm_data="${cm_data:+${cm_data},}\"${kv%%=*}\":\"${kv#*=}\""
   done
   oc patch configmap workshop-vars -n "${NS}" --type=merge -p "{\"data\":{${cm_data}}}" >/dev/null
-  log "workshop-vars ConfigMap 의 MODULE_ENABLE_* 를 pnu-ws 구성으로 맞췄습니다 (01~06 + 보안 트랙)."
+  log "workshop-vars ConfigMap 의 MODULE_ENABLE_* 를 pnu-ws 구성으로 맞췄습니다 (01~10)."
 else
   log "workshop-vars ConfigMap 이 없습니다 — 저장소의 default-site.yml 모듈 설정을 그대로 씁니다."
 fi
@@ -199,4 +199,4 @@ fi
 
 show_status
 log "완료. 브라우저에서 Showroom 을 새로고침하십시오."
-log "왼쪽 목차: 설정 및 개요 → 1부 01~06 → 2부 보안 트랙(인트로 → 모듈 1/2/3) → Wrap Up"
+log "왼쪽 목차: 설정 및 개요 → 01~10 → Wrap Up"

@@ -2,7 +2,7 @@
 
 include::partial$nrp-assets.adoc[]
 
-== 1부 · OpenShift 운영 기본 — 되짚어 보기
+== 01~06 · OpenShift 운영 기본 — 되짚어 보기
 
 [cols="1,3",options="header"]
 |===
@@ -27,16 +27,16 @@ include::partial$nrp-assets.adoc[]
 | Git을 단일 진실 공급원으로 삼아 drift를 감지하고 자동 복구되게 했습니다.
 |===
 
-이 기본기가 클러스터를 **잘 돌아가게** 했다면, 2부는 그 클러스터를 **안전하게** 만드는 과정이었습니다.
+이 기본기가 클러스터를 **잘 돌아가게** 했다면, 07~10은 그 클러스터를 **안전하게** 만드는 과정이었습니다.
 
-== 2부 · 세 가지 보안 통제 적용 — 되짚어 보기
+== 07~10 · 세 가지 보안 통제 적용 — 되짚어 보기
 
 세 가지 보안 통제를 모두 적용했습니다. 트랙을 시작할 때 봤던 그 공격 경로를 다시 봅니다 —
 이번에는 세 지점 모두 여러분이 무엇으로 막았는지가 함께 표시되어 있습니다.
 
 ++++
 <div class="nrp-figure">
-<svg viewBox="0 0 840 250" role="img" aria-label="해결 요약 다이어그램. 공격 1단계는 모듈 1 Keycloak, 2단계는 모듈 2 ZTWIM, 3단계는 모듈 3 RHACS에서 각각 차단되었습니다.">
+<svg viewBox="0 0 840 250" role="img" aria-label="해결 요약 다이어그램. 공격 1단계는 모듈 08 Keycloak, 2단계는 모듈 09 ZTWIM, 3단계는 모듈 10 RHACS에서 각각 차단되었습니다.">
   <defs>
     <marker id="nrp-ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
@@ -83,9 +83,9 @@ include::partial$nrp-assets.adoc[]
     </g>
 
     <g font-size="10.5" font-weight="700" fill="#3e8635">
-      <text x="200" y="186">모듈 1 · Red Hat build of Keycloak</text>
-      <text x="420" y="186">모듈 2 · ZTWIM</text>
-      <text x="640" y="186">모듈 3 · RHACS</text>
+      <text x="200" y="186">모듈 08 · Red Hat build of Keycloak</text>
+      <text x="420" y="186">모듈 09 · ZTWIM</text>
+      <text x="640" y="186">모듈 10 · RHACS</text>
     </g>
 
     <g font-size="10.5" fill="#151515">
@@ -108,15 +108,15 @@ include::partial$nrp-assets.adoc[]
 
 | 1단계
 | 유출된 비밀번호 하나로 운영자 계정에 로그인
-| *모듈 1 · Red Hat build of Keycloak* — OTP 기반 다중 인증(MFA)을 모든 사용자에게 강제
+| *모듈 08 · Red Hat build of Keycloak* — OTP 기반 다중 인증(MFA)을 모든 사용자에게 강제
 
 | 2단계
 | 내부 대역이라는 이유로 모든 서비스가 공격자를 신뢰
-| *모듈 2 · Zero Trust Workload Identity Manager* — 네트워크 위치가 아닌 암호학적 신원(mTLS)으로 검증
+| *모듈 09 · Zero Trust Workload Identity Manager* — 네트워크 위치가 아닌 암호학적 신원(mTLS)으로 검증
 
 | 3단계
 | `latest` 태그 이미지의 RCE 취약 라이브러리로 데이터 외부 반출
-| *모듈 3 · Red Hat Advanced Cluster Security* — 탐지에 머물던 정책을 배포 시점 차단으로 전환
+| *모듈 10 · Red Hat Advanced Cluster Security* — 탐지에 머물던 정책을 배포 시점 차단으로 전환
 |===
 
 각각은 따로 적용해도 가치가 있지만, 함께일 때 의미가 달라집니다.

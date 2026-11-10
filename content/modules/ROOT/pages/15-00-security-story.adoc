@@ -1,4 +1,4 @@
-= 2부 · 보안 트랙 시작 — RedPay 침해사고
+= 07. 보안 시나리오 — RedPay 침해사고
 :page-toclevels: 1
 
 == 모듈 개요
@@ -25,10 +25,10 @@ include::partial$nrp-assets.adoc[]
 
 [NOTE]
 ====
-1부에서 익힌 운영 기본기(배포·노출·네트워크 정책·디버깅·GitOps)는 클러스터를 **잘 돌아가게** 합니다.
-2부는 그렇게 잘 돌아가던 클러스터가 **어떻게 뚫렸는지**에서 시작합니다.
+01~06에서 익힌 운영 기본기(배포·노출·네트워크 정책·디버깅·GitOps)는 클러스터를 **잘 돌아가게** 합니다.
+07부터는 그렇게 잘 돌아가던 클러스터가 **어떻게 뚫렸는지**에서 시작합니다.
 
-이 페이지는 이어지는 세 모듈(*Red Hat build of Keycloak* → *Zero Trust Workload Identity Manager* → *Red Hat Advanced Cluster Security*)을
+이 페이지는 이어지는 세 모듈 08~10(*Red Hat build of Keycloak* → *Zero Trust Workload Identity Manager* → *Red Hat Advanced Cluster Security*)을
 하나의 사건으로 묶는 도입부입니다. 각 모듈은 이 사건의 **공격 단계를 하나씩** 막습니다.
 ====
 
@@ -266,7 +266,7 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
 
 ++++
 <div class="nrp-figure">
-<svg viewBox="0 0 840 200" role="img" aria-label="보안 통제 적용 다이어그램. 모듈 1(Keycloak), 2(ZTWIM), 3(RHACS)이 각각 공격 단계를 차단하여, 같은 공격을 사전에 방지할 수 있습니다.">
+<svg viewBox="0 0 840 200" role="img" aria-label="보안 통제 적용 다이어그램. 모듈 08(Keycloak), 09(ZTWIM), 10(RHACS)이 각각 공격 단계를 차단하여, 같은 공격을 사전에 방지할 수 있습니다.">
   <defs>
     <marker id="nrp-ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#ee0000"/>
@@ -275,9 +275,9 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
 
   <!-- 모듈 라벨 -->
   <g font-size="11" font-weight="700" fill="#3e8635" text-anchor="middle">
-    <text x="200" y="22">모듈 1 · Keycloak</text>
-    <text x="420" y="22">모듈 2 · ZTWIM</text>
-    <text x="640" y="22">모듈 3 · RHACS</text>
+    <text x="200" y="22">모듈 08 · Keycloak</text>
+    <text x="420" y="22">모듈 09 · ZTWIM</text>
+    <text x="640" y="22">모듈 10 · RHACS</text>
   </g>
 
   <!-- 적용된 보안 통제 -->
@@ -332,19 +332,19 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
 ++++
 <div class="nrp-defense">
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 1 · Red Hat build of Keycloak</div>
+    <div class="nrp-def-num">모듈 08 · Red Hat build of Keycloak</div>
     <div class="nrp-def-title">다중 인증으로 계정 보호</div>
     <div class="nrp-def-blocks">1단계 — 비밀번호 하나로 뚫린 운영자 계정</div>
     <div class="nrp-def-body">이미 있던 OTP 기능을 <strong>모든 사용자에게 강제</strong>합니다. 비밀번호가 유출돼도, 사용자의 스마트폰에서 30초마다 바뀌는 토큰이 없으면 로그인할 수 없습니다.</div>
   </div>
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 2 · Zero Trust Workload Identity Manager</div>
+    <div class="nrp-def-num">모듈 09 · Zero Trust Workload Identity Manager</div>
     <div class="nrp-def-title">믿을 수 없는 내부자 거부</div>
     <div class="nrp-def-blocks">2단계 — 내부 요청을 무조건 신뢰</div>
     <div class="nrp-def-body">워크로드가 암호학적 신원(<strong>SVID</strong>)을 갖고, 서로를 상호 TLS(mTLS)로 검증합니다. 내부에 들어와도 신원을 증명하지 못하면 통과하지 못합니다.</div>
   </div>
   <div class="nrp-def">
-    <div class="nrp-def-num">모듈 3 · Red Hat Advanced Cluster Security</div>
+    <div class="nrp-def-num">모듈 10 · Red Hat Advanced Cluster Security</div>
     <div class="nrp-def-title">수상한 컨테이너 막기</div>
     <div class="nrp-def-blocks">3단계 — latest 이미지 속 RCE 취약 라이브러리</div>
     <div class="nrp-def-body">탐지에만 머물던 정책을 <strong>배포 시점 차단</strong>으로 전환합니다. 취약한 컨테이너는 애초에 클러스터에 올라오지 못합니다.</div>
@@ -372,7 +372,7 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
   <div class="nrp-quiz-exp">
     <p><strong>정답: (B)</strong></p>
     <p>비밀번호의 강도는 "추측하기 어려운가"를 결정할 뿐, "유출되었을 때 막을 수 있는가"와는 무관합니다. 유출된 비밀번호를 그대로 넣는 공격(credential stuffing) 앞에서는 길이도 복잡도도 소용이 없습니다.</p>
-    <p>다중 인증(MFA)은 <strong>서로 다른 종류의 증거</strong>를 요구합니다 — "아는 것(비밀번호)" + "가진 것(스마트폰의 OTP 앱)". 비밀번호가 유출되어도 공격자 손에 사용자의 스마트폰이 없으면 로그인할 수 없습니다. 모듈 1에서 직접 설정합니다.</p>
+    <p>다중 인증(MFA)은 <strong>서로 다른 종류의 증거</strong>를 요구합니다 — "아는 것(비밀번호)" + "가진 것(스마트폰의 OTP 앱)". 비밀번호가 유출되어도 공격자 손에 사용자의 스마트폰이 없으면 로그인할 수 없습니다. 모듈 08에서 직접 설정합니다.</p>
   </div>
 </div>
 
@@ -389,7 +389,7 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
   <div class="nrp-quiz-exp">
     <p><strong>정답: (C)</strong></p>
     <p>등록할 때 QR 코드에 담긴 것은 <strong>비밀 키(seed)</strong>입니다. 이후 앱과 서버는 각자 "비밀 키 + 현재 시각(30초 단위)"으로 같은 6자리 숫자를 계산합니다. 그래서 앱은 오프라인에서도 동작하고, 숫자는 30초마다 바뀝니다.</p>
-    <p>공격자가 지금 숫자를 엿보더라도 30초 뒤에는 쓸모가 없습니다. 그래서 QR 코드(비밀 키)는 <strong>등록하는 순간 한 번만</strong> 보여 주고 다시는 노출하지 않습니다. 모듈 1에서 QR 코드를 직접 등록해 봅니다.</p>
+    <p>공격자가 지금 숫자를 엿보더라도 30초 뒤에는 쓸모가 없습니다. 그래서 QR 코드(비밀 키)는 <strong>등록하는 순간 한 번만</strong> 보여 주고 다시는 노출하지 않습니다. 모듈 08에서 QR 코드를 직접 등록해 봅니다.</p>
   </div>
 </div>
 
@@ -406,7 +406,7 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
   <div class="nrp-quiz-exp">
     <p><strong>정답: (B)</strong></p>
     <p>이것을 흔히 "M&amp;M 보안"이라고 부릅니다. 껍질은 딱딱하지만 속은 말랑한 구조입니다.</p>
-    <p>경계 방어는 <strong>한 번만 뚫리면 끝나는</strong> 구조입니다. 침입 이후의 횡적 이동(lateral movement)을 막아 주는 것이 아무것도 없습니다. Zero Trust는 "내부"라는 개념 자체를 없애고, <strong>모든 연결이 매번 신원을 증명</strong>하게 만듭니다. 모듈 2의 주제입니다.</p>
+    <p>경계 방어는 <strong>한 번만 뚫리면 끝나는</strong> 구조입니다. 침입 이후의 횡적 이동(lateral movement)을 막아 주는 것이 아무것도 없습니다. Zero Trust는 "내부"라는 개념 자체를 없애고, <strong>모든 연결이 매번 신원을 증명</strong>하게 만듭니다. 모듈 09의 주제입니다.</p>
   </div>
 </div>
 
@@ -423,7 +423,7 @@ MFA 미적용, IP 기반 신뢰, 탐지로만 켜 둔 이미지 정책.
   <div class="nrp-quiz-exp">
     <p><strong>정답: (B)</strong></p>
     <p>CI 스캔은 <strong>그 시점의 스냅샷</strong>입니다. 통과한 순간 스캔의 임무는 끝나지만, 컨테이너는 그 뒤로 몇 달을 계속 돌아갑니다.</p>
-    <p>CVE는 매일 새로 공개됩니다. 어제 깨끗했던 이미지가 오늘 취약해집니다. 그래서 스캔은 파이프라인의 한 단계가 아니라 <strong>클러스터에서 계속 돌아가는 상태 점검</strong>이어야 합니다. 모듈 3에서 RHACS가 바로 이 역할을 하는 것을 보게 됩니다.</p>
+    <p>CVE는 매일 새로 공개됩니다. 어제 깨끗했던 이미지가 오늘 취약해집니다. 그래서 스캔은 파이프라인의 한 단계가 아니라 <strong>클러스터에서 계속 돌아가는 상태 점검</strong>이어야 합니다. 모듈 10에서 RHACS가 바로 이 역할을 하는 것을 보게 됩니다.</p>
   </div>
 </div>
 ++++

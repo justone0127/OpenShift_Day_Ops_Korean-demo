@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# PNU 워크숍 1부(OpenShift 운영 기본, 모듈 01~06) — 환경 준비·점검·정리 (진행자용)
+# PNU 워크숍 모듈 01~06(OpenShift 운영 기본) — 환경 준비·점검·정리 (진행자용)
 #
 # 한 줄 실행 (bastion, cluster-admin 으로 oc login 된 상태):
 #   bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts/setup-core-ops.sh) [액션]
@@ -126,7 +126,7 @@ EOF
 # ── 사전 점검 ─────────────────────────────────────────────────────────
 check() {
   hr
-  log "1부(01~06) 사전 점검"
+  log "01~06 사전 점검"
 
   echo "01 설치 및 검증"
   local total ready
@@ -194,7 +194,7 @@ check() {
 # ── 정리 ─────────────────────────────────────────────────────────────
 cleanup() {
   hr
-  log "1부(01~06) 실습 리소스 정리"
+  log "01~06 실습 리소스 정리"
   oc delete application.argoproj.io managed-project -n openshift-gitops --ignore-not-found 2>/dev/null || true
   oc delete appproject.argoproj.io workshop -n openshift-gitops --ignore-not-found 2>/dev/null || true
   oc delete adminnetworkpolicy cluster-deny-external-dns --ignore-not-found 2>/dev/null || true

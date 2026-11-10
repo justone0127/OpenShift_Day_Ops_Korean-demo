@@ -358,9 +358,9 @@ GitOps는 다음과 같은 환경에서 가장 큰 가치를 제공합니다:
 echo "Cleanup running in background - you can continue to the next module."
 ----
 
-== 다음 단계 — 2부 보안 트랙
+== 다음 단계 — 보안 시나리오
 
-여기까지 **1부 · OpenShift 운영 기본**을 마쳤습니다.
+여기까지 OpenShift 운영의 기본기를 익혔습니다.
 
 * 01 — 클러스터가 건강한지 확인하는 방법
 * 02~03 — 애플리케이션을 배포하고, 노출하고, 장애에도 살아남게 하는 방법
@@ -372,8 +372,8 @@ echo "Cleanup running in background - you can continue to the next module."
 ====
 이제 이 기본기를 갖춘 운영자로서 **실제 침해사고**를 마주할 차례입니다.
 
-2부에서 여러분은 간편결제 서비스 **RedPay** 의 플랫폼 운영 담당자가 됩니다.
-"클러스터는 잘 돌아가는데 왜 뚫렸는가"를 되짚고, 세 가지 보안 통제로 같은 공격을 막습니다.
+07부터 여러분은 간편결제 서비스 **RedPay** 의 플랫폼 운영 담당자가 됩니다.
+"클러스터는 잘 돌아가는데 왜 뚫렸는가"를 되짚고, 08~10에서 세 가지 보안 통제로 같은 공격을 막습니다.
 ====
 
-준비되셨으면 xref:15-00-security-story.adoc[2부 · 보안 트랙 시작 — RedPay 침해사고]로 이동하십시오.
+준비되셨으면 xref:15-00-security-story.adoc[07. 보안 시나리오 — RedPay 침해사고]로 이동하십시오.
