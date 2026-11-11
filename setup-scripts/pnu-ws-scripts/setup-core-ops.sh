@@ -6,7 +6,8 @@
 #   bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts/setup-core-ops.sh) [액션]
 #
 # 액션:
-#   all        GitOps·Lightspeed 준비(없을 때만) + 사전 점검   (기본값)
+#   all        User Workload Monitoring·GitOps·Lightspeed 준비(없을 때만) + 사전 점검 (기본값)
+#   monitoring User Workload Monitoring 활성화 (cluster-monitoring-config 의 enableUserWorkload: true)
 #   gitops     OpenShift GitOps Operator 설치 + ArgoCD 준비 대기 (06)
 #   lightspeed OpenShift Lightspeed Operator 설치 + LLM Secret + 데모 pod (Lightspeed 모듈)
 #   check     01~09 실습에 필요한 조건 점검 (변경 없음)
@@ -21,7 +22,8 @@
 #   04 네트워크 보안     OVN-Kubernetes, AdminNetworkPolicy CRD
 #   05 디버깅            Showroom 터미널에서 raw.githubusercontent.com 접근 (curl)
 #   06 GitOps            OpenShift GitOps (openshift-gitops 네임스페이스의 ArgoCD)
-#   Observability        ODF(NooBaa) S3 StorageClass(openshift-storage.noobaa.io) — Loki 저장소
+#   Observability        User Workload Monitoring 활성화 (매뉴얼은 "이미 적용됨" 으로 안내)
+#                        ODF(NooBaa) S3 StorageClass(openshift-storage.noobaa.io) — Loki 저장소
 #                        기본 StorageClass — Tempo PV. 오퍼레이터는 참가자가 매뉴얼에서 직접 설치
 #   Performance Tuning   카탈로그의 vertical-pod-autoscaler (VPA Operator 는 참가자가 매뉴얼에서 설치)
 #   Lightspeed           openshift-lightspeed 의 Operator, LLM 자격 증명 Secret(azure-api-keys),
@@ -55,9 +57,10 @@ wn()   { echo "  [WARN] $*"; WARN=$((WARN+1)); }
 
 usage() {
   cat <<'USAGE'
-사용법: setup-core-ops.sh [all|gitops|lightspeed|check|cleanup]
+사용법: setup-core-ops.sh [all|monitoring|gitops|lightspeed|check|cleanup]
 
-  all        GitOps·Lightspeed 준비(없을 때만) + 사전 점검 (기본값)
+  all        User Workload Monitoring·GitOps·Lightspeed 준비 + 사전 점검 (기본값)
+  monitoring User Workload Monitoring 활성화 (기존 cluster-monitoring-config 설정은 유지)
   gitops     OpenShift GitOps Operator 설치 + ArgoCD 준비 대기
   lightspeed Lightspeed Operator 설치 + LLM Secret(OLS_API_TOKEN) + 데모 pod
   check    01~09 실습 조건 점검 (변경 없음)
@@ -66,13 +69,59 @@ USAGE
 }
 
 case "${ACTION}" in
-  all|gitops|lightspeed|check|cleanup) ;;
+  all|monitoring|gitops|lightspeed|check|cleanup) ;;
   -h|--help|help) usage; exit 0 ;;
   *) usage >&2; err "알 수 없는 액션: ${ACTION}" ;;
 esac
 
 command -v oc >/dev/null 2>&1 || err "oc 를 PATH 에서 찾을 수 없습니다"
 oc whoami >/dev/null 2>&1 || err "OpenShift 에 로그인되어 있지 않습니다 (oc login)"
+
+# ── Observability: User Workload Monitoring ──────────────────────────
+uwm_enabled() {
+  oc get cm cluster-monitoring-config -n openshift-monitoring \
+    -o jsonpath='{.data.config\.yaml}' 2>/dev/null | grep -Eq '^enableUserWorkload:[[:space:]]*true'
+}
+
+uwm_ready() {
+  oc get pods -n openshift-user-workload-monitoring -l app.kubernetes.io/name=prometheus \
+    --no-headers 2>/dev/null | grep -q Running
+}
+
+enable_uwm() {
+  hr
+  if uwm_enabled; then
+    log "User Workload Monitoring 이 이미 활성화되어 있습니다."
+  elif ! oc get cm cluster-monitoring-config -n openshift-monitoring >/dev/null 2>&1; then
+    log "cluster-monitoring-config 생성 (enableUserWorkload: true)..."
+    oc create configmap cluster-monitoring-config -n openshift-monitoring \
+      --from-literal=config.yaml='enableUserWorkload: true' >/dev/null
+  else
+    # 이미 다른 설정이 있으면 그대로 두고 enableUserWorkload 만 켭니다
+    log "기존 cluster-monitoring-config 에 enableUserWorkload: true 추가..."
+    local cur new
+    cur="$(oc get cm cluster-monitoring-config -n openshift-monitoring -o jsonpath='{.data.config\.yaml}')"
+    if grep -q '^enableUserWorkload:' <<<"${cur}"; then
+      new="$(sed 's/^enableUserWorkload:.*/enableUserWorkload: true/' <<<"${cur}")"
+    else
+      new="$(printf 'enableUserWorkload: true\n%s' "${cur}")"
+    fi
+    oc set data cm/cluster-monitoring-config -n openshift-monitoring config.yaml="${new}" >/dev/null
+  fi
+
+  log "openshift-user-workload-monitoring 의 Prometheus 대기 (최대 ${WAIT_TIMEOUT}초)..."
+  local waited=0
+  until uwm_ready; do
+    if (( waited >= WAIT_TIMEOUT )); then
+      oc get pods -n openshift-user-workload-monitoring 2>/dev/null || true
+      warn "User Workload Monitoring Prometheus 가 아직 Running 이 아닙니다"
+      return 0
+    fi
+    sleep 10; waited=$((waited+10))
+    (( waited % 60 == 0 )) && log "  ...${waited}초 경과"
+  done
+  log "User Workload Monitoring 준비 완료."
+}
 
 # ── 모듈 06: OpenShift GitOps ─────────────────────────────────────────
 gitops_ready() {
@@ -297,6 +346,10 @@ check() {
 
   if [[ "${INCLUDE_OBSERVABILITY}" == "true" ]]; then
     echo "Observability 및 로깅"
+    uwm_enabled && ok "User Workload Monitoring 활성화 (enableUserWorkload: true)" \
+      || ng "User Workload Monitoring 이 꺼져 있습니다 → '$0 monitoring'"
+    uwm_ready && ok "openshift-user-workload-monitoring Prometheus Running" \
+      || wn "openshift-user-workload-monitoring Prometheus 가 Running 이 아닙니다"
     oc get sc openshift-storage.noobaa.io >/dev/null 2>&1 \
       && ok "StorageClass openshift-storage.noobaa.io 존재 (Loki S3 버킷)" \
       || ng "openshift-storage.noobaa.io 가 없습니다 — ODF(NooBaa)가 필요합니다 (Loki 실습 불가)"
@@ -347,7 +400,8 @@ cleanup() {
 }
 
 case "${ACTION}" in
-  all)        install_gitops; install_lightspeed; check ;;
+  all)        enable_uwm; install_gitops; install_lightspeed; check ;;
+  monitoring) enable_uwm ;;
   gitops)     install_gitops ;;
   lightspeed) install_lightspeed ;;
   check)   check ;;

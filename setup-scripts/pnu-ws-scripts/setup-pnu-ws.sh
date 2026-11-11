@@ -6,8 +6,8 @@
 #   bash <(curl -sL https://raw.githubusercontent.com/justone0127/OpenShift_Day_Ops_Korean-demo/pnu-ws/setup-scripts/pnu-ws-scripts/setup-pnu-ws.sh) [액션]
 #
 # 액션:
-#   all          01~09 준비(GitOps·Lightspeed) → 10~12 보안 실습 배포 → Showroom 을 pnu-ws 로 전환 (기본값)
-#   ops          01~09 준비(GitOps·Lightspeed) → Showroom 전환 → 점검 (보안 실습 배포는 건너뜀)
+#   all          01~09 준비(User Workload Monitoring·GitOps·Lightspeed) → 10~12 보안 실습 배포 → Showroom 을 pnu-ws 로 전환 (기본값)
+#   ops          01~09 준비(User Workload Monitoring·GitOps·Lightspeed) → Showroom 전환 → 점검 (보안 실습 배포는 건너뜀)
 #   env          실습 환경만 준비 (01~09 + 10~12), Showroom 은 그대로
 #   showroom     Showroom 매뉴얼만 pnu-ws 로 전환
 #   status       01~09 점검 + 10~12 준비 상태 + Showroom 설정 확인
@@ -40,7 +40,7 @@ usage() {
   cat <<'USAGE'
 사용법: setup-pnu-ws.sh [all|ops|env|showroom|status|cleanup|cleanup-all]
 
-  all          01~09 준비(GitOps·Lightspeed) → 10~12 보안 실습 배포 → Showroom 을 pnu-ws 로 전환 (기본값)
+  all          01~09 준비(User Workload Monitoring·GitOps·Lightspeed) → 10~12 보안 실습 배포 → Showroom 을 pnu-ws 로 전환 (기본값)
   ops          01~09 준비 → Showroom 전환 → 점검 (보안 실습 배포는 따로 실행)
   env          실습 환경만 준비 (01~09 + 10~12)
   showroom     Showroom 매뉴얼만 pnu-ws 로 전환
@@ -98,6 +98,7 @@ run_switch()   { hr; log "Showroom 매뉴얼 → ${REPO_REF}";        "${SWITCH}
 
 case "${ACTION}" in
   all)
+    run_core monitoring
     run_core gitops
     run_core lightspeed
     run_security all
@@ -105,12 +106,14 @@ case "${ACTION}" in
     run_core check || log "01~09 점검에 FAIL 항목이 있습니다. 위 내용을 확인하십시오."
     ;;
   env)
+    run_core monitoring
     run_core gitops
     run_core lightspeed
     run_security all
     run_core check || log "01~09 점검에 FAIL 항목이 있습니다. 위 내용을 확인하십시오."
     ;;
   ops)
+    run_core monitoring
     run_core gitops
     run_core lightspeed
     run_switch

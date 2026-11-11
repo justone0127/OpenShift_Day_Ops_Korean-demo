@@ -90,6 +90,8 @@ bash <(curl -sL $URL/setup-core-ops.sh) check              # 01~09 조건 점검
 * *06 GitOps* 는 ArgoCD UI 에 "Log in via OpenShift" 로 로그인합니다. admin 이 `cluster-admins` 그룹에 없으면
   UI 에서 Application 이 보이지 않을 수 있습니다 — `check` 가 경고하며, 필요하면
   `oc adm groups add-users cluster-admins admin` 으로 추가합니다.
+* *07 Observability* 매뉴얼은 User Workload Monitoring(`enableUserWorkload: true`)이 "이미 적용됨"이라고 안내합니다.
+  `setup-pnu-ws.sh` 가 미리 켜 두며(기존 `cluster-monitoring-config` 설정은 유지), 따로 켜려면 `setup-core-ops.sh monitoring` 을 실행합니다.
 * *07 Observability* 는 Loki 저장소로 *ODF(NooBaa) S3* (`openshift-storage.noobaa.io`)를 씁니다. ODF 가 없는 클러스터면
   로깅 실습이 진행되지 않으므로 `check` 의 FAIL 을 확인하십시오. 오퍼레이터(Loki/Logging/Tempo/OTel)는 참가자가 매뉴얼에서 직접 설치합니다.
   Alertmanager 이메일 실습은 클러스터 안에 Mailpit 을 띄우므로 외부 메일 서버는 필요 없습니다.
