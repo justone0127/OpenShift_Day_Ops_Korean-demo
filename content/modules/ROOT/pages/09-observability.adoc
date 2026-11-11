@@ -105,7 +105,7 @@ OpenShift는 다양한 알림 채널(이메일, Slack, PagerDuty, webhook)로 �
 oc get prometheusrules -A | head -15
 ----
 
-콘솔 내 **Observe (모니터링) -> Alerting (경고)** 메뉴에서도 활성화된 경고를 볼 수 있습니다.
+콘솔 내 **Observe (모니터링) -> Alerting (알림)** 메뉴에서도 활성화된 경고를 볼 수 있습니다.
 
 === 커스텀 경고 규칙 생성
 
@@ -162,13 +162,13 @@ EOF
 echo "Crash-looping pod deployed - it will restart every few seconds"
 ----
 
-재시작 횟수가 늘어나는 동안 콘솔에서 **Observe (모니터링) -> Alerting (경고) -> Alerting Rules (경고 규칙)** 메뉴로 이동하여 ``HighPodRestartRate``를 검색합니다. Prometheus가 새로운 규칙을 인식하는 데 1~2분 정도 소요될 수 있습니다. 규칙이 보이지 않는 경우 페이지를 새로 고치고 검색 전에 **Clear all filters**를 클릭하거나 기존 필터 항목을 모두 제거(항목 옆의 **x** 표시 클릭)하십시오.
+재시작 횟수가 늘어나는 동안 콘솔에서 **Observe (모니터링) -> Alerting (알림) -> Alerting Rules (경고 규칙)** 메뉴로 이동하여 ``HighPodRestartRate``를 검색합니다. Prometheus가 새로운 규칙을 인식하는 데 1~2분 정도 소요될 수 있습니다. 규칙이 보이지 않는 경우 페이지를 새로 고치고 검색 전에 **Clear all filters**를 클릭하거나 기존 필터 항목을 모두 제거(항목 옆의 **x** 표시 클릭)하십시오.
 
 image::alerting-rules-search.png[Alerting Rules showing custom HighPodRestartRate rule, link=self, window=blank]
 해당 규칙을 클릭하여 상세 정보를 확인합니다. 약 2~3분 후(pod가 몇 번 재시작되고 `for: 1m` 설정 시간이 지나면), 경고 상태가 **Inactive** → **Pending** → **Firing**으로 전동되는 것을 볼 수 있습니다:
 
 image::alerting-rule-detail.png[HighPodRestartRate rule detail showing expression and active alerts, link=self, window=blank]
-이제 **Alerting (경고) -> Alerts (경고)** 메뉴로 이동하면 ``HighPodRestartRate``가 나타납니다. 경고를 클릭하고 하단의 **Description**을 클릭하여 자세한 내용(경고의 원인이 된 pod 이름인 `crashloop-test`)을 확인해 봅니다:
+이제 **Alerting (알림) -> Alerts (알림)** 메뉴로 이동하면 ``HighPodRestartRate``가 나타납니다. 경고를 클릭하고 하단의 **Description**을 클릭하여 자세한 내용(경고의 원인이 된 pod 이름인 `crashloop-test`)을 확인해 봅니다:
 
 image::alerts-firing.png[Alerts tab showing currently firing alerts with severity and state, link=self, window=blank]
 이 화면은 온콜(on-call) 대기 중인 엔지니어들이 가장 자주 확인하는 뷰입니다. 방금 새 규칙을 직접 생성하고 실제 장애를 통해 경고를 트리거하여 발령되는 전 과정을 확인했습니다. 테스트용 crash-looping pod를 정리합니다:

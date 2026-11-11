@@ -383,7 +383,7 @@ NOTE: 와일드카드 DNS 이름 (예: `*.redhat.com`)은 OpenShift 4.20의 Tech
 ====
 **실제 운영 환경에서 주의해야 할 EgressFirewall 제한 사항:**
 
-* 각 namespace당 오직 **하나의 EgressFirewall** 객체만 가질 수 있습니다 (반드시 이름이 `default`여야 합니다).
+* 각 namespace당 오직 **하나의 EgressFirewall** 객체만 가질 수 있습니다 (반드시 이름이 ``default``여야 합니다).
 * OpenShift Route 또는 Ingress를 통해 라우팅되는 트래픽에는 규칙이 적용되지 않습니다.
 * EgressFirewall당 최대 **8,000개의 규칙**을 적용할 수 있습니다.
 * deny-all 규칙을 사용하는 경우, 명시적으로 허용하지 않는 한 pod가 OpenShift API 서버에 액세스할 수 없게 됩니다.

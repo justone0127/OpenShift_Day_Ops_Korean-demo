@@ -184,7 +184,7 @@ curl -sk https://$(oc get route test-app -n install-test -o jsonpath='{.spec.hos
 
 **이를 통해 증명되는 사항:** DNS가 작동하고, 라우터가 기능하며, TLS 인증서가 자동 생성되었고, 애플리케이션이 클러스터 외부에서 접근 가능한 상태임이 증명됩니다.
 
-TIP: 콘솔의 **Networking (네트워킹) > Routes (라우트)** (프로젝트: `install-test`)에서도 route를 확인할 수 있습니다 - 브라우저에서 직접 route URL을 클릭하여 테스트할 수도 있습니다.
+TIP: 콘솔의 **Networking (네트워킹) > Routes (경로)** (프로젝트: `install-test`)에서도 route를 확인할 수 있습니다 - 브라우저에서 직접 route URL을 클릭하여 테스트할 수도 있습니다.
 
 정리(Clean up):
 

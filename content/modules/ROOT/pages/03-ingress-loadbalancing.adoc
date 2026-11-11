@@ -81,7 +81,7 @@ oc rollout status deployment/test-app -n ingress-demo --timeout=60s
 
 NOTE: 작업이 정착하기까지 다소의 시간이 걸릴 수 있습니다. 구동이 5분 이상 무한 지체되는 특수한 예외가 아닐 경우 수 초 내에 자동 처리되므로 잠시 기다리십시오.
 
-이제 생성된 네트워크 연계 정보를 추적하겠습니다. **OCP Console**에서 **Networking (네트워킹) -> Routes (라우트)** (프로젝트: `ingress-demo`)로 이동하십시오. 생성한 `test-app` route의 가동 정보 및 도메인 접속 가능한 실제 URL, 연결 대상 target service 맵 정보가 표기됩니다:
+이제 생성된 네트워크 연계 정보를 추적하겠습니다. **OCP Console**에서 **Networking (네트워킹) -> Routes (경로)** (프로젝트: `ingress-demo`)로 이동하십시오. 생성한 `test-app` route의 가동 정보 및 도메인 접속 가능한 실제 URL, 연결 대상 target service 맵 정보가 표기됩니다:
 
 image::ingress-images/ingress-weathernow-route.png[test-app route in the console, link=self, window=blank]
 
@@ -160,7 +160,7 @@ oc get routes -A | head -20
 
 `edge`, `passthrough`, `reencrypt` 등 각양각색의 TLS 통제 방식들이 상호 혼용되어 가동되고 있음을 식별할 수 있습니다.
 
-**OCP Console**의 **Networking (네트워킹) -> Routes (라우트)** 메뉴로 이동한 뒤 (프로젝트 필터는 **All Projects (모든 프로젝트)** 선택) 클러스터 전체 영역의 구성 현황을 원스톱으로 추적할 수도 있습니다:
+**OCP Console**의 **Networking (네트워킹) -> Routes (경로)** 메뉴로 이동한 뒤 (프로젝트 필터는 **All Projects (모든 프로젝트)** 선택) 클러스터 전체 영역의 구성 현황을 원스톱으로 추적할 수도 있습니다:
 
 image::ingress-images/ingress-routes-all.png[All routes across the cluster with TLS termination badges, link=self, window=blank]
 

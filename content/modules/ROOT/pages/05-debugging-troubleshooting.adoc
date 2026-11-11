@@ -19,7 +19,7 @@ include::partial$console-access.adoc[]
 
 * pod 이벤트와 로그를 읽고 근본 원인(root cause)을 식별합니다.
 * ImagePullBackOff, CrashLoopBackOff, ConfigMap 오류, 자원 제약 조건 위반(resource constraint violations), Service 라우팅 문제, SCC 권한 오류를 해결합니다.
-* Observe (관찰) → Diagnose (진단) → Fix (해결) → Verify (검증) 워크플로우를 사용합니다.
+* Observe (모니터링) → Diagnose (진단) → Fix (해결) → Verify (검증) 워크플로우를 사용합니다.
 
 === 진단 툴킷
 

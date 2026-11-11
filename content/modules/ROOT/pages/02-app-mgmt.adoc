@@ -57,7 +57,7 @@ image::app-mgmt-deploy-image.png[Deploy Image form with weathernow image validat
 * **Service** - 트래픽을 pod들로 라우팅하는 내부 로드 밸런서입니다.
 
 image::diagrams/02_service.png[OpenShift Service Load Balancing, 500, align=center, link=self, window=blank]
-이제 Topology (토폴로지) 뷰로 이동하게 됩니다. pod가 가동 중이고 service가 생성되었으나, **Routes (라우트)** 항목 하위에는 "No Routes found for this resource" (이 리소스에 대한 라우트를 찾을 수 없음)로 표기되어 아직 클러스터 외부에서는 애플리케이션에 접근할 수 없습니다.
+이제 Topology (토폴로지) 뷰로 이동하게 됩니다. pod가 가동 중이고 service가 생성되었으나, **Routes (경로)** 항목 하위에는 "No Routes found for this resource" (이 리소스에 대한 라우트를 찾을 수 없음)로 표기되어 아직 클러스터 외부에서는 애플리케이션에 접근할 수 없습니다.
 
 image::app-mgmt-deploy-no-route.png[Topology view showing weathernow with no route, link=self, window=blank]
 이제 터미널로 전환하여 CLI를 통해 동일한 정보를 확인해 보십시오:
