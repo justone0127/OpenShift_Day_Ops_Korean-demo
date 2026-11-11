@@ -38,7 +38,7 @@ oc get pods -n openshift-monitoring -l app.kubernetes.io/name=prometheus
 특정 시점의 단발성 수치보다 훨씬 더 유용한, 시간에 따른 클러스터 CPU 사용량의 시계열 그래프를 확인할 수 있습니다.
 
 image::observe-metrics-query.png[Observe Metrics page showing cluster CPU usage query result, link=self, window=blank]
-TIP: 어떤 메트릭들을 사용할 수 있는지 알아보기 위해 `node_memory_MemAvailable_bytes` 또는 `kubelet_running_pods`와 같은 다른 쿼리들도 직접 입력해 보십시오.
+TIP: 어떤 메트릭들을 사용할 수 있는지 알아보기 위해 `node_memory_MemAvailable_bytes` 또는 ``kubelet_running_pods``와 같은 다른 쿼리들도 직접 입력해 보십시오.
 
 CLI를 통해 간단한 요약 정보(snapshot)를 확인하려면 다음을 실행할 수도 있습니다:
 
@@ -90,7 +90,7 @@ data:
 EOF
 ----
 
-Prometheus `/metrics` 엔드포인트를 노출하는 모든 애플리케이션은 이를 가리키는 `ServiceMonitor`를 생성하여 메트릭 수집을 진행할 수 있습니다. 이것이 Horizontal Pod Autoscaler (HPA)가 스케일링 결정을 내리기 위해 맞춤형 custom metrics를 획득하는 일반적인 방식입니다.
+Prometheus `/metrics` 엔드포인트를 노출하는 모든 애플리케이션은 이를 가리키는 ``ServiceMonitor``를 생성하여 메트릭 수집을 진행할 수 있습니다. 이것이 Horizontal Pod Autoscaler (HPA)가 스케일링 결정을 내리기 위해 맞춤형 custom metrics를 획득하는 일반적인 방식입니다.
 
 == Alertmanager를 사용한 경고
 
@@ -162,13 +162,13 @@ EOF
 echo "Crash-looping pod deployed - it will restart every few seconds"
 ----
 
-재시작 횟수가 늘어나는 동안 콘솔에서 **Observe (모니터링) -> Alerting (경고) -> Alerting Rules (경고 규칙)** 메뉴로 이동하여 `HighPodRestartRate`를 검색합니다. Prometheus가 새로운 규칙을 인식하는 데 1~2분 정도 소요될 수 있습니다. 규칙이 보이지 않는 경우 페이지를 새로 고치고 검색 전에 **Clear all filters**를 클릭하거나 기존 필터 항목을 모두 제거(항목 옆의 **x** 표시 클릭)하십시오.
+재시작 횟수가 늘어나는 동안 콘솔에서 **Observe (모니터링) -> Alerting (경고) -> Alerting Rules (경고 규칙)** 메뉴로 이동하여 ``HighPodRestartRate``를 검색합니다. Prometheus가 새로운 규칙을 인식하는 데 1~2분 정도 소요될 수 있습니다. 규칙이 보이지 않는 경우 페이지를 새로 고치고 검색 전에 **Clear all filters**를 클릭하거나 기존 필터 항목을 모두 제거(항목 옆의 **x** 표시 클릭)하십시오.
 
 image::alerting-rules-search.png[Alerting Rules showing custom HighPodRestartRate rule, link=self, window=blank]
 해당 규칙을 클릭하여 상세 정보를 확인합니다. 약 2~3분 후(pod가 몇 번 재시작되고 `for: 1m` 설정 시간이 지나면), 경고 상태가 **Inactive** → **Pending** → **Firing**으로 전동되는 것을 볼 수 있습니다:
 
 image::alerting-rule-detail.png[HighPodRestartRate rule detail showing expression and active alerts, link=self, window=blank]
-이제 **Alerting (경고) -> Alerts (경고)** 메뉴로 이동하면 `HighPodRestartRate`가 나타납니다. 경고를 클릭하고 하단의 **Description**을 클릭하여 자세한 내용(경고의 원인이 된 pod 이름인 `crashloop-test`)을 확인해 봅니다:
+이제 **Alerting (경고) -> Alerts (경고)** 메뉴로 이동하면 ``HighPodRestartRate``가 나타납니다. 경고를 클릭하고 하단의 **Description**을 클릭하여 자세한 내용(경고의 원인이 된 pod 이름인 `crashloop-test`)을 확인해 봅니다:
 
 image::alerts-firing.png[Alerts tab showing currently firing alerts with severity and state, link=self, window=blank]
 이 화면은 온콜(on-call) 대기 중인 엔지니어들이 가장 자주 확인하는 뷰입니다. 방금 새 규칙을 직접 생성하고 실제 장애를 통해 경고를 트리거하여 발령되는 전 과정을 확인했습니다. 테스트용 crash-looping pod를 정리합니다:
@@ -195,7 +195,7 @@ bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showr
 
 **Alertmanager 구성**
 
-이제 Alertmanager가 Mailpit을 통해 이메일을 전송하도록 구성합니다. warning 경고는 `ops-team@example.com`으로, critical 경고는 `oncall@example.com`으로 라우팅하도록 설정합니다:
+이제 Alertmanager가 Mailpit을 통해 이메일을 전송하도록 구성합니다. warning 경고는 ``ops-team@example.com``으로, critical 경고는 ``oncall@example.com``으로 라우팅하도록 설정합니다:
 
 [source,bash,role="execute"]
 ----
@@ -207,12 +207,12 @@ bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showr
 image::alerting-mailpit-inbox.png[Mailpit inbox showing alert notification emails from Alertmanager, link=self, window=blank]
 라우팅 결과에 주목해 보십시오:
 
-* **Warning** 경고 (예: `PodDisruptionBudgetAtLimit`, `KubeCPUOvercommit`)는 `ops-team@example.com`으로 전송됩니다.
-* **Critical** 경고는 `oncall@example.com`으로 전송됩니다.
+* **Warning** 경고 (예: `PodDisruptionBudgetAtLimit`, `KubeCPUOvercommit`)는 ``ops-team@example.com``으로 전송됩니다.
+* **Critical** 경고는 ``oncall@example.com``으로 전송됩니다.
 
 아무 이메일이나 클릭하여 경고 이름, 네임스페이스, 심각도(severity), 상세 설명 및 Alertmanager UI 링크 등의 전체 상세 정보를 확인해 봅니다.
 
-프로덕션 환경에서는 `mailpit.alert-demo.svc:1025`를 소속 조직의 SMTP 릴레이 주소로 대체하고 실제 사용되는 이메일 주소를 적용하게 됩니다. Alertmanager는 이와 동일한 라우팅 구조를 사용하여 Slack, PagerDuty, webhook 또한 완벽히 지원합니다. link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/monitoring/managing-alerts#sending-notifications-to-external-systems_managing-alerts[Sending notifications to external systems, window=blank] 문서를 참조하십시오.
+프로덕션 환경에서는 ``mailpit.alert-demo.svc:1025``를 소속 조직의 SMTP 릴레이 주소로 대체하고 실제 사용되는 이메일 주소를 적용하게 됩니다. Alertmanager는 이와 동일한 라우팅 구조를 사용하여 Slack, PagerDuty, webhook 또한 완벽히 지원합니다. link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/monitoring/managing-alerts#sending-notifications-to-external-systems_managing-alerts[Sending notifications to external systems, window=blank] 문서를 참조하십시오.
 
 **Alertmanager 복원**
 
@@ -524,7 +524,7 @@ bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showr
 oc get pods -n tracing-system
 ----
 
-출력 결과 상에 단일 단독 Tempo 볼륨 pod와 OTel collector pod가 모두 예외 없이 정상 `Running`으로 수립되어 작동 중인지 체크해 보십시오.
+출력 결과 상에 단일 단독 Tempo 볼륨 pod와 OTel collector pod가 모두 예외 없이 정상 ``Running``으로 수립되어 작동 중인지 체크해 보십시오.
 
 === Traces 콘솔 UI 활성화
 
@@ -586,7 +586,7 @@ Traces 모듈 뷰를 로딩하는 과정에서 종종 콘솔 브라우저 세션
 * Username: `{openshift_cluster_admin_username}`
 * Password: `{openshift_cluster_admin_password}`
 
-로그인 처리 후 콘솔 메뉴의 **Observe (모니터링) -> Traces (추적)** 메뉴 보드로 안전하게 이동합니다. 타겟 Tempo 인스턴스 지정 항목에서 `tracing-system / sample`을 셀렉트하고, 테넌트(tenant) 항목 값으로 `dev`를 선택하십시오:
+로그인 처리 후 콘솔 메뉴의 **Observe (모니터링) -> Traces (추적)** 메뉴 보드로 안전하게 이동합니다. 타겟 Tempo 인스턴스 지정 항목에서 ``tracing-system / sample``을 셀렉트하고, 테넌트(tenant) 항목 값으로 ``dev``를 선택하십시오:
 
 image::otel-traces-view.png[Observe Traces view showing workshop-demo trace with scatter graph, link=self, window=blank]
 그러면 우리가 방금 시뮬레이션 코드로 발송했던 `workshop-demo` 관련 정보가 스케터 그래프 형식으로 이쁘게 잡히는 것을 확인할 수 있습니다. 데이터 인덱스 열을 직접 클릭하여 호출 시각 폭포수 차트 뷰가 내장되어 있는 상세 속성 트랙 분석 화면으로 빠져 들어갑니다:

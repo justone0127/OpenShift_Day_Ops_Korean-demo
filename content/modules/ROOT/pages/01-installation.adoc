@@ -54,7 +54,7 @@ storage                      4.20.x    True        False         False      4h
 * **PROGRESSING = False** - 업그레이드 또는 배포(rollout)가 진행 중이지 않음
 * **DEGRADED = False** - 구성 요소가 정상 상태(healthy)임
 
-**정상 클러스터:** 모든 Operator가 `True False False`를 나타냅니다.
+**정상 클러스터:** 모든 Operator가 ``True False False``를 나타냅니다.
 
 **만약 특정 Operator가 degraded 상태라면**, 다음 명령어로 추가 조사를 진행하십시오:
 
@@ -67,9 +67,9 @@ degraded 상태가 된 원인에 대한 자세한 정보는 `Conditions` 섹션�
 
 **흔한 이슈들:**
 
-* `machine-config`가 progressing 중 - node들이 업데이트되는 중입니다 (업데이트 진행 시 정상적인 현상).
-* `monitoring`이 degraded 상태 - 스토리지 또는 리소스 문제일 수 있습니다.
-* `authentication`이 degraded 상태 - OAuth 또는 LDAP 설정 문제일 수 있습니다.
+* ``machine-config``가 progressing 중 - node들이 업데이트되는 중입니다 (업데이트 진행 시 정상적인 현상).
+* ``monitoring``이 degraded 상태 - 스토리지 또는 리소스 문제일 수 있습니다.
+* ``authentication``이 degraded 상태 - OAuth 또는 LDAP 설정 문제일 수 있습니다.
 
 **콘솔 뷰:** **OCP Console** 탭으로 전환하고 **Administration (관리) -> Cluster Settings (클러스터 설정)**으로 이동한 후 **ClusterOperators** 탭을 선택하십시오. 콘솔에서는 각 Operator가 녹색/적색 상태 아이콘으로 표시되므로, 34개의 행으로 이루어진 표를 일일이 스캔하지 않고도 degraded 상태의 Operator를 즉시 확인할 수 있습니다. 이는 CLI보다 더 빠르게 상태를 점검할 수 있는 방법입니다.
 
@@ -323,7 +323,7 @@ monitoring   4.20.x    True        False         False      3h
 
 **검증 완료 항목:** ClusterOperators 상태(health), 클러스터 버전 및 업데이트 채널, node 구성(MachineConfigPools), 네트워킹(배포, route, 연결성), 스토리지 프로비저닝(PVC 바인딩), 그리고 etcd 상태(health)(멤버 상태, fsync 지연 시간). 이러한 점검 사항들은 설치 직후, 업그레이드 이후, 혹은 클러스터에 이상이 느껴질 때 수행하는 것과 동일합니다.
 
-**주요 핵심 사항:** `oc get clusteroperators`가 가장 일차적인 상태 점검 방식입니다. 모든 Operator가 `True False False`로 표시되면 해당 클러스터는 정상이고 워크로드를 즉시 실행할 준비가 완료되었음을 의미합니다. 더 나아가, monitoring operator와 etcd의 상태가 정상인지도 함께 검증하십시오.
+**주요 핵심 사항:** ``oc get clusteroperators``가 가장 일차적인 상태 점검 방식입니다. 모든 Operator가 ``True False False``로 표시되면 해당 클러스터는 정상이고 워크로드를 즉시 실행할 준비가 완료되었음을 의미합니다. 더 나아가, monitoring operator와 etcd의 상태가 정상인지도 함께 검증하십시오.
 
 == OpenShift 설치 방식 이해
 

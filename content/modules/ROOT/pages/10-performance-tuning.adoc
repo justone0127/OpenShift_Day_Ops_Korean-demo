@@ -44,7 +44,7 @@ oc apply -f https://raw.githubusercontent.com/rhpds/openshift-days-ops-showroom/
 oc get pods -w
 ----
 
-pod가 `Running` 상태가 되면 `Ctrl+C`를 누르십시오.
+pod가 `Running` 상태가 되면 ``Ctrl+C``를 누르십시오.
 
 === 리소스 요청 정보 확인
 
@@ -111,7 +111,7 @@ echo "VPA operator ready"
 
 === VPA 권장 사항 확인
 
-memory-hog deployment를 대상으로 하는 VPA 리소스를 생성하십시오. 여기서는 `updateMode: "Off"`를 사용합니다. 이는 VPA가 권장 값만 **추천**할 뿐, pods를 직접 변경하지 않는다는 것을 의미합니다. 운영 환경에서는 권장 사항을 검증하기 위해 `Off`로 시작한 다음, `Auto`로 전환하여 재시작 시 VPA가 자동으로 pods의 크기를 조정하도록 설정할 수 있습니다.
+memory-hog deployment를 대상으로 하는 VPA 리소스를 생성하십시오. 여기서는 ``updateMode: "Off"``를 사용합니다. 이는 VPA가 권장 값만 **추천**할 뿐, pods를 직접 변경하지 않는다는 것을 의미합니다. 운영 환경에서는 권장 사항을 검증하기 위해 ``Off``로 시작한 다음, ``Auto``로 전환하여 재시작 시 VPA가 자동으로 pods의 크기를 조정하도록 설정할 수 있습니다.
 
 [source,bash,role="execute"]
 ----
@@ -239,7 +239,7 @@ oc run load-generator --image=registry.access.redhat.com/ubi9/ubi-minimal --rest
 
 load generator가 실행되는 동안 console의 **Workloads (워크로드) -> Pods (파드)** (project: `performance-demo`)로 이동하여 HPA가 scale up됨에 따라 새 pods가 나타나는 과정을 관찰하십시오. 이것이 autoscaler가 작동하는 모습입니다.
 
-그 다음 **Observe (모니터링) -> Dashboards (대시보드)**로 이동하여 **Kubernetes / Compute Resources / Namespace (Pods)**를 선택하고 project `performance-demo`를 선택하십시오. **CPU Quota** 표에서 여러 pods에 부하가 분산되는 것을 볼 수 있습니다. 각 demo-app pod는 약 40-50%의 CPU를 사용하고, `load-generator` pod가 가장 많은 CPU를 소비합니다. 전체 사용량이 단일 pod에 처음에 request된 양을 초과하기 때문에 상단의 **CPU Utilisation (from requests)** 백분율은 100%를 훨씬 초과하게 됩니다.
+그 다음 **Observe (모니터링) -> Dashboards (대시보드)**로 이동하여 **Kubernetes / Compute Resources / Namespace (Pods)**를 선택하고 project ``performance-demo``를 선택하십시오. **CPU Quota** 표에서 여러 pods에 부하가 분산되는 것을 볼 수 있습니다. 각 demo-app pod는 약 40-50%의 CPU를 사용하고, `load-generator` pod가 가장 많은 CPU를 소비합니다. 전체 사용량이 단일 pod에 처음에 request된 양을 초과하기 때문에 상단의 **CPU Utilisation (from requests)** 백분율은 100%를 훨씬 초과하게 됩니다.
 
 image::perf-hpa-pods-scaling.png[Pod list showing multiple demo-app pods after HPA scale-up, link=self, window=blank]
 CLI를 통해 관찰할 수도 있습니다:
@@ -249,7 +249,7 @@ CLI를 통해 관찰할 수도 있습니다:
 oc get hpa demo-app -w
 ----
 
-`REPLICAS` 열과 `TARGETS` 열을 관찰하십시오. 이 명령을 실행할 때 이미 HPA가 scale up되었을 수도 있습니다. 2-4개의 replicas가 있고 CPU가 50% 부근이라면 autoscaler가 이미 반응한 것입니다. `Ctrl+C`를 눌러 계속 진행하십시오.
+`REPLICAS` 열과 `TARGETS` 열을 관찰하십시오. 이 명령을 실행할 때 이미 HPA가 scale up되었을 수도 있습니다. 2-4개의 replicas가 있고 CPU가 50% 부근이라면 autoscaler가 이미 반응한 것입니다. ``Ctrl+C``를 눌러 계속 진행하십시오.
 
 pods가 정상적으로 scale되었는지 확인하십시오:
 
@@ -276,7 +276,7 @@ VPA로 하나의 애플리케이션의 크기를 적정화하고, HPA로 다른 
 oc adm top nodes
 ----
 
-각 nodes의 memory 사용 비율을 살펴보십시오. **OCP Console**에서 **Observe (모니터링) -> Dashboards (대시보드)**로 이동하고 **Kubernetes / Compute Resources / Namespace (Pods)**를 선택한 다음 project `performance-demo`를 선택하십시오:
+각 nodes의 memory 사용 비율을 살펴보십시오. **OCP Console**에서 **Observe (모니터링) -> Dashboards (대시보드)**로 이동하고 **Kubernetes / Compute Resources / Namespace (Pods)**를 선택한 다음 project ``performance-demo``를 선택하십시오:
 
 image::hpa-scaling-dashboard.png[Dashboard showing CPU usage and pod count during HPA scaling event, link=self, window=blank]
 그래프는 시간에 따른 HPA scaling 이벤트의 추이를 보여줍니다. **CPU Quota** 표에서 부하가 어떻게 분산되었는지 확인할 수 있습니다. 각 demo-app pod가 대략 균등한 CPU 사용량으로 트래픽의 일부를 처리하고, load-generator가 가장 많은 리소스를 소비합니다. 상단의 **CPU Utilisation (from requests)** 백분율은 총 namespace 사용량 대비 총 requests의 비율을 나타냅니다. 부하가 발생하는 동안 이 비율은 100%를 훨씬 상회합니다.

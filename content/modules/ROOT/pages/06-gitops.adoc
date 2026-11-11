@@ -35,7 +35,7 @@ OpenShift GitOps는 link:https://argo-cd.readthedocs.io/en/stable/[ArgoCD, windo
 1. **Define** - 원하는 클러스터 상태를 Git repository에 YAML manifest로 저장합니다.
 2. **Sync** - ArgoCD가 이러한 manifest를 클러스터에 적용합니다.
 3. **Detect** - ArgoCD가 실제 실행 중인 클러스터 상태(live cluster state)와 Git을 지속적으로 비교합니다.
-4. **Reconcile** - 차이(drift)가 감지되면 ArgoCD는 이를 `OutOfSync`로 표시하고 자동으로 복구(auto-heal)할 수 있습니다.
+4. **Reconcile** - 차이(drift)가 감지되면 ArgoCD는 이를 ``OutOfSync``로 표시하고 자동으로 복구(auto-heal)할 수 있습니다.
 
 그 결과, Git은 단일 진실 공급원(single source of truth)이 됩니다. 모든 변경 사항이 추적 및 감사 가능하며, 되돌릴 수도 있습니다.
 
@@ -208,7 +208,7 @@ oc get networkpolicy -n gitops-managed-project
 
 네 개의 리소스가 모두 단일 Git 경로로부터 배포되었습니다. 10개의 클러스터로 구성된 대규모 환경이라 하더라도, 각 클러스터의 ArgoCD가 동일한 repository를 가리키도록 설정하기만 하면 모든 클러스터에 이와 동일한 구성이 자동으로 적용됩니다.
 
-TIP: OpenShift console에서 **Home (홈) -> Projects (프로젝트)**로 이동하여 `gitops-managed-project`를 선택하십시오. **Overview (개요)** 탭 아래에서 ResourceQuota 구성을 확인할 수 있습니다.
+TIP: OpenShift console에서 **Home (홈) -> Projects (프로젝트)**로 이동하여 ``gitops-managed-project``를 선택하십시오. **Overview (개요)** 탭 아래에서 ResourceQuota 구성을 확인할 수 있습니다.
 
 == Drift 감지 및 자동 복구
 
@@ -249,8 +249,8 @@ image::gitops-quota-outofsync.png[compute-quota detail showing OutOfSync status,
 두 상태를 나란히 비교하여 정확한 차이점을 보여주는 비교 화면이 나타납니다:
 
 image::gitops-diff-view.png[ArgoCD diff view showing pods 100 on the left vs pods 20 on the right, link=self, window=blank]
-* Live 클러스터 상태에는 `pods: "100"`으로 변경되어 있습니다. (수동으로 변경한 값)
-* Git에 정의된 원하는 상태(desired state)는 `pods: "20"`으로 유지되어 있습니다. (원래 설정되어야 할 값)
+* Live 클러스터 상태에는 ``pods: "100"``으로 변경되어 있습니다. (수동으로 변경한 값)
+* Git에 정의된 원하는 상태(desired state)는 ``pods: "20"``으로 유지되어 있습니다. (원래 설정되어야 할 값)
 
 ArgoCD는 변경된 특정 필드만 정확히 짚어냅니다. 변경을 거치지 않은 Namespace, LimitRange, NetworkPolicy는 여전히 Synced 상태를 정상적으로 유지하고 있습니다.
 
@@ -316,7 +316,7 @@ ArgoCD 대시보드로 돌아가 보십시오. `managed-project` Application이 
 image::gitops-selfheal-synced.png[ArgoCD dashboard showing managed-project still Synced after self-heal, link=self, window=blank]
 Application에 진입하여 **Last Sync** 타임스탬프를 확인해 보십시오. 사용자가 동기화하지 않고 self-heal에 의해 최근에 새로 유도된 동기화 기록을 볼 수 있습니다.
 
-또한 리소스 트리 상단의 `managed-project`를 클릭한 다음 **Events** 탭을 클릭하여 동기화 기록(sync history)을 확인할 수 있습니다. ArgoCD가 drift를 감지하고 자동으로 다시 동기화했음을 나타내는 내역을 볼 수 있습니다.
+또한 리소스 트리 상단의 ``managed-project``를 클릭한 다음 **Events** 탭을 클릭하여 동기화 기록(sync history)을 확인할 수 있습니다. ArgoCD가 drift를 감지하고 자동으로 다시 동기화했음을 나타내는 내역을 볼 수 있습니다.
 
 image::gitops-events-sync-history.png[ArgoCD Events tab showing drift detection and automatic resync, link=self, window=blank]
 이것이 프로덕션 클러스터가 규정 준수(compliance) 상태를 지속하는 방법입니다. 누군가가 수동으로 구성을 변경하더라도, ArgoCD는 Git에 정의된 설정을 지속적으로 강제합니다.

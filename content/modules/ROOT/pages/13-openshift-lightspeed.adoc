@@ -90,7 +90,7 @@ EOF
 ** `models` - 해당 provider에서 사용할 model 이름
 * `spec.ols.defaultModel` - query에 대해 기본적으로 사용할 model을 지정합니다
 * `spec.ols.defaultProvider` - 여러 개의 provider가 configuration되어 있을 때 기본 provider를 설정합니다
-* `spec.ols.introspectionEnabled` - `true`로 설정하면, OpenShift Lightspeed가 사용자에게 context-aware(문맥 인식) 응답을 제공하기 위해 cluster resource를 query할 수 있는 MCP server를 자동으로 배포합니다 (OpenShift 4.20의 Technology Preview 기능)
+* `spec.ols.introspectionEnabled` - ``true``로 설정하면, OpenShift Lightspeed가 사용자에게 context-aware(문맥 인식) 응답을 제공하기 위해 cluster resource를 query할 수 있는 MCP server를 자동으로 배포합니다 (OpenShift 4.20의 Technology Preview 기능)
 
 === OpenShift Lightspeed 초기화 대기
 
@@ -127,7 +127,7 @@ OLSConfig 상태를 확인하십시오:
 oc get olsconfig cluster -o jsonpath='{.status.conditions}' | jq .
 ----
 
-모든 condition의 `"status"`가 `"True"`이고, `"message"`가 `"Ready"`로 표시되어야 합니다.
+모든 condition의 ``"status"``가 ``"True"``이고, ``"message"``가 ``"Ready"``로 표시되어야 합니다.
 
 == Lightspeed 사용
 
@@ -194,19 +194,19 @@ oc get pods -n lightspeed-demo
 oc describe pod broken-pod -n lightspeed-demo
 ----
 
-커맨드 라인을 통해 조회한 것과 동일한 정보를 OpenShift Lightspeed에도 요청할 수 있습니다. 앞서 OLSConfig를 configuration할 때 `introspectionEnabled`를 `true`로 설정했던 것을 기억하실 것입니다. 이는 OpenShift Lightspeed가 cluster 내부의 resource에 액세스할 수 있음을 의미합니다.
+커맨드 라인을 통해 조회한 것과 동일한 정보를 OpenShift Lightspeed에도 요청할 수 있습니다. 앞서 OLSConfig를 configuration할 때 ``introspectionEnabled``를 ``true``로 설정했던 것을 기억하실 것입니다. 이는 OpenShift Lightspeed가 cluster 내부의 resource에 액세스할 수 있음을 의미합니다.
 
 OpenShift Lightspeed 인터페이스에서, 대화를 초기화하기 위해 채팅 패널의 우측 상단(왼쪽)에 있는 **휴지통 아이콘**을 클릭하십시오. 이제 다음과 같이 질문할 수 있습니다:
 
 [quote]
 Show me the pods in the lightspeed-demo namespace
 
-model은 이 정보를 가져오기 위해 MCP server가 제공하는 tool 중 하나인 `pods_list_in_namespace`를 사용했을 것입니다. tool을 클릭하면 질문에 답변하는 데 사용된 tool output을 볼 수 있습니다.
+model은 이 정보를 가져오기 위해 MCP server가 제공하는 tool 중 하나인 ``pods_list_in_namespace``를 사용했을 것입니다. tool을 클릭하면 질문에 답변하는 데 사용된 tool output을 볼 수 있습니다.
 
 image::ols-tool-output.png[OpenShift Lightspeed MCP tool output, link=self, window=blank]
 이제 OpenShift Lightspeed의 도움을 받아 문제를 진단해 보겠습니다. OpenShift Lightspeed로 troubleshooting을 진행할 때, 첨부(attachment) 기능을 사용하여 분석 대상인 다양한 resource와 configuration을 model로 전달함으로써 문제를 식별하고 해결할 수 있습니다.
 
-OpenShift web console에서 *Workloads (워크로드)* → *Pods (포드)* 메뉴로 이동하고, `lightspeed-demo` namespace에 있는지 확인하십시오. 이전에 OpenShift Lightspeed가 나열했던 pod를 확인할 수 있습니다. `broken-pod`를 클릭하여 resource 상세 정보를 확인하십시오.
+OpenShift web console에서 *Workloads (워크로드)* → *Pods (포드)* 메뉴로 이동하고, `lightspeed-demo` namespace에 있는지 확인하십시오. 이전에 OpenShift Lightspeed가 나열했던 pod를 확인할 수 있습니다. ``broken-pod``를 클릭하여 resource 상세 정보를 확인하십시오.
 
 이제 채팅 창의 텍스트 입력창 옆에 있는 *클립* 아이콘을 클릭하면, 다양한 구성 요소를 첨부할 수 있는 메뉴가 표시됩니다. *Full YAML file*을 선택하십시오:
 

@@ -41,10 +41,10 @@ oc new-project app-management
 +
 image::app-mgmt-deploy-menu.png[Add menu showing Container images option, link=self, window=blank]
 . **Deploy Image (이미지 배포)** 양식에서 다음을 수행하십시오:
-* **Image name from external registry (외부 레지스트리의 이미지 이름)**를 선택하고 `quay.io/openshift-workshop-applications/weathernow:latest`를 입력하십시오.
+* **Image name from external registry (외부 레지스트리의 이미지 이름)**를 선택하고 ``quay.io/openshift-workshop-applications/weathernow:latest``를 입력하십시오.
 * 이미지가 **Validated (검증됨)** 상태로 표시될 때까지 기다리십시오.
-* **Select project (프로젝트 선택)**가 `app-management`로 구성되었는지 확인하십시오.
-* **Name (이름)**을 `weathernow`로 지정하십시오.
+* **Select project (프로젝트 선택)**가 ``app-management``로 구성되었는지 확인하십시오.
+* **Name (이름)**을 ``weathernow``로 지정하십시오.
 * 아래로 스크롤하여 **Create a route (라우트 생성)** 체크박스를 **해제(uncheck)** 하십시오. OpenShift는 자동으로 route를 생성해 줄 수 있지만, 라우팅이 어떻게 작동하는지 이해하기 위해 직접 생성해 보겠습니다.
 +
 image::app-mgmt-uncheck-route.png[Create a route checkbox unchecked, link=self, window=blank]
@@ -100,9 +100,9 @@ service 확인하기:
 oc get svc -n app-management
 ----
 
-해당 service는 `ClusterIP`를 가지고 있습니다 - 이 IP는 클러스터 내부에서만 접근 가능합니다. 외부로 노출시키기 위해서는 Route가 필요합니다.
+해당 service는 ``ClusterIP``를 가지고 있습니다 - 이 IP는 클러스터 내부에서만 접근 가능합니다. 외부로 노출시키기 위해서는 Route가 필요합니다.
 
-TIP: 콘솔의 **Networking (네트워킹) > Services (서비스)** (프로젝트: `app-management`)에서도 이를 확인할 수 있습니다 - `weathernow`를 클릭하여 service 상세 정보, 엔드포인트(endpoint), 백엔드에 위치한 pod들을 확인해 보십시오.
+TIP: 콘솔의 **Networking (네트워킹) > Services (서비스)** (프로젝트: `app-management`)에서도 이를 확인할 수 있습니다 - ``weathernow``를 클릭하여 service 상세 정보, 엔드포인트(endpoint), 백엔드에 위치한 pod들을 확인해 보십시오.
 
 == 노출 및 스케일링
 
@@ -198,7 +198,7 @@ TIP: 콘솔의 **Workloads (워크로드) -> Pods (파드)** (프로젝트: `app
 
 === 애플리케이션 프로브
 
-OpenShift는 애플리케이션의 실질적인 정상 여부를 어떻게 진단할 수 있을까요? 프로브가 없다면 컨테이너의 프로세스가 기동해 있는 한 내부 로직이 행(hang) 상태에 빠지거나, 리스너 포트가 비정상 다운되거나, 모든 요청에 에러를 반환하는 경우에도 pod는 그냥 `Running`으로 표시될 뿐입니다. 프로브는 이러한 맹점을 보완해 줍니다.
+OpenShift는 애플리케이션의 실질적인 정상 여부를 어떻게 진단할 수 있을까요? 프로브가 없다면 컨테이너의 프로세스가 기동해 있는 한 내부 로직이 행(hang) 상태에 빠지거나, 리스너 포트가 비정상 다운되거나, 모든 요청에 에러를 반환하는 경우에도 pod는 그냥 ``Running``으로 표시될 뿐입니다. 프로브는 이러한 맹점을 보완해 줍니다.
 
 * **Readiness probe** - "이 pod가 현재 유입되는 트래픽을 원활하게 처리할 수 있는가?" 검증 실패 시 pod가 service의 엔드포인트에서 제외되어 어떤 요청도 유입되지 않도록 보호합니다.
 * **Liveness probe** - "이 pod가 활성 상태로 현재 생존해 있는가?" 검증 실패 시 OpenShift는 즉각 해당 컨테이너를 재시작합니다.
@@ -236,7 +236,7 @@ pod 정보를 조회하십시오:
 oc get pods -n app-management
 ----
 
-조회된 pod 목록에서 `0/1 Running`으로 표시된 항목을 볼 수 있습니다. 컨테이너 자체는 가동 중이지만 readiness probe가 줄곧 실패 상태에 머물러 있으므로 OpenShift가 해당 pod로 트래픽을 유도하지 않는 것입니다. **OCP Console**의 **Workloads (워크로드) -> Pods (파드)** (프로젝트: `app-management`)로 이동하십시오:
+조회된 pod 목록에서 ``0/1 Running``으로 표시된 항목을 볼 수 있습니다. 컨테이너 자체는 가동 중이지만 readiness probe가 줄곧 실패 상태에 머물러 있으므로 OpenShift가 해당 pod로 트래픽을 유도하지 않는 것입니다. **OCP Console**의 **Workloads (워크로드) -> Pods (파드)** (프로젝트: `app-management`)로 이동하십시오:
 
 image::broken-probe-pods.png[Pod list showing 0/1 Running pod with failed readiness probe, link=self, window=blank]
 `0/1` pod를 클릭한 다음, **Events (이벤트)** 탭을 누르십시오. 반복해서 유입 기록되고 있는 `Readiness probe failed: dial tcp ... connect: connection refused` 이벤트 로그를 육안으로 확인할 수 있습니다:
@@ -289,7 +289,7 @@ NOTE: 배포 추적 결과로 `deployment "weathernow" successfully rolled out` 
 oc get pods -n app-management
 ----
 
-이제 모든 pod의 준비 상태가 `1/1 Running`으로 정상 복원되었습니다 - 프로브 검증을 완벽히 통과하며 트래픽 유입이 정상화되었습니다. 여러분은 지금 실제 프로덕션 단계의 OpenShift 클러스터 환경에서 흔히 접할 수 있는 치명적 장애 요인인 readiness probe 실패 상황을 직접 극복하고 분석해 낸 것입니다.
+이제 모든 pod의 준비 상태가 ``1/1 Running``으로 정상 복원되었습니다 - 프로브 검증을 완벽히 통과하며 트래픽 유입이 정상화되었습니다. 여러분은 지금 실제 프로덕션 단계의 OpenShift 클러스터 환경에서 흔히 접할 수 있는 치명적 장애 요인인 readiness probe 실패 상황을 직접 극복하고 분석해 낸 것입니다.
 
 TIP: **OCP Console**의 **Workloads (워크로드) -> Deployments (배포)** 메뉴로 이동한 뒤, `weathernow` 배포 항목 우측의 점 3개 메뉴 버튼을 클릭하여 **Edit Health Checks (헬스 체크 편집)**을 선택해 보십시오:
 
@@ -323,7 +323,7 @@ oc rollout history deployment/weathernow -n app-management
 콘솔을 활용하여 이를 눈으로 직접 확인할 수도 있습니다. **Workloads (워크로드) -> Deployments (배포) -> weathernow** 경로로 진입해 **ReplicaSets (레플리카셋)** 탭을 눌러 보십시오:
 
 image::app-mgmt-replicasets-history.png[ReplicaSets tab showing deployment revision history with active and scaled-down replicas, link=self, window=blank]
-개별 ReplicaSet들이 각각 하나의 배포 시점을 나타내 줍니다. 활성 중인 실서비스 배포본만 `1 of 1 pods` 등의 구동 카운트를 가지며 이전 시점의 백업본들은 `0 of 0 pods`로 인스턴스를 유지하지 않도록 격리됩니다 - OpenShift는 롤백 명령이 하달되면 해당 백업본을 복원시켜 즉각적으로 이전 버전으로 구동해 냅니다.
+개별 ReplicaSet들이 각각 하나의 배포 시점을 나타내 줍니다. 활성 중인 실서비스 배포본만 `1 of 1 pods` 등의 구동 카운트를 가지며 이전 시점의 백업본들은 ``0 of 0 pods``로 인스턴스를 유지하지 않도록 격리됩니다 - OpenShift는 롤백 명령이 하달되면 해당 백업본을 복원시켜 즉각적으로 이전 버전으로 구동해 냅니다.
 
 이제 바로 직전에 원활히 구동되던 안전한 구버전 상태로 롤백을 단행해 보겠습니다:
 
@@ -356,7 +356,7 @@ oc rollout status deployment/weathernow -n app-management --timeout=60s
 
 NOTE: 다소 처리 시간이 걸릴 수 있습니다. 구동이 5분 넘게 정체되지 않는다면 잠시 기다려 주십시오. 만약 너무 지체된다면 **Ctrl+C**를 누르셔도 무방합니다.
 
-작동 가능한 이전 정상 빌드본 버전으로 완벽히 복원되었습니다. 프로덕션 운영 중 배포 장애 상황을 인지한 긴급한 위기 국면에서는 소스 코드를 그 자리에서 전면 재분석해 핫픽스하고 새로 빌드해 올리는 흐름보다 `oc rollout undo`를 통한 즉시 복구가 가장 신속하고 주효한 대처 방안이 됩니다.
+작동 가능한 이전 정상 빌드본 버전으로 완벽히 복원되었습니다. 프로덕션 운영 중 배포 장애 상황을 인지한 긴급한 위기 국면에서는 소스 코드를 그 자리에서 전면 재분석해 핫픽스하고 새로 빌드해 올리는 흐름보다 ``oc rollout undo``를 통한 즉시 복구가 가장 신속하고 주효한 대처 방안이 됩니다.
 
 == Pod Disruption Budgets
 
@@ -398,7 +398,7 @@ NAME         MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
 weathernow   2               N/A               1                     5s
 ----
 
-`ALLOWED DISRUPTIONS: 1`이란 현재 즉각 가용 범위 내에서 파괴 격리 처리해도 안전한 여유 pod 한도를 나타냅니다 (현재 기동 3개 - 최소 필요 2개 = 1개 여유 공간).
+``ALLOWED DISRUPTIONS: 1``이란 현재 즉각 가용 범위 내에서 파괴 격리 처리해도 안전한 여유 pod 한도를 나타냅니다 (현재 기동 3개 - 최소 필요 2개 = 1개 여유 공간).
 
 === PDB 작동 원리 검증
 
@@ -414,14 +414,14 @@ oc delete pod $(oc get pods -n app-management -l app=weathernow -o jsonpath='{.i
 oc get pdb weathernow -n app-management
 ----
 
-신규 파드가 기동 완료되어 합류하기 전까지의 찰나의 정비 구간 동안 `ALLOWED DISRUPTIONS` 수치가 일시적으로 `0`으로 급강하하는 것을 볼 수 있습니다. 잠시 여유를 준 뒤 상태를 리체크해 보십시오:
+신규 파드가 기동 완료되어 합류하기 전까지의 찰나의 정비 구간 동안 `ALLOWED DISRUPTIONS` 수치가 일시적으로 ``0``으로 급강하하는 것을 볼 수 있습니다. 잠시 여유를 준 뒤 상태를 리체크해 보십시오:
 
 [source,bash,role="execute"]
 ----
 sleep 10 && oc get pdb weathernow -n app-management
 ----
 
-수치가 다시 원래의 안정권 수치인 `1`로 복귀되었습니다 - 신규 대체 pod가 합류하며 배출 가용 한도에 다시 숨통이 트였습니다.
+수치가 다시 원래의 안정권 수치인 ``1``로 복귀되었습니다 - 신규 대체 pod가 합류하며 배출 가용 한도에 다시 숨통이 트였습니다.
 
 === 강제 지연 시뮬레이션: Node 드레인 수동 지연 검증
 
@@ -473,7 +473,7 @@ oc get pdb weathernow -n app-management
 
 `ALLOWED DISRUPTIONS: 1` - 이제는 드레인 프로세스가 유연하게 구동됩니다.
 
-**핵심 인사이트:** 향후 플랫폼 업그레이드가 긴 시간 알 수 없는 사유로 표류하고 있다면, 먼저 `oc get pdb -A` 조회를 통해 전 영역의 PDB 중에서 `ALLOWED DISRUPTIONS: 0`을 나타내고 있는 주범이 없는지 수색하십시오. 만약 최솟값 규격이 실제 복제수 카운트와 맞닿아 있다면 하향 조정하거나 `maxUnavailable: 1` 등의 상대적 비가용 여유 치를 1개 등으로 두도록 교체 권장합니다. 전면 배출 불가로 무조건 방어만 고수하는 엄격한 PDB 정보는 운영 서비스를 수호하는 안전 장치가 아닌, 플랫폼 유지보수 공정을 전면 훼손하는 정체 요인으로 전락합니다.
+**핵심 인사이트:** 향후 플랫폼 업그레이드가 긴 시간 알 수 없는 사유로 표류하고 있다면, 먼저 `oc get pdb -A` 조회를 통해 전 영역의 PDB 중에서 ``ALLOWED DISRUPTIONS: 0``을 나타내고 있는 주범이 없는지 수색하십시오. 만약 최솟값 규격이 실제 복제수 카운트와 맞닿아 있다면 하향 조정하거나 `maxUnavailable: 1` 등의 상대적 비가용 여유 치를 1개 등으로 두도록 교체 권장합니다. 전면 배출 불가로 무조건 방어만 고수하는 엄격한 PDB 정보는 운영 서비스를 수호하는 안전 장치가 아닌, 플랫폼 유지보수 공정을 전면 훼손하는 정체 요인으로 전락합니다.
 
 == 정리 및 요약
 
@@ -481,13 +481,13 @@ oc get pdb weathernow -n app-management
 
 여러분은 OpenShift 상에서 동작하는 핵심 애플리케이션 수명 주기를 전반적으로 관리하는 실습을 완료하셨습니다:
 
-* **Deploy (배포)** - `oc new-app`을 활용하여 deployment 및 service를 단일 커맨드로 간단하게 동시 조성해 냈습니다.
-* **Inspect (검사)** - `oc describe pod`와 `oc logs`를 통해 내부 상태 정보 및 로그 진단 지식을 습득했습니다.
-* **Expose (노출)** - `oc create route edge`를 통해 안전하게 암호화 종단되는 외부 route를 즉시 배포했습니다.
+* **Deploy (배포)** - ``oc new-app``을 활용하여 deployment 및 service를 단일 커맨드로 간단하게 동시 조성해 냈습니다.
+* **Inspect (검사)** - ``oc describe pod``와 ``oc logs``를 통해 내부 상태 정보 및 로그 진단 지식을 습득했습니다.
+* **Expose (노출)** - ``oc create route edge``를 통해 안전하게 암호화 종단되는 외부 route를 즉시 배포했습니다.
 * **Scale (스케일링)** - `oc scale` 조정을 거쳐 스케일아웃을 수행하였고, 내부 service의 로드 밸런싱 동작 원리를 검증했습니다.
 * **Self-heal (자동 복구)** - pod를 돌발 격리 소멸시켰으나, 수 초 안에 완벽하게 동률의 신규 파드로 재생성해 내는 자가 치유 능력을 목격했습니다.
 * **Health checks (헬스 체크)** - 프로브 구성을 주입하여 비정상 파드로 불필요한 운영 트래픽이 유도되는 위험 요인을 사전에 완벽히 소거했습니다.
-* **Rollback (롤백)** - 오작동하는 불량 배포본을 인지하는 즉시 `oc rollout undo`를 가동하여 찰나의 순간에 정상본으로 회복하는 고속 롤백을 단행했습니다.
+* **Rollback (롤백)** - 오작동하는 불량 배포본을 인지하는 즉시 ``oc rollout undo``를 가동하여 찰나의 순간에 정상본으로 회복하는 고속 롤백을 단행했습니다.
 * **PDB (장애 대응 예산)** - `minAvailable` 설정을 얹어 node 비우기 등 인프라 점검 국면에서도 일정한 파드의 생존 수를 사전에 타이트하게 수호했습니다. (잘못 설정된 경우 업그레이드 전반을 무단 보류시킬 수 있다는 점도 체감했습니다.)
 
 **주요 핵심 명령어 요약:**
