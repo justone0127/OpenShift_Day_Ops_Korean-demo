@@ -378,7 +378,7 @@ oc get servicemonitor -n backstage
 
 NOTE: Prometheus가 새로운 ServiceMonitor 대상을 식별하고 지표 데이터를 정식으로 긁어가기 시작할 때까지 1-2분가량 걸릴 수 있습니다. "No datapoints found"와 같은 메시지가 보이는 경우에는 잠시 후 **Run Queries** 버튼을 다시 실행해 보십시오.
 
-**OCP Console (오픈시프트 콘솔) -> Observe (관찰) -> Metrics (메트릭)**으로 이동하십시오. 설정 폼 내에 다음의 질의어를 입력하고 **Run Queries**를 클릭하십시오:
+**OCP Console (오픈시프트 콘솔) -> Observe (모니터링) -> Metrics (메트릭)**으로 이동하십시오. 설정 폼 내에 다음의 질의어를 입력하고 **Run Queries**를 클릭하십시오:
 
 [source,promql,role="copypaste"]
 ----

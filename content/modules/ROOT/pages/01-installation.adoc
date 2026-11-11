@@ -289,7 +289,7 @@ etcd는 모든 클러스터 상태를 보유하는 분산형 키-값(key-value) 
 * **Leader elections (리더 선출)** - 0에 수렴하거나 아주 낮아야 합니다. 빈번한 리더 선출은 디스크 I/O 문제 또는 control plane node 간의 네트워크 지연(latency)을 의미합니다.
 * **Disk sync duration (디스크 동기화 시간)** - fsync 시간이 계속해서 10ms를 초과하게 되면, etcd 성능이 크게 저하되어 `oc` 명령어 실행 결과의 타임아웃(timeout)이 발생하기 시작합니다.
 
-두 가지 지표 모두 **OCP Console**의 **Observe (관찰) -> Metrics (메트릭)**에서 조회하여 검증하십시오. 다음 쿼리를 입력하고 **Run Queries**를 클릭하십시오:
+두 가지 지표 모두 **OCP Console**의 **Observe (모니터링) -> Metrics (메트릭)**에서 조회하여 검증하십시오. 다음 쿼리를 입력하고 **Run Queries**를 클릭하십시오:
 
 [source,promql,role="copypaste"]
 ----
