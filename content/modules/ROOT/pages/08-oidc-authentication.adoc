@@ -33,7 +33,7 @@ NOTE: Operator가 설치되고 CRD가 등록되는 데 1~2분 정도 소요됩�
 
 === 2단계: Keycloak 배포
 
-Keycloak 인스턴스를 배포합니다. 내장 데이터베이스를 위해 `dev-file`을 사용하며, 프로덕션 환경에서는 외부 PostgreSQL을 사용하게 됩니다.
+Keycloak 인스턴스를 배포합니다. 내장 데이터베이스를 위해 ``dev-file``을 사용하며, 프로덕션 환경에서는 외부 PostgreSQL을 사용하게 됩니다.
 
 [source,bash,role="execute"]
 ----
@@ -137,7 +137,7 @@ image::oidc-rhbk-create-user.png[Create user form with admin1 details filled in,
 image::oidc-rhbk-credentials-tab.png[Credentials tab showing No credentials with Set password button, link=self, window=blank]
 +
 6. **Set password**를 클릭합니다.
-7. 두 필드 모두 비밀번호로 `OpenShift123!`를 입력합니다.
+7. 두 필드 모두 비밀번호로 ``OpenShift123!``를 입력합니다.
 8. 사용자가 첫 로그인 시 비밀번호를 변경하지 않아도 되도록 **Temporary** 항목을 **Off**로 전환합니다.
 +
 image::oidc-rhbk-set-password.png[Set password dialog with Temporary set to Off, link=self, window=blank]
@@ -150,7 +150,7 @@ Keycloak의 그룹은 OpenShift groups에 매핑됩니다. 사용자가 OpenShif
 
 1. 왼쪽 사이드바에서 **Groups**를 클릭합니다.
 2. **Create group**을 클릭합니다.
-3. 이름을 `ocp-admins`로 설정하고 **Create**를 클릭합니다.
+3. 이름을 ``ocp-admins``로 설정하고 **Create**를 클릭합니다.
 
 image::oidc-rhbk-groups-created.png[Groups page showing ocp-admins group, link=self, window=blank]
 **admin1을 그룹에 할당:**
@@ -179,7 +179,7 @@ Keycloak UI에서 구성 결과를 확인해 봅니다 - **Users** 및 **Groups*
 
 === 7단계: OpenShift OAuth 구성
 
-Keycloak 설정 스크립트는 올바른 client secret이 포함된 `rhbk-client-secret`을 `openshift-config` 네임스페이스에 이미 생성해 두었습니다. 이제 OAuth가 이를 사용하도록 구성합니다:
+Keycloak 설정 스크립트는 올바른 client secret이 포함된 ``rhbk-client-secret``을 `openshift-config` 네임스페이스에 이미 생성해 두었습니다. 이제 OAuth가 이를 사용하도록 구성합니다:
 
 [source,bash,role="execute"]
 ----
@@ -213,7 +213,7 @@ NOTE: OAuth pod가 새로운 구성으로 재시작되는 데 1~2분 정도 소�
 image::oidc-login-selector.png[OpenShift login page showing htpasswd and rhbk, link=self, window=blank]
 +
 3. **rhbk**를 클릭합니다.
-4. `developer1` / `OpenShift123!`로 로그인합니다.
+4. `developer1` / ``OpenShift123!``로 로그인합니다.
 
 [NOTE]
 ====
@@ -223,7 +223,7 @@ image::oidc-auth-error.png[Authentication error after OIDC login, link=self, win
 OCP Console 탭 옆의 **새로 고침 버튼** (원형 화살표)을 클릭하여 페이지를 새로 고치십시오.
 ====
 
-이제 결과를 확인해 봅니다. `developer1`이 로그인할 때, 해당 사용자의 Keycloak 그룹 멤버십 정보가 ID token에 포함되어 전달되었습니다. OpenShift는 이 token을 읽어 그룹을 자동으로 생성하므로, 별도의 수동 `oc adm groups sync` 과정이 전혀 필요하지 않습니다. 터미널로 다시 돌아가서 다음을 수행합니다:
+이제 결과를 확인해 봅니다. ``developer1``이 로그인할 때, 해당 사용자의 Keycloak 그룹 멤버십 정보가 ID token에 포함되어 전달되었습니다. OpenShift는 이 token을 읽어 그룹을 자동으로 생성하므로, 별도의 수동 `oc adm groups sync` 과정이 전혀 필요하지 않습니다. 터미널로 다시 돌아가서 다음을 수행합니다:
 
 [source,bash,role="execute",subs="attributes"]
 ----
@@ -235,7 +235,7 @@ oc login -u {openshift_cluster_admin_username} -p {openshift_cluster_admin_passw
 oc get groups
 ----
 
-`developer1`을 멤버로 하는 `ocp-developers` 그룹이 ID token으로부터 **자동으로 생성**된 것을 확인할 수 있습니다. 수동 `oc adm groups sync` 과정이 필요한 LDAP과 달리, OIDC 그룹은 자동으로 동동화되어 나타납니다.
+``developer1``을 멤버로 하는 `ocp-developers` 그룹이 ID token으로부터 **자동으로 생성**된 것을 확인할 수 있습니다. 수동 `oc adm groups sync` 과정이 필요한 LDAP과 달리, OIDC 그룹은 자동으로 동동화되어 나타납니다.
 
 TIP: 콘솔의 **User Management (사용자 관리) > Groups (그룹)** 메뉴에서도 자동으로 생성된 그룹을 확인할 수 있습니다. OIDC를 사용하면 수동 동기화 단계 없이 그룹이 자동으로 나타납니다.
 
@@ -244,7 +244,7 @@ TIP: 콘솔의 **User Management (사용자 관리) > Groups (그룹)** 메뉴�
 oc get user developer1 -o yaml
 ----
 
-출력 결과에서 `identities` 섹션을 살펴보십시오. Identity Provider (`rhbk`)와 해당 사용자의 식별자가 표시되어 있습니다. 첫 번째 로그인 시 사용자가 자동으로 생성된 것입니다. `groups: null`로 나타나는 점에 유의하십시오. 그룹 멤버십 정보는 User 오브젝트에 저장되지 않고, 위에서 `oc get groups`를 통해 확인했듯이 OIDC token으로부터 자동 생성된 Group 오브젝트에 유지됩니다. 다음으로 해당 그룹들에 RBAC 역할을 부여해 봅니다.
+출력 결과에서 `identities` 섹션을 살펴보십시오. Identity Provider (`rhbk`)와 해당 사용자의 식별자가 표시되어 있습니다. 첫 번째 로그인 시 사용자가 자동으로 생성된 것입니다. ``groups: null``로 나타나는 점에 유의하십시오. 그룹 멤버십 정보는 User 오브젝트에 저장되지 않고, 위에서 ``oc get groups``를 통해 확인했듯이 OIDC token으로부터 자동 생성된 Group 오브젝트에 유지됩니다. 다음으로 해당 그룹들에 RBAC 역할을 부여해 봅니다.
 
 == RBAC 구성
 
@@ -270,7 +270,7 @@ oc adm policy add-role-to-group edit ocp-developers -n app-development
 oc adm policy add-role-to-group view ocp-developers -n app-production
 ----
 
-NOTE: `Warning: Group 'ocp-admins' not found` 또는 유사한 경고 메시지가 출력될 수 있으나 이는 정상입니다. OIDC 그룹은 해당 그룹에 속한 사용자가 로그인할 때 비로소 OpenShift 내에 생성됩니다. 현재까지는 `developer1`만 로그인했기 때문에 `ocp-developers` 그룹만 존재합니다. 이와 상관없이 역할 바인딩(role bindings)은 정상적으로 생성되며, 향후 해당 사용자들이 로그인할 때 정상 동작하게 됩니다.
+NOTE: `Warning: Group 'ocp-admins' not found` 또는 유사한 경고 메시지가 출력될 수 있으나 이는 정상입니다. OIDC 그룹은 해당 그룹에 속한 사용자가 로그인할 때 비로소 OpenShift 내에 생성됩니다. 현재까지는 ``developer1``만 로그인했기 때문에 `ocp-developers` 그룹만 존재합니다. 이와 상관없이 역할 바인딩(role bindings)은 정상적으로 생성되며, 향후 해당 사용자들이 로그인할 때 정상 동작하게 됩니다.
 
 이제 검증을 위해 **OCP Console** 탭을 새로 고침합니다. developer1이 이미 OIDC를 통해 로그인한 상태이므로, 콘솔에는 본인이 액세스할 수 있는 프로젝트 목록이 표시되어야 합니다. 프로젝트 목록에 **Application Development**와 **Application Production**이 표시되는 것을 확인할 수 있습니다.
 
@@ -289,7 +289,7 @@ developer1로 정상 로그인되었는지 확인합니다:
 oc whoami
 ----
 
-`developer1`이 표시되어야 합니다. 여전히 admin 사용자가 보인다면 token 로그인이 실패한 것이므로 복사하여 다시 입력해 보십시오.
+``developer1``이 표시되어야 합니다. 여전히 admin 사용자가 보인다면 token 로그인이 실패한 것이므로 복사하여 다시 입력해 보십시오.
 
 [source,bash,role="execute"]
 ----
@@ -335,7 +335,7 @@ bash <(curl -sL https://raw.githubusercontent.com/rhpds/openshift-days-ops-showr
 
 **OIDC와 LDAP의 핵심적인 차이점:**
 
-* **LDAP:** 그룹 동기화를 위해 수동으로 `oc adm groups sync`를 수행하거나 CronJob을 구성해야 합니다.
+* **LDAP:** 그룹 동기화를 위해 수동으로 ``oc adm groups sync``를 수행하거나 CronJob을 구성해야 합니다.
 * **OIDC:** 사용자가 로그인할 때마다 token claim 정보로부터 자동으로 그룹이 동기화됩니다.
 
 두 가지 접근 방법 모두 우수하므로 조직의 ID 관리 인프라에 맞춰 선택해 사용할 수 있습니다. 대다수 기업들은 Keycloak을 브로커로 사용하여 기존 LDAP/AD 백엔드와 페더레이션함으로써, 기존 LDAP 사용자 디렉터리를 유지하면서 OIDC의 자동 그룹 동기화 혜택을 동시에 누리는 방식을 취하고 있습니다.

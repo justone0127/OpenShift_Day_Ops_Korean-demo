@@ -87,7 +87,7 @@ image::105-create-cluster-details.png[link=self, window=blank, width=100%, Creat
 *다음 화면에서는 node pools 이름, pool replicas의 수량, 코어 및 메모리를 사용자 정의할 수 있습니다.*
 ====
 +
-. *Node pool name*으로 `hcp-emea`를 입력하고 나머지 세부 정보는 기본값으로 두십시오.
+. *Node pool name*으로 ``hcp-emea``를 입력하고 나머지 세부 정보는 기본값으로 두십시오.
 +
 [source,sh,subs="attributes",role="copypaste"]
 ----
@@ -224,7 +224,7 @@ openshift-gitops-global
 +
 [IMPORTANT]
 ====
-다음 단계에서 Cluster set이 `global`로 정상 설정되었는지 확실히 확인하십시오. 그렇지 않으면 향후 단계에서 오류가 발생할 수 있습니다.
+다음 단계에서 Cluster set이 ``global``로 정상 설정되었는지 확실히 확인하십시오. 그렇지 않으면 향후 단계에서 오류가 발생할 수 있습니다.
 ====
 +
 image::03-argoconfig.png[link=self, window=blank, width=100%, ArgoCD Config]
@@ -242,7 +242,7 @@ image::03-app-gitops.png[link=self, window=blank, width=100%, App GitOps]
 ----
 https://github.com/mfosterrox/demo-applications.git
 ----
-. Revision 정보로 `main`을 입력한 뒤 Revision 드롭다운에서 *Create new option*을 선택하십시오.
+. Revision 정보로 ``main``을 입력한 뒤 Revision 드롭다운에서 *Create new option*을 선택하십시오.
 . 드롭다운에서 *Path*를 선택하십시오 (만약 드롭다운에 아무것도 나타나지 않는다면 이전 단계에서 신규 옵션을 올바르게 추가했는지 확인하십시오):
 +
 [source,sh,subs="attributes",role="copypaste"]
@@ -261,7 +261,7 @@ patient-portal
 image::03-app-gitops-2.png[link=self, window=blank, width=100%, App ACM GitOps]
 +
 . *Placement* 하단에서 *New Placement*가 설정되어 있는지 확인하십시오.
-* *Cluster set:* `global`을 선택하십시오.
+* *Cluster set:* ``global``을 선택하십시오.
 . *Label expressions* 아래에서 *Add label expression*을 클릭하고 다음 정보를 지정하십시오:
 * *Label:* name
 * *Operator:* equals any of
