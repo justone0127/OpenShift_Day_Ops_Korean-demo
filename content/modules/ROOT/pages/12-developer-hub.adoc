@@ -76,13 +76,13 @@ image::rhdh-catalog-all-components.png[Developer Hub catalog showing 6 component
 
 catalog은 단순한 목록에 그치지 않고 검색 및 필터링이 가능한 인벤토리 역할을 수행합니다. 좌측 사이드바의 필터를 사용해 보십시오. 필터 옵션이 보이지 않는 경우, 필터 아이콘을 클릭하거나 브라우저 창 크기를 넓히십시오.
 
-* **Owner (소유자)** 드롭다운 - `payments-team`을 선택하십시오. catalog 목록이 해당 팀의 서비스로 좁혀집니다. _"보안 팀에서 payments-team이 실행하는 모든 목록을 필요로 합니다."_ 이 요구를 클릭 두 번으로 충족할 수 있습니다.
+* **Owner (소유자)** 드롭다운 - ``payments-team``을 선택하십시오. catalog 목록이 해당 팀의 서비스로 좁혀집니다. _"보안 팀에서 payments-team이 실행하는 모든 목록을 필요로 합니다."_ 이 요구를 클릭 두 번으로 충족할 수 있습니다.
 
 image::rhdh-catalog-filtered-payments.png[Catalog filtered by payments-team showing PCI-tagged service, link=self, window=blank]
-* 소유자 필터를 지운 다음, **Tags (태그)** 필터에서 `pci`를 검색해 보십시오. PCI 준수 태그가 부착된 `payments-platform`을 찾을 수 있습니다. _"PCI 감사 범위에 속하는 서비스는 무엇입니까?"_ 필터 하나로 조회가 완료됩니다.
+* 소유자 필터를 지운 다음, **Tags (태그)** 필터에서 ``pci``를 검색해 보십시오. PCI 준수 태그가 부착된 ``payments-platform``을 찾을 수 있습니다. _"PCI 감사 범위에 속하는 서비스는 무엇입니까?"_ 필터 하나로 조회가 완료됩니다.
 
 image::rhdh-filter-tags-pci.png[Tags filter with pci selected, link=self, window=blank]
-* **Lifecycle (라이프사이클)**을 설정해 보십시오. `development`로 필터링하면 아직 운영 환경에 배포되지 않은 유일한 서비스인 `order-tracker`를 볼 수 있습니다.
+* **Lifecycle (라이프사이클)**을 설정해 보십시오. ``development``로 필터링하면 아직 운영 환경에 배포되지 않은 유일한 서비스인 ``order-tracker``를 볼 수 있습니다.
 
 image::rhdh-filter-lifecycle-development.png[Lifecycle filter showing development selected, link=self, window=blank]
 실제 운영 환경처럼 수백 개의 서비스가 존재하는 환경에서는, 기존의 namespace 검색, Slack 스레드 뒤지기, 또는 다른 담당자에게 수소문해야 했던 질문들을 이러한 필터 도구 하나로 명쾌하게 해결할 수 있습니다.
@@ -94,7 +94,7 @@ image::rhdh-filter-lifecycle-development.png[Lifecycle filter showing developmen
 이제 **Kubernetes** 탭을 클릭하십시오.
 
 image::rhdh-payments-kubernetes-3pods.png[Kubernetes tab showing 3 pods for payments-platform, link=self, window=blank]
-실행 중인 3개의 pods인 `payments-api`, `payments-processor`, `payments-gateway`의 상태, restart 횟수, 기동 시간을 확인할 수 있습니다. 이 데이터는 cluster에서 실시간으로 수집된 것입니다.
+실행 중인 3개의 pods인 `payments-api`, `payments-processor`, ``payments-gateway``의 상태, restart 횟수, 기동 시간을 확인할 수 있습니다. 이 데이터는 cluster에서 실시간으로 수집된 것입니다.
 
 NOTE: 상단에 "pods with errors" 경고가 보일 수 있습니다. 이는 Developer Hub가 restart 횟수가 1회 이상인 모든 pods를 표시하는 메커니즘 때문입니다. 실습용 cluster 환경에서 이는 지극히 정상이며(초기 프로비저닝 단계에서 pods가 재시작되었을 수 있음), 실제 애플리케이션 장애를 의미하지는 않습니다.
 
@@ -129,7 +129,7 @@ image::rhdh-order-tracker-empty.png[order-tracker Kubernetes tab showing no reso
 * `backstage-developer-hub` - 메인 애플리케이션
 * `backstage-psql-developer-hub` - catalog 데이터와 템플릿 실행 이력을 저장하는 PostgreSQL 데이터베이스
 
-`backstage-developer-hub` pod(예: `backstage-developer-hub-fcdd8d5df-2qf4b`와 같이 난수 접미사가 붙어 있음)를 클릭하고 **Details (상세 정보)** 탭을 선택하십시오. 스크롤을 내려 **Volumes (볼륨)** 섹션을 보면 pod에 마운트된 ConfigMaps를 확인할 수 있습니다: `app-config-rhdh` (애플리케이션 설정), `pre-built-catalog` (catalog 항목 및 템플릿), `backstage-appconfig-developer-hub` (기본 설정).
+`backstage-developer-hub` pod(예: ``backstage-developer-hub-fcdd8d5df-2qf4b``와 같이 난수 접미사가 붙어 있음)를 클릭하고 **Details (상세 정보)** 탭을 선택하십시오. 스크롤을 내려 **Volumes (볼륨)** 섹션을 보면 pod에 마운트된 ConfigMaps를 확인할 수 있습니다: `app-config-rhdh` (애플리케이션 설정), `pre-built-catalog` (catalog 항목 및 템플릿), `backstage-appconfig-developer-hub` (기본 설정).
 
 image::rhdh-pod-volumes.png[Pod volumes showing ConfigMaps mounted into the RHDH pod, link=self, window=blank]
 
@@ -189,7 +189,7 @@ weather app에서 이 규칙을 검증해 보겠습니다:
 oc get deployments -n ops-track-demo -o custom-columns='NAME:.metadata.name,BACKSTAGE-ID:.spec.template.metadata.labels.backstage\.io/kubernetes-id'
 ----
 
-날씨 마이크로서비스 deployments의 backstage ID가 `weather-app`으로 일치하게 나타나야 합니다. `weather-db`에 `<none>`이 표시되는 것을 볼 수 있는데, 이는 모듈 05에서 디버깅 용도로 기동했던 pod이므로 catalog에 매핑되지 않은 것입니다. labels가 올바르지 않거나 아예 부착되어 있지 않은 모든 deployment는 Kubernetes 탭에 표출되지 않습니다. 트러블슈팅 세션에서 이 문제를 직접 다루어 보겠습니다.
+날씨 마이크로서비스 deployments의 backstage ID가 ``weather-app``으로 일치하게 나타나야 합니다. ``weather-db``에 ``<none>``이 표시되는 것을 볼 수 있는데, 이는 모듈 05에서 디버깅 용도로 기동했던 pod이므로 catalog에 매핑되지 않은 것입니다. labels가 올바르지 않거나 아예 부착되어 있지 않은 모든 deployment는 Kubernetes 탭에 표출되지 않습니다. 트러블슈팅 세션에서 이 문제를 직접 다루어 보겠습니다.
 
 == 셀프 서비스 작동 확인
 
@@ -273,7 +273,7 @@ deployment는 분명 정상적으로 실행되고 있지만 화면에는 가려�
 oc get deployments -n payments-team -o custom-columns='NAME:.metadata.name,BACKSTAGE-ID:.spec.template.metadata.labels.backstage\.io/kubernetes-id'
 ----
 
-`payments-gateway`가 `payments-platform`이 아닌 `payments-gateway`라는 label 값으로 설정되어 있는 것을 볼 수 있습니다. label이 catalog annotation과 달라 plugin이 이를 조회하지 못하는 상황입니다.
+``payments-gateway``가 ``payments-platform``이 아닌 ``payments-gateway``라는 label 값으로 설정되어 있는 것을 볼 수 있습니다. label이 catalog annotation과 달라 plugin이 이를 조회하지 못하는 상황입니다.
 
 이를 정상화하십시오:
 
@@ -304,7 +304,7 @@ Step 5에서 관찰한 바와 같이, `inventory-db-migrator` pod가 지속적�
 oc get pods -n inventory-team
 ----
 
-`inventory-db-migrator`가 CrashLoopBackOff 상태에 빠진 것을 확인할 수 있습니다. 로그를 수집하십시오:
+``inventory-db-migrator``가 CrashLoopBackOff 상태에 빠진 것을 확인할 수 있습니다. 로그를 수집하십시오:
 
 [source,bash,role="execute"]
 ----
@@ -365,7 +365,7 @@ oc patch backstage developer-hub -n backstage --type=merge -p '{"spec":{"monitor
 
 이 작업은 pod를 가동 중지하지 않고, Prometheus가 RHDH가 제공하는 다양한 metrics 엔드포인트를 정상 수집(scraping)할 수 있도록 operator에게 ServiceMonitor를 생성하도록 전파합니다.
 
-NOTE: 이를 위해서는 클러스터 내에 사용자 정의 워크로드 모니터링이 먼저 연동되어 있어야 합니다 (`cluster-monitoring-config`에서 `enableUserWorkload: true` 활성화). 이 속성은 금번 실습용 워크숍 클러스터 상에 기본 완비되어 있습니다. 고유 환경에서 연동 방법은 다음을 참고하십시오. link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/monitoring/enabling-monitoring-for-user-defined-projects[Enabling monitoring for user-defined projects, window=blank].
+NOTE: 이를 위해서는 클러스터 내에 사용자 정의 워크로드 모니터링이 먼저 연동되어 있어야 합니다 (``cluster-monitoring-config``에서 `enableUserWorkload: true` 활성화). 이 속성은 금번 실습용 워크숍 클러스터 상에 기본 완비되어 있습니다. 고유 환경에서 연동 방법은 다음을 참고하십시오. link:https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/monitoring/enabling-monitoring-for-user-defined-projects[Enabling monitoring for user-defined projects, window=blank].
 
 ServiceMonitor 리소스가 올바르게 기동되었는지 검증하십시오:
 
