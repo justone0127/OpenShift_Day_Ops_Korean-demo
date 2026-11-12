@@ -20,7 +20,7 @@ OpenShift Virtualization이 이미 설치되어 있어야 합니다. 확인하�
 oc get csv -n openshift-cnv | grep kubevirt
 ----
 
-예상 출력 결과에 `Succeeded`가 표시되는지 확인하십시오:
+예상 출력 결과에 ``Succeeded``가 표시되는지 확인하십시오:
 ----
 kubevirt-hyperconverged-operator.v4.20.x   OpenShift Virtualization   4.20.x   Succeeded
 ----
@@ -44,7 +44,7 @@ oc new-project vm-demo
 . **Create (생성)** 드롭다운을 클릭하고 **From InstanceType (인스턴스 유형에서)**을 선택하십시오.
 +
 image::virt-create-dropdown.png[Create VirtualMachine dropdown showing From InstanceType option, link=self, window=blank]
-. 상단의 **Project (프로젝트)** 드롭다운에 `vm-demo`가 선택되어 있는지 확인하십시오. 선택되어 있지 않다면 검색하여 지금 선택하십시오.
+. 상단의 **Project (프로젝트)** 드롭다운에 ``vm-demo``가 선택되어 있는지 확인하십시오. 선택되어 있지 않다면 검색하여 지금 선택하십시오.
 +
 image::virt-select-project.png[Project dropdown showing vm-demo search and selection, link=self, window=blank]
 
@@ -70,11 +70,11 @@ image::virt-create-wizard.png[VM creation wizard showing InstanceType selection 
 
 **Step 3: Configure and Create**
 
-IMPORTANT: VM 이름을 정확히 `rhel9-vm`으로 지정하고 project가 `vm-demo`로 설정되어 있는지 확인하십시오. 이 모듈의 나머지 부분에서 사용되는 명령어는 이 이름들을 기준으로 하므로, 다른 값을 사용하면 명령이 실패하게 됩니다.
+IMPORTANT: VM 이름을 정확히 ``rhel9-vm``으로 지정하고 project가 ``vm-demo``로 설정되어 있는지 확인하십시오. 이 모듈의 나머지 부분에서 사용되는 명령어는 이 이름들을 기준으로 하므로, 다른 값을 사용하면 명령이 실패하게 됩니다.
 
 **VirtualMachine details (가상 머신 상세 정보)** 섹션에서:
 
-1. **Name (이름)**을 `rhel9-vm`으로 변경하십시오.
+1. **Name (이름)**을 ``rhel9-vm``으로 변경하십시오.
 2. 기본값을 유지하십시오: **30 GiB** disk, 기본 storage class
 3. **Start this VirtualMachine after creation (생성 후 가상 머신 시작)** 체크박스가 선택된 상태를 유지하십시오.
 4. **Create VirtualMachine (가상 머신 생성)**을 클릭하십시오.
@@ -249,7 +249,7 @@ VM이 계속 실행되는 동안 정상적으로 이동되었습니다. 다운�
 . **rhel9-vm** 상세 페이지에서 **Actions (작업)** -> **Clone (복제)**을 클릭하십시오.
 +
 image::virt-actions-clone.png[Actions dropdown with Clone option highlighted, link=self, window=blank]
-. 이름을 `rhel9-vm-clone`으로 변경하십시오.
+. 이름을 ``rhel9-vm-clone``으로 변경하십시오.
 . **Start VirtualMachine once created (생성 후 가상 머신 시작)** 체크박스를 선택하십시오.
 . **Clone (복제)**을 클릭하십시오.
 +
@@ -279,7 +279,7 @@ image::virt-actions-snapshot.png[Actions dropdown with Take snapshot option, lin
 . 기본 이름(`rhel9-vm-snapshot`) 그대로 유지하고 **Save (저장)**를 클릭하십시오.
 +
 image::virt-snapshot-config.png[Take snapshot dialog with default name and disk selection, link=self, window=blank]
-NOTE: `cloudinitdisk`가 포함되지 않는다는 경고가 나타나는 것은 예상된 동작입니다. cloud-init은 첫 부팅 시에만 실행되므로 캡처할 필요가 없습니다.
+NOTE: ``cloudinitdisk``가 포함되지 않는다는 경고가 나타나는 것은 예상된 동작입니다. cloud-init은 첫 부팅 시에만 실행되므로 캡처할 필요가 없습니다.
 
 **Step 2: Verify the Snapshot**
 
@@ -314,7 +314,7 @@ sudo hostnamectl set-hostname broken-vm
 cat /etc/hostname
 ----
 
-호스트 이름이 `rhel9-vm`에서 `broken-vm`으로 변경되는 것을 볼 수 있습니다. 완료되면 **Ctrl+5**를 눌러 console에서 빠져나오거나, Terminal 탭의 **새로고침 버튼**을 클릭하여 원래 터미널로 복귀하십시오.
+호스트 이름이 ``rhel9-vm``에서 ``broken-vm``으로 변경되는 것을 볼 수 있습니다. 완료되면 **Ctrl+5**를 눌러 console에서 빠져나오거나, Terminal 탭의 **새로고침 버튼**을 클릭하여 원래 터미널로 복귀하십시오.
 
 이제 VM 상태가 변경되었습니다. 새 파일이 생성되었고 호스트 이름도 수정되었습니다. snapshot으로 복구하여 이 두 가지 변경 사항이 모두 이전 상태로 되돌아가는지 검증하겠습니다.
 
@@ -345,7 +345,7 @@ VM console에 연결하십시오:
 virtctl console rhel9-vm -n vm-demo
 ----
 
-NOTE: 커널 메시지나 systemd 서비스와 같은 부팅 과정의 텍스트가 스크롤되는 것이 나타날 수 있습니다. `rhel9-vm login:` 프롬프트가 나타날 때까지 대기하고, 필요한 경우 **Enter** 키를 누르십시오. 이전 명령의 자격 증명을 확인하기 위해 상단으로 스크롤이 불가능한 경우, `Ctrl+]`를 눌러 console에서 빠져나온 후 Terminal 탭을 새로고침하고 자격 증명 조회 명령을 다시 실행하십시오.
+NOTE: 커널 메시지나 systemd 서비스와 같은 부팅 과정의 텍스트가 스크롤되는 것이 나타날 수 있습니다. `rhel9-vm login:` 프롬프트가 나타날 때까지 대기하고, 필요한 경우 **Enter** 키를 누르십시오. 이전 명령의 자격 증명을 확인하기 위해 상단으로 스크롤이 불가능한 경우, ``Ctrl+]``를 눌러 console에서 빠져나온 후 Terminal 탭을 새로고침하고 자격 증명 조회 명령을 다시 실행하십시오.
 
 해당 자격 증명으로 로그인한 후 복구가 성공했는지 검증하십시오:
 
@@ -355,7 +355,7 @@ ls /home/rhel/important-data.txt
 cat /etc/hostname
 ----
 
-`ls` 명령어 결과로 `No such file or directory`가 출력되어야 합니다. 즉, 이전에 생성한 파일이 사라졌음을 뜻합니다. `cat /etc/hostname` 명령어 결과는 `broken-vm`이 아닌 원본 호스트 이름인 `rhel9-vm`을 출력해야 합니다. 즉, 호스트 이름 변경이 성공적으로 복구되었습니다. 디스크가 snapshot을 캡처했던 정확한 시점의 상태로 되돌아갔습니다. 이 방식을 통해 처음부터 다시 구성하지 않고도 잘못 설치된 OS 패치나 구성을 원상 복구할 수 있습니다.
+`ls` 명령어 결과로 ``No such file or directory``가 출력되어야 합니다. 즉, 이전에 생성한 파일이 사라졌음을 뜻합니다. `cat /etc/hostname` 명령어 결과는 ``broken-vm``이 아닌 원본 호스트 이름인 ``rhel9-vm``을 출력해야 합니다. 즉, 호스트 이름 변경이 성공적으로 복구되었습니다. 디스크가 snapshot을 캡처했던 정확한 시점의 상태로 되돌아갔습니다. 이 방식을 통해 처음부터 다시 구성하지 않고도 잘못 설치된 OS 패치나 구성을 원상 복구할 수 있습니다.
 
 Terminal 탭의 **새로고침 버튼**을 클릭하여 console에서 빠져나오십시오.
 
